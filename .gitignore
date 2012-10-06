@@ -10,3 +10,8 @@
 *.lai
 *.la
 *.a
+
+# Other files
+certs
+tmp
+olio_runme.sh

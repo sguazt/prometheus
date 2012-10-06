@@ -1,5 +1,35 @@
-/* This file contains trivial example code to connect to the running
- * hypervisor and gather a few bits of information.  */
+/**
+ * \file olio_sysid.hpp
+ *
+ * \brief Driver for performing system identification against an Apache Olio
+ *  instance.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ *
+ * <hr/>
+ *
+ * Copyright (C) 2012       Marco Guazzone
+ *                          [Distributed Computing System (DCS) Group,
+ *                           Computer Science Institute,
+ *                           Department of Science and Technological Innovation,
+ *                           University of Piemonte Orientale,
+ *                           Alessandria (Italy)]
+ *
+ * This file is part of Foobar.
+ *
+ * Foobar is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Foobar is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/smart_ptr.hpp>
@@ -57,6 +87,9 @@ void usage(char const* progname)
 			  << " --web-name <name>" << std::endl
 			  << "   The name of the domain running the OlioWeb VM." << std::endl
 			  << "   [default: OlioWeb]." << std::endl
+			  << " --wkl-driver-path <name>" << std::endl
+			  << "   The full path to the workload driver for Olio." << std::endl
+			  << "   [default: /usr/local/rain-workload-toolkit]." << std::endl
 			  << std::endl;
 }
 
@@ -74,6 +107,7 @@ int main(int argc, char *argv[])
 	::std::string olioweb_uri;
 	::std::string oliodb_name;
 	::std::string olioweb_name;
+	::std::string wkl_driver_path;
 
 	// Parse command line options
 	bool ok(true);
@@ -140,6 +174,19 @@ int main(int argc, char *argv[])
 				break;
 			}
 		}
+		else if (!std::strcmp("--wkl-driver-path", argv[arg]))
+		{
+			++arg;
+			if (arg < argc)
+			{
+				wkl_driver_path = argv[arg];
+			}
+			else
+			{
+				ok = false;
+				break;
+			}
+		}
 	}
 	if (!ok)
 	{
@@ -153,6 +200,10 @@ int main(int argc, char *argv[])
 	if (olioweb_name.empty())
 	{
 		olioweb_name = "OlioWeb";
+	}
+	if (wkl_driver_path.empty())
+	{
+		olioweb_name = "/usr/local/rain-workload-toolkit";
 	}
 
 	int ret(0);
@@ -176,6 +227,10 @@ int main(int argc, char *argv[])
 		oss << "OlioWeb VM name: " << olioweb_name;
 		log_info(oss.str());
 		oss.str("");
+
+		oss << "Workload driver path: " << wkl_driver_path;
+		log_info(oss.str());
+		oss.str("");
 	}
 
 	namespace testbed = ::dcs::testbed;
@@ -183,6 +238,8 @@ int main(int argc, char *argv[])
 
 	try
 	{
+		testbed::rain_workload_driver driver(wkl_driver_path);
+
 		boost::shared_ptr< testbed::base_virtual_machine<real_type> > p_oliodb_vm(new testbed::libvirt_virtual_machine<real_type>(oliodb_uri, oliodb_name));
 		boost::shared_ptr< testbed::base_virtual_machine<real_type> > p_olioweb_vm(new testbed::libvirt_virtual_machine<real_type>(olioweb_uri, olioweb_name));
 
@@ -196,6 +253,8 @@ int main(int argc, char *argv[])
 		boost::shared_ptr< testbed::base_signal_generator<real_type> > p_sig_gen(new testbed::sinusoidal_mesh_signal_generator<real_type>(ampl, freq, phase, bias));
 
 		testbed::system_identification<real_type> sysid(p_oliodb_vm, p_olioweb_vm, p_sig_gen);
+
+		driver.start();
 
 		sysid.run();
 	}
