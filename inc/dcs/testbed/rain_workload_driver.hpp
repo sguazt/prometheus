@@ -183,6 +183,12 @@ class rain_workload_driver: public base_workload_driver
 
 		p_proc_->asynch(true);
 		p_proc_->run(args_.begin(), args_.end());
+
+		if (p_proc_->status() != ::dcs::system::running_process_status)
+		{
+		   DCS_EXCEPTION_THROW(::std::runtime_error,
+							   "Unable to start RAIN workload driver");
+		}
 	}
 
 	private: void do_stop()
