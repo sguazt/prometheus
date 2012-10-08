@@ -38,6 +38,7 @@
 #include <cstdlib>
 #include <dcs/exception.hpp>
 #include <dcs/system/posix_process.hpp>
+#include <dcs/system/process_status_category.hpp>
 #include <dcs/testbed/base_workload_driver.hpp>
 #include <string>
 #include <vector>
