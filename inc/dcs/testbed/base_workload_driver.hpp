@@ -14,17 +14,19 @@ class base_workload_driver
 	{
 	}
 
-	public: void start(bool asynch = true)
+	public: void start()
 	{
+		this->do_start();
 	}
 
 	public: void stop()
 	{
+		this->do_stop();
 	}
 
-	private: virtual ::std::string do_command() const = 0;
+	private: virtual void do_start() = 0;
 
-	private: virtual ::std::vector< ::std::string > do_args() const = 0;
+	private: virtual void do_stop() = 0;
 
 }; // base_workload_driver
 
