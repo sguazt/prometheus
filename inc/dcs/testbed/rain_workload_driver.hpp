@@ -92,9 +92,11 @@ inline
 	::std::vector< ::std::string > args(arg_first, arg_last);
 
 	args.push_back("-cp");
-	args.push_back("\"" + rain_home + "/rain.jar:" + rain_home + "/workloads/" + workload + ".jar\"");
+	args.push_back(rain_home + "/rain.jar:" + rain_home + "/workloads/" + workload + ".jar");
 	args.push_back("radlab.rain.Benchmark");
 	args.push_back(rain_home + "/config/rain.config." + workload + ".json");
+	args.push_back(">/dev/null");
+	args.push_back("2>&1");
 
 	return args;
 }
