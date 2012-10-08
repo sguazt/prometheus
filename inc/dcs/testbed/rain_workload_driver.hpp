@@ -69,7 +69,7 @@ inline
 		return make_java_command(::std::string(java_path));
 	}
 
-	return ::std::string();
+	return ::std::string("java");
 }
 
 /**
@@ -91,7 +91,8 @@ inline
 {
 	::std::vector< ::std::string > args(arg_first, arg_last);
 
-	args.push_back("-cp \"" + rain_home + "/rain.jar:" + rain_home + "/workloads/" + workload + ".jar\"");
+	args.push_back("-cp");
+	args.push_back("\"" + rain_home + "/rain.jar:" + rain_home + "/workloads/" + workload + ".jar\"");
 	args.push_back("radlab.rain.Benchmark");
 	args.push_back(rain_home + "/config/rain.config." + workload + ".json");
 
