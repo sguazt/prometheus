@@ -42,6 +42,7 @@
 #include <dcs/testbed/base_virtual_machine.hpp>
 #include <dcs/testbed/base_workload_driver.hpp>
 #include <iterator>
+#include <unistd.h>
 #include <vector>
 
 #ifdef DCS_DEBUG
@@ -64,7 +65,11 @@ class system_identification
 	private: typedef ::std::vector<vm_pointer> vm_container;
 
 
+	private: static const unsigned int default_sampling_time = 10;
+
+
 	public: system_identification()
+	: ts_(default_sampling_time)
 	{
 	}
 
@@ -72,7 +77,8 @@ class system_identification
 			system_identification(FwdIterT vm_first, FwdIterT vm_last, workload_driver_pointer const& p_wkl_driver, signal_generator_pointer const& p_sig_gen)
 	: vms_(vm_first, vm_last),
 	  p_wkl_driver_(p_wkl_driver),
-	  p_sig_gen_(p_sig_gen)
+	  p_sig_gen_(p_sig_gen),
+	  ts_(default_sampling_time)
 	{
 	}
 
@@ -103,6 +109,7 @@ class system_identification
 
 		const ::std::size_t nt(10);//FIXME: parameterize
 
+		// Set initial shares
 		vm_iterator vm_end_it(vms_.end());
 		vm_iterator vm_beg_it(vms_.begin());
 		for (vm_iterator vm_it = vm_beg_it;
@@ -115,6 +122,10 @@ class system_identification
 			++share_first;
 		}
 
+		// Start the workload driver
+		p_wkl_driver_->start();
+
+		// Set shares according to the given signal
 		for (::std::size_t t = 0; t < nt; ++t)
 		{
 			share_container share((*p_sig_gen_)());
@@ -136,17 +147,25 @@ class system_identification
 				DCS_DEBUG_ASSERT( p_vm );
 
 				DCS_DEBUG_TRACE( "  VM '" << p_vm->name() << "' :: Old CPU share: " << p_vm->cpu_share() << " :: New CPU share: " << share[ix] );
+
 				p_vm->cpu_share(share[ix]);
 
 				++ix;
 			}
+
+			// Wait until the next sampling time
+			::sleep(ts_);
 		}
+
+		// Stop the workload driver
+		p_wkl_driver_->stop();
 	}
 
 
 	private: vm_container vms_; ///< VMs container
 	private: workload_driver_pointer p_wkl_driver_; ///< Ptr to workload driver
 	private: signal_generator_pointer p_sig_gen_; ///< Ptr to signal generator used to excite VMs
+	private: unsigned int ts_;
 }; // system_identification
 
 }} // Namespace dcs::testbed
