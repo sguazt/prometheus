@@ -1,11 +1,47 @@
+/**
+ * \file dcs/testbed/libvirt_virtual_machine.hpp
+ *
+ * \brief Manage VMs by means of libvirt toolkit.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ *
+ * <hr/>
+ *
+ * Copyright (C) 2012       Marco Guazzone
+ *                          [Distributed Computing System (DCS) Group,
+ *                           Computer Science Institute,
+ *                           Department of Science and Technological Innovation,
+ *                           University of Piemonte Orientale,
+ *                           Alessandria (Italy)]
+ *
+ * This file is part of dcsxx-testbed.
+ *
+ * dcsxx-testbed is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * dcsxx-testbed is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with dcsxx-testbed.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef DCS_TESTBED_LIBVIRT_VIRTUAL_MACHINE_HPP
 #define DCS_TESTBED_LIBVIRT_VIRTUAL_MACHINE_HPP
 
 
+#include <dcs/assert.hpp>
+#include <dcs/debug.hpp>
+#include <dcs/logging.hpp>
 #include <dcs/testbed/base_virtual_machine.hpp>
 #include <dcs/testbed/detail/libvirt.hpp>
 #include <iostream>
 #include <libvirt/libvirt.h>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -36,17 +72,29 @@ class libvirt_virtual_machine: public base_virtual_machine<RealT>
 		}
 		catch (::std::exception const& e)
 		{
-			::std::cerr << "[E] Failed to disconnect from hypervisor '" << uri_ << "': " << e.what();
+			::std::ostringstream oss;
+			oss << "Failed to disconnect from hypervisor '" << uri_ << "': " << e.what();
+			dcs::log_error(DCS_LOGGING_AT, oss.str());
 		}
 		catch (...)
 		{
-			::std::cerr << "[E] Failed to disconnect from hypervisor '" << uri_ << "': Unknown error";
+			::std::ostringstream oss;
+			oss << "Failed to disconnect from hypervisor '" << uri_ << "': Unknown error";
+			dcs::log_error(DCS_LOGGING_AT, oss.str());
 		}
+	}
+
+	private: ::std::string do_name() const
+	{
+		return name_;
 	}
 
 	private: int do_num_vcpus() const
 	{
-		assert( 0 != conn_ );
+		// pre: conn_ not null
+		DCS_ASSERT(0 != conn_,
+				   DCS_EXCEPTION_THROW(::std::runtime_error,
+									   "Not connected"));
 
 		virDomainPtr dom = detail::libvirt::connect_domain(conn_, name_);
 
@@ -59,7 +107,10 @@ class libvirt_virtual_machine: public base_virtual_machine<RealT>
 
 	private: void do_cpu_share(real_type share)
 	{
-		assert( 0 != conn_ );
+		// pre: conn_ not null
+		DCS_ASSERT(0 != conn_,
+				   DCS_EXCEPTION_THROW(::std::runtime_error,
+									   "Not connected"));
 
 		virDomainPtr dom = detail::libvirt::connect_domain(conn_, name_);
 
@@ -76,7 +127,10 @@ class libvirt_virtual_machine: public base_virtual_machine<RealT>
 
 	private: real_type do_cpu_share() const
 	{
-		assert( 0 != conn_ );
+		// pre: conn_ not null
+		DCS_ASSERT(0 != conn_,
+				   DCS_EXCEPTION_THROW(::std::runtime_error,
+									   "Not connected"));
 
 		virDomainPtr dom = detail::libvirt::connect_domain(conn_, name_);
 
