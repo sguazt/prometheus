@@ -273,6 +273,16 @@ class rain_workload_driver: public base_workload_driver
 		::pthread_mutex_unlock(&obs_mutex_);
 	}
 
+	private: ::pthread_t& rampup_thread()
+	{
+		return rampup_thread_;
+	}
+
+	private: ::pthread_t const& rampup_thread() const
+	{
+		return rampup_thread_;
+	}
+
 	private: void do_start()
 	{
 		// Stop previously running process and thread (if any)
@@ -468,6 +478,15 @@ void* thread_monitor_rain_steady_state(void* arg)
 	const ::std::size_t response_time_field = 4;
 
 	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
+
+	if (pthread_join(p_driver->rampup_thread(), 0) != 0)
+	{
+		::std::ostringstream oss;
+		oss << "Error while joining RAIN ramp-up thread: " << ::strerror(errno);
+
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+	::sleep(5);
 
 	::std::ifstream ifs(p_driver->metrics_file_path().c_str());
 
