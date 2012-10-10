@@ -35,7 +35,9 @@
 
 
 #include <boost/smart_ptr.hpp>
+#include <cerrno>
 #include <cstdlib>
+#include <cstring>
 #include <dcs/exception.hpp>
 #include <dcs/system/posix_process.hpp>
 #include <dcs/system/process_status_category.hpp>
@@ -144,20 +146,6 @@ class rain_workload_driver: public base_workload_driver
 	};
 
 
-	public: rain_workload_driver()
-	: p_thread_(0),
-	  p_mutex_(0)
-	{
-	}
-
-	public: ~rain_workload_driver()
-	{
-		if (p_thread_)
-		{
-			::pthread_join(*p_thread_, 0);
-		}
-	}
-
 	public: rain_workload_driver(workload_category wkl_cat)
 	: cmd_(detail::make_java_command()),
 	  args_(detail::make_rain_args(to_string(wkl_cat))),
@@ -194,6 +182,20 @@ class rain_workload_driver: public base_workload_driver
 	{
 	}
 
+	public: ~rain_workload_driver()
+	{
+		try
+		{
+			proc_.terminate();
+		}
+		catch (...)
+		{
+			// empty
+		}
+		::pthread_cancel(thread_);
+		::pthread_join(thread_, 0);
+	}
+
 	private: static ::std::string to_string(workload_category wkl_cat)
 	{
 		switch (wkl_cat)
@@ -208,59 +210,78 @@ class rain_workload_driver: public base_workload_driver
 
 	private: void ready(bool val)
 	{
-		::pthread_mutex_lock(p_mutex_);
+		::pthread_mutex_lock(&mutex_);
 			ready_ = val;
-		::pthread_mutex_unlock(p_mutex_);
+		::pthread_mutex_unlock(&mutex_);
 	}
 
-	private: sys_process_pointer process()
+	private: sys_process_type process()
 	{
-		return p_proc_;
+		return proc_;
 	}
 
-	private: sys_process_pointer process() const
+	private: sys_process_type process() const
 	{
-		return p_proc_;
+		return proc_;
 	}
 
 	private: void do_start()
 	{
-		if (p_proc_ && p_proc_->alive())
+		// Stop previously running process and thread (if any)
+		if (proc_.alive())
 		{
-			p_proc_->terminate();
+			proc_.terminate();
 		}
+		pthread_cancel(thread_);
+		pthread_join(thread_, 0);
 
+		// Run a new process
 		ready_ = false;
-		p_proc_ = ::boost::make_shared<sys_process_type>(cmd_);
-
-		p_proc_->asynch(true);
-		p_proc_->run(args_.begin(), args_.end(), false, false, true);
-
-		if (p_proc_->status() != ::dcs::system::running_process_status)
+		proc_ = sys_process_type(cmd_);
+		proc_.asynch(true);
+		proc_.run(args_.begin(), args_.end(), false, false, true);
+		if (proc_.status() != ::dcs::system::running_process_status)
 		{
-		   DCS_EXCEPTION_THROW(::std::runtime_error,
-							   "Unable to start RAIN workload driver");
+			::std::ostringstream oss;
+			oss << "Unable to start RAIN workload driver: " << ::strerror(errno);
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
 
-		//TODO: create a thread that monitor the output of the process
-		::pthread_create(p_thread_, 0, &detail::monitor_rain_rampup, this);
+		// Run a thread to monitor RAIN ramp-up (transient) phase
+		if (::pthread_create(&thread_, 0, &detail::monitor_rain_rampup, this) != 0)
+		{
+			::std::ostringstream oss;
+			oss << "Unable to start transient phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
+
+			DCS_EXCEPTION_THROW(::std::runtime_error,
+								"Unable to start transient phase monitor thread for the RAIN workload driver");
+		}
 	}
 
 	private: void do_stop()
 	{
-		p_proc_->terminate();
+		proc_.terminate();
 
-		if (::pthread_join(*p_thread_, 0) != 0)
+		if (::pthread_cancel(thread_) != 0)
 		{
-			DCS_EXCEPTION_THROW(::std::runtime_error,
-								"Unable to join thread");
+			::std::ostringstream oss;
+			oss << "Unable to cancel transient phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
-		p_thread_ = 0;
+		if (::pthread_join(thread_, 0) != 0)
+		{
+			::std::ostringstream oss;
+			oss << "Unable to join transient phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
 	}
 
 	private: bool do_alive() const
 	{
-		return p_proc_->alive();
+		return proc_.alive();
 	}
 
 	private: bool do_ready() const
@@ -271,10 +292,10 @@ class rain_workload_driver: public base_workload_driver
 
 	private: ::std::string cmd_;
 	private: ::std::vector< ::std::string > args_;
-	private: sys_process_pointer p_proc_;
 	private: bool ready_;
-	private: ::pthread_t* p_thread_;
-	private: ::pthread_mutex_t* p_mutex_;
+	private: sys_process_type proc_;
+	private: ::pthread_t thread_;
+	private: ::pthread_mutex_t mutex_;
 }; // rain_workload_driver
 
 namespace detail {
@@ -284,7 +305,7 @@ void* monitor_rain_rampup(void* arg)
 {
 	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
 
-	::std::istream& eis = p_driver->process()->error_stream();
+	::std::istream& eis = p_driver->process().error_stream();
 
 	while (eis.good())
 	{
