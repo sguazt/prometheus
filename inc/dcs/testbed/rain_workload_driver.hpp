@@ -168,7 +168,9 @@ class rain_workload_driver: public base_workload_driver
 	  metrics_path_(detail::make_rain_metrics_file_path()),
 	  ready_(false),
 	  rampup_thread_active_(false),
-	  steady_thread_active_(false)
+	  steady_thread_active_(false),
+	  ready_mutex_(PTHREAD_MUTEX_INITIALIZER),
+	  obs_mutex_(PTHREAD_MUTEX_INITIALIZER)
 	{
 	}
 
@@ -179,7 +181,9 @@ class rain_workload_driver: public base_workload_driver
 	  metrics_path_(detail::make_rain_metrics_file_path()),
 	  ready_(false),
 	  rampup_thread_active_(false),
-	  steady_thread_active_(false)
+	  steady_thread_active_(false),
+	  ready_mutex_(PTHREAD_MUTEX_INITIALIZER),
+	  obs_mutex_(PTHREAD_MUTEX_INITIALIZER)
 	{
 	}
 
@@ -191,7 +195,9 @@ class rain_workload_driver: public base_workload_driver
 	  metrics_path_(detail::make_rain_metrics_file_path()),
 	  ready_(false),
 	  rampup_thread_active_(false),
-	  steady_thread_active_(false)
+	  steady_thread_active_(false),
+	  ready_mutex_(PTHREAD_MUTEX_INITIALIZER),
+	  obs_mutex_(PTHREAD_MUTEX_INITIALIZER)
 	{
 	}
 
@@ -206,7 +212,9 @@ class rain_workload_driver: public base_workload_driver
 	  metrics_path_(detail::make_rain_metrics_file_path()),
 	  ready_(false),
 	  rampup_thread_active_(false),
-	  steady_thread_active_(false)
+	  steady_thread_active_(false),
+	  ready_mutex_(PTHREAD_MUTEX_INITIALIZER),
+	  obs_mutex_(PTHREAD_MUTEX_INITIALIZER)
 	{
 	}
 
@@ -475,6 +483,7 @@ void* thread_monitor_rain_steady_state(void* arg)
 	// - <total response time>
 	// - <number of observations>
 
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Entering");
 	const ::std::size_t response_time_field(4);
 	const ::std::size_t max_open_trials(5);
 
@@ -548,6 +557,7 @@ DCS_DEBUG_TRACE("Waiting... (Trial: " << trial << "/" << max_open_trials << ", Z
 					long rt_ms(0); // response time is given in multiple of ms
 					::std::istringstream iss(line.substr(pos, pos2-pos));
 					iss >> rt_ms;
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << rt_ms);
 					p_driver->add_observation(static_cast<double>(rt_ms));
 					break;
 				}
@@ -556,6 +566,7 @@ DCS_DEBUG_TRACE("Waiting... (Trial: " << trial << "/" << max_open_trials << ", Z
 	}
 
 	ifs.close();
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Leaving");
 
 	return 0;
 }
