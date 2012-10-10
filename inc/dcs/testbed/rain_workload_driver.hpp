@@ -34,7 +34,11 @@
 #define DCS_TESTBED_RAIN_WORKLOAD_DRIVER_HPP
 
 
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics/stats.hpp>
+#include <boost/accumulators/statistics/mean.hpp>
 #include <boost/smart_ptr.hpp>
+#include <cctype>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -42,10 +46,13 @@
 #include <dcs/system/posix_process.hpp>
 #include <dcs/system/process_status_category.hpp>
 #include <dcs/testbed/base_workload_driver.hpp>
+#include <fstream>
 #include <istream>
+#include <list>
 extern "C" {
 #include <pthread.h>
 }
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -124,9 +131,17 @@ inline
 	return make_rain_args(workload, ".");
 }
 
+inline
+::std::string make_rain_metrics_file_path(::std::string const& rain_home = ".", ::std::string const& suffix = "")
+{
+	  return rain_home + "/metrics-snapshots-cloudstone-001-" + suffix + ".log";
+}
+
 } // Namespace <unnamed>
 
-void* monitor_rain_rampup(void* arg);
+void* thread_monitor_rain_rampup(void* arg);
+
+void* thread_monitor_rain_steady_state(void* arg);
 
 } // Namespace detail
 
@@ -137,7 +152,8 @@ class rain_workload_driver: public base_workload_driver
 	private: typedef ::boost::shared_ptr<sys_process_type> sys_process_pointer;
 
 
-	friend void* detail::monitor_rain_rampup(void*);
+	friend void* detail::thread_monitor_rain_rampup(void*);
+	friend void* detail::thread_monitor_rain_steady_state(void*);
 
 
 	public: enum workload_category
@@ -149,8 +165,10 @@ class rain_workload_driver: public base_workload_driver
 	public: rain_workload_driver(workload_category wkl_cat)
 	: cmd_(detail::make_java_command()),
 	  args_(detail::make_rain_args(to_string(wkl_cat))),
+	  metrics_path_(detail::make_rain_metrics_file_path()),
 	  ready_(false),
-	  thread_active_(false)
+	  rampup_thread_active_(false),
+	  steady_thread_active_(false)
 	{
 	}
 
@@ -158,8 +176,10 @@ class rain_workload_driver: public base_workload_driver
 								 ::std::string const& rain_home)
 	: cmd_(detail::make_java_command()),
 	  args_(detail::make_rain_args(to_string(wkl_cat), rain_home)),
+	  metrics_path_(detail::make_rain_metrics_file_path(rain_home)),
 	  ready_(false),
-	  thread_active_(false)
+	  rampup_thread_active_(false),
+	  steady_thread_active_(false)
 	{
 	}
 
@@ -168,8 +188,10 @@ class rain_workload_driver: public base_workload_driver
 								 ::std::string const& java_home)
 	: cmd_(detail::make_java_command(java_home)),
 	  args_(detail::make_rain_args(to_string(wkl_cat), rain_home)),
+	  metrics_path_(detail::make_rain_metrics_file_path(rain_home)),
 	  ready_(false),
-	  thread_active_(false)
+	  rampup_thread_active_(false),
+	  steady_thread_active_(false)
 	{
 	}
 
@@ -181,8 +203,10 @@ class rain_workload_driver: public base_workload_driver
 								 FwdIterT arg_last)
 	: cmd_(detail::make_java_command(java_home)),
 	  args_(detail::make_rain_args(to_string(wkl_cat), rain_home, arg_first, arg_last)),
+	  metrics_path_(detail::make_rain_metrics_file_path(rain_home)),
 	  ready_(false),
-	  thread_active_(false)
+	  rampup_thread_active_(false),
+	  steady_thread_active_(false)
 	{
 	}
 
@@ -196,11 +220,21 @@ class rain_workload_driver: public base_workload_driver
 		{
 			// empty
 		}
-		if (thread_active_)
+		if (rampup_thread_active_)
 		{
-			::pthread_cancel(thread_);
-			::pthread_join(thread_, 0);
+			::pthread_cancel(rampup_thread_);
+			::pthread_join(rampup_thread_, 0);
 		}
+		if (steady_thread_active_)
+		{
+			::pthread_cancel(steady_thread_);
+			::pthread_join(steady_thread_, 0);
+		}
+	}
+
+	public: ::std::string metrics_file_path() const
+	{
+		return metrics_path_;
 	}
 
 	private: static ::std::string to_string(workload_category wkl_cat)
@@ -217,9 +251,9 @@ class rain_workload_driver: public base_workload_driver
 
 	private: void ready(bool val)
 	{
-		::pthread_mutex_lock(&mutex_);
+		::pthread_mutex_lock(&ready_mutex_);
 			ready_ = val;
-		::pthread_mutex_unlock(&mutex_);
+		::pthread_mutex_unlock(&ready_mutex_);
 	}
 
 	private: sys_process_type& process()
@@ -232,6 +266,13 @@ class rain_workload_driver: public base_workload_driver
 		return proc_;
 	}
 
+	private: void add_observation(double obs)
+	{
+		::pthread_mutex_lock(&obs_mutex_);
+			obs_.push_back(obs);
+		::pthread_mutex_unlock(&obs_mutex_);
+	}
+
 	private: void do_start()
 	{
 		// Stop previously running process and thread (if any)
@@ -239,15 +280,21 @@ class rain_workload_driver: public base_workload_driver
 		{
 			proc_.terminate();
 		}
-		if (thread_active_)
+		if (rampup_thread_active_)
 		{
-			pthread_cancel(thread_);
-			pthread_join(thread_, 0);
+			pthread_cancel(rampup_thread_);
+			pthread_join(rampup_thread_, 0);
+		}
+		if (steady_thread_active_)
+		{
+			pthread_cancel(steady_thread_);
+			pthread_join(steady_thread_, 0);
 		}
 
 		// Run a new process
 		ready_ = false;
-		thread_active_ = false;
+		rampup_thread_active_ = false;
+		steady_thread_active_ = false;
 		proc_.command(cmd_);
 		proc_.asynch(true);
 		proc_.run(args_.begin(), args_.end(), false, true);
@@ -260,38 +307,65 @@ class rain_workload_driver: public base_workload_driver
 		}
 
 		// Run a thread to monitor RAIN ramp-up (transient) phase
-		if (::pthread_create(&thread_, 0, &detail::monitor_rain_rampup, this) != 0)
+		if (::pthread_create(&rampup_thread_, 0, &detail::thread_monitor_rain_rampup, this) != 0)
 		{
 			::std::ostringstream oss;
-			oss << "Unable to start transient phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
+			oss << "Unable to start ramp-up phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
 
-			DCS_EXCEPTION_THROW(::std::runtime_error,
-								"Unable to start transient phase monitor thread for the RAIN workload driver");
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
-		thread_active_ = true;
+		rampup_thread_active_ = true;
+		// Run a thread to monitor RAIN steady-state phase
+		if (::pthread_create(&steady_thread_, 0, &detail::thread_monitor_rain_steady_state, this) != 0)
+		{
+			::std::ostringstream oss;
+			oss << "Unable to start steady-state monitor thread for the RAIN workload driver: " << ::strerror(errno);
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+		steady_thread_active_ = true;
 	}
 
 	private: void do_stop()
 	{
 		proc_.terminate();
 
-		if (thread_active_)
+		if (rampup_thread_active_)
 		{
-			if (::pthread_cancel(thread_) != 0)
+			if (::pthread_cancel(rampup_thread_) != 0)
 			{
 				::std::ostringstream oss;
-				oss << "Unable to cancel transient phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
+				oss << "Unable to cancel ramp-up phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
 
 				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 			}
-			if (::pthread_join(thread_, 0) != 0)
+			if (::pthread_join(rampup_thread_, 0) != 0)
 			{
 				::std::ostringstream oss;
-				oss << "Unable to join transient phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
+				oss << "Unable to join ramp-up phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
 
 				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 			}
-			thread_active_ = false;
+			rampup_thread_active_ = false;
+		}
+
+		if (steady_thread_active_)
+		{
+			if (::pthread_cancel(steady_thread_) != 0)
+			{
+				::std::ostringstream oss;
+				oss << "Unable to cancel ramp-up phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
+
+				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+			}
+			if (::pthread_join(steady_thread_, 0) != 0)
+			{
+				::std::ostringstream oss;
+				oss << "Unable to join ramp-up phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
+
+				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+			}
+			steady_thread_active_ = false;
 		}
 	}
 
@@ -302,23 +376,50 @@ class rain_workload_driver: public base_workload_driver
 
 	private: bool do_ready() const
 	{
-		return ready_;
+		bool ret(false);
+
+		::pthread_mutex_lock(&ready_mutex_);
+			ret = ready_;
+		::pthread_mutex_unlock(&ready_mutex_);
+
+		return ret;
+	}
+
+	public: double do_observation() const
+	{
+		//FIXME: parameterize the type of statistics the user want
+		::boost::accumulators::accumulator_set< double, ::boost::accumulators::stats< ::boost::accumulators::tag::mean > > acc;
+
+		::pthread_mutex_lock(&obs_mutex_);
+			while (!obs_.empty())
+			{
+				acc(obs_.front());
+				obs_.pop_front();
+			}
+		::pthread_mutex_unlock(&obs_mutex_);
+
+		return ::boost::accumulators::mean(acc);
 	}
 
 
 	private: ::std::string cmd_;
 	private: ::std::vector< ::std::string > args_;
+	private: ::std::string metrics_path_;
 	private: bool ready_;
-	private: bool thread_active_;
+	private: bool rampup_thread_active_;
+	private: bool steady_thread_active_;
 	private: sys_process_type proc_;
-	private: ::pthread_t thread_;
-	private: ::pthread_mutex_t mutex_;
+	private: mutable ::std::list<unsigned long> obs_;
+	private: ::pthread_t rampup_thread_;
+	private: ::pthread_t steady_thread_;
+	private: mutable ::pthread_mutex_t ready_mutex_;
+	private: mutable ::pthread_mutex_t obs_mutex_;
 }; // rain_workload_driver
+
 
 namespace detail {
 
-inline
-void* monitor_rain_rampup(void* arg)
+void* thread_monitor_rain_rampup(void* arg)
 {
 	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
 
@@ -335,6 +436,70 @@ void* monitor_rain_rampup(void* arg)
 		{
 			p_driver->ready(true);
 			break;
+		}
+	}
+
+	return 0;
+}
+
+void* thread_monitor_rain_steady_state(void* arg)
+{
+	// Parse the RAIN metric snapshot file
+	// Available fields in a row (each field is separated by one or more white-spaces):
+	// - '[' <generated-during> ']'
+	// - <timestamp>
+	// - <operation name>
+	// - <response time>
+	// - '[' <operation request> ']'
+	// - <total response time>
+	// - <number of observations>
+
+	const ::std::size_t response_time_field = 4;
+
+	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
+
+	::std::ifstream ifs(p_driver->metrics_file_path().c_str());
+
+	while (ifs.good())
+	{
+		::std::string line;
+
+		::std::getline(ifs, line);
+
+		::std::size_t n(line.size());
+		::std::size_t field(0);
+		for (::std::size_t pos = 0; pos < n; ++pos)
+		{
+			// eat all heading space
+			for (; pos < n && ::std::isspace(line[pos]); ++pos)
+			{
+				;
+			}
+			if (pos < n)
+			{
+				++field;
+				if (field < response_time_field)
+				{
+					// skip these fields
+					for (; pos < n && !::std::isspace(line[pos]); ++pos)
+					{
+						;
+					}
+				}
+				else
+				{
+					::std::size_t pos2 = pos;
+					for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
+					{
+						;
+					}
+					long rt_ms(0); // response time is given in multiple of ms
+					::std::istringstream iss(line.substr(pos, pos2-pos));
+					iss >> rt_ms;
+					p_driver->add_observation(static_cast<double>(rt_ms));
+					break;
+				}
+			}
 		}
 	}
 

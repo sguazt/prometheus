@@ -34,6 +34,11 @@ class base_workload_driver
 		return do_ready();
 	}
 
+	public: double observation() const
+	{
+		return do_observation();
+	}
+
 	private: virtual void do_start() = 0;
 
 	private: virtual void do_stop() = 0;
@@ -41,6 +46,8 @@ class base_workload_driver
 	private: virtual bool do_alive() const = 0;
 
 	private: virtual bool do_ready() const = 0;
+
+	private: virtual double do_observation() const = 0;
 
 }; // base_workload_driver
 
