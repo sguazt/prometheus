@@ -475,7 +475,8 @@ void* thread_monitor_rain_steady_state(void* arg)
 	// - <total response time>
 	// - <number of observations>
 
-	const ::std::size_t response_time_field = 4;
+	const ::std::size_t response_time_field(4);
+	const ::std::size_t max_open_trials(5);
 
 	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
 
@@ -486,10 +487,24 @@ void* thread_monitor_rain_steady_state(void* arg)
 
 		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
-	::sleep(2);
 
-	::std::ifstream ifs(p_driver->metrics_file_path().c_str());
-	if (!ifs.is_open() || !ifs.good())
+	::std::size_t trial(0);
+	unsigned int zzz_time(2);
+	::std::ifstream ifs;
+	do
+	{
+		++trial;
+
+DCS_DEBUG_TRACE("Waiting... (Trial: " << trial << "/" << max_open_trials << ", Zzz: " << zzz_time << ")");
+		::sleep(zzz_time);
+		++zzz_time;
+
+		ifs.open(p_driver->metrics_file_path().c_str());
+	}
+	while (trial < max_open_trials && !ifs.good());
+
+	//if (!ifs.is_open() || !ifs.good())
+	if (!ifs.good())
 	{
 		::std::ostringstream oss;
 		oss << "Cannot open file '" << p_driver->metrics_file_path() << "'";
