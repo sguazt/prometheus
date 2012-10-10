@@ -107,7 +107,7 @@ class system_identification
 		typedef typename vm_container::const_iterator vm_iterator;
 		typedef typename signal_generator_type::vector_type share_container;
 
-		const ::std::size_t nt(10);//FIXME: parameterize
+		//const ::std::size_t nt(10);//FIXME: parameterize
 
 		// Set initial shares
 		vm_iterator vm_end_it(vms_.end());
@@ -126,35 +126,41 @@ class system_identification
 		p_wkl_driver_->start();
 
 		// Set shares according to the given signal
-		for (::std::size_t t = 0; t < nt; ++t)
+		::std::size_t t(0);
+		while (p_wkl_driver_->alive())
 		{
-			share_container share((*p_sig_gen_)());
-
-			// check: consistency
-			DCS_DEBUG_ASSERT( share.size() == vms_.size() );
-
-			DCS_DEBUG_TRACE( "-- Time " << t );
-			DCS_DEBUG_TRACE( "  Generated shares: " << dcs::debug::to_string(share.begin(), share.end()) );
-
-			::std::size_t ix(0);
-			for (vm_iterator vm_it = vm_beg_it;
-				 vm_it != vm_end_it;
-				 ++vm_it)
+			if (p_wkl_driver_->ready())
 			{
-				vm_pointer p_vm(*vm_it);
+				share_container share((*p_sig_gen_)());
 
-				// check: not null
-				DCS_DEBUG_ASSERT( p_vm );
+				// check: consistency
+				DCS_DEBUG_ASSERT( share.size() == vms_.size() );
 
-				DCS_DEBUG_TRACE( "  VM '" << p_vm->name() << "' :: Old CPU share: " << p_vm->cpu_share() << " :: New CPU share: " << share[ix] );
+				DCS_DEBUG_TRACE( "-- Time " << (t*ts_) );
+				DCS_DEBUG_TRACE( "   Generated shares: " << dcs::debug::to_string(share.begin(), share.end()) );
 
-				p_vm->cpu_share(share[ix]);
+				::std::size_t ix(0);
+				for (vm_iterator vm_it = vm_beg_it;
+					 vm_it != vm_end_it;
+					 ++vm_it)
+				{
+					vm_pointer p_vm(*vm_it);
 
-				++ix;
+					// check: not null
+					DCS_DEBUG_ASSERT( p_vm );
+
+					DCS_DEBUG_TRACE( "   VM '" << p_vm->name() << "' :: Old CPU share: " << p_vm->cpu_share() << " :: New CPU share: " << share[ix] );
+
+					p_vm->cpu_share(share[ix]);
+
+					++ix;
+				}
+
+				// Wait until the next sampling time
+				::sleep(ts_);
 			}
 
-			// Wait until the next sampling time
-			::sleep(ts_);
+			++t;
 		}
 
 		// Stop the workload driver
