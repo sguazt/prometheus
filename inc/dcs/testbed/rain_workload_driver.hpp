@@ -222,12 +222,12 @@ class rain_workload_driver: public base_workload_driver
 		::pthread_mutex_unlock(&mutex_);
 	}
 
-	private: sys_process_type process()
+	private: sys_process_type& process()
 	{
 		return proc_;
 	}
 
-	private: sys_process_type process() const
+	private: sys_process_type const& process() const
 	{
 		return proc_;
 	}
@@ -248,7 +248,7 @@ class rain_workload_driver: public base_workload_driver
 		// Run a new process
 		ready_ = false;
 		thread_active_ = false;
-		proc_ = sys_process_type(cmd_);
+		proc_.command(cmd_);
 		proc_.asynch(true);
 		proc_.run(args_.begin(), args_.end(), false, true);
 		if (proc_.status() != ::dcs::system::running_process_status)
