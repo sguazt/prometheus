@@ -24,9 +24,23 @@ class base_workload_driver
 		this->do_stop();
 	}
 
+	public: bool alive() const
+	{
+		return do_alive();
+	}
+
+	public: bool ready() const
+	{
+		return do_ready();
+	}
+
 	private: virtual void do_start() = 0;
 
 	private: virtual void do_stop() = 0;
+
+	private: virtual bool do_alive() const = 0;
+
+	private: virtual bool do_ready() const = 0;
 
 }; // base_workload_driver
 
