@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
 	}
 	if (wkl_driver_path.empty())
 	{
-		olioweb_name = "/usr/local/rain-workload-toolkit";
+		wkl_driver_path = "/usr/local/rain-workload-toolkit";
 	}
 
 	int ret(0);
