@@ -250,7 +250,7 @@ class rain_workload_driver: public base_workload_driver
 		thread_active_ = false;
 		proc_ = sys_process_type(cmd_);
 		proc_.asynch(true);
-		proc_.run(args_.begin(), args_.end(), false, false, true);
+		proc_.run(args_.begin(), args_.end(), false, true);
 		if (proc_.status() != ::dcs::system::running_process_status)
 		{
 			::std::ostringstream oss;
@@ -322,13 +322,13 @@ void* monitor_rain_rampup(void* arg)
 {
 	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
 
-	::std::istream& eis = p_driver->process().error_stream();
+	::std::istream& is = p_driver->process().output_stream();
 
-	while (eis.good())
+	while (is.good())
 	{
 		::std::string line;
 
-		::std::getline(eis, line);
+		::std::getline(is, line);
 
 		// Look for "Ramp up finished!" string
 		if (line.find("Ramp up finished") != ::std::string::npos)
