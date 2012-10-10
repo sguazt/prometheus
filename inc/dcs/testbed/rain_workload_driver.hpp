@@ -149,7 +149,8 @@ class rain_workload_driver: public base_workload_driver
 	public: rain_workload_driver(workload_category wkl_cat)
 	: cmd_(detail::make_java_command()),
 	  args_(detail::make_rain_args(to_string(wkl_cat))),
-	  ready_(false)
+	  ready_(false),
+	  thread_active_(false)
 	{
 	}
 
@@ -157,7 +158,8 @@ class rain_workload_driver: public base_workload_driver
 								 ::std::string const& rain_home)
 	: cmd_(detail::make_java_command()),
 	  args_(detail::make_rain_args(to_string(wkl_cat), rain_home)),
-	  ready_(false)
+	  ready_(false),
+	  thread_active_(false)
 	{
 	}
 
@@ -166,7 +168,8 @@ class rain_workload_driver: public base_workload_driver
 								 ::std::string const& java_home)
 	: cmd_(detail::make_java_command(java_home)),
 	  args_(detail::make_rain_args(to_string(wkl_cat), rain_home)),
-	  ready_(false)
+	  ready_(false),
+	  thread_active_(false)
 	{
 	}
 
@@ -178,7 +181,8 @@ class rain_workload_driver: public base_workload_driver
 								 FwdIterT arg_last)
 	: cmd_(detail::make_java_command(java_home)),
 	  args_(detail::make_rain_args(to_string(wkl_cat), rain_home, arg_first, arg_last)),
-	  ready_(false)
+	  ready_(false),
+	  thread_active_(false)
 	{
 	}
 
@@ -192,8 +196,11 @@ class rain_workload_driver: public base_workload_driver
 		{
 			// empty
 		}
-		::pthread_cancel(thread_);
-		::pthread_join(thread_, 0);
+		if (thread_active_)
+		{
+			::pthread_cancel(thread_);
+			::pthread_join(thread_, 0);
+		}
 	}
 
 	private: static ::std::string to_string(workload_category wkl_cat)
@@ -232,11 +239,15 @@ class rain_workload_driver: public base_workload_driver
 		{
 			proc_.terminate();
 		}
-		pthread_cancel(thread_);
-		pthread_join(thread_, 0);
+		if (thread_active_)
+		{
+			pthread_cancel(thread_);
+			pthread_join(thread_, 0);
+		}
 
 		// Run a new process
 		ready_ = false;
+		thread_active_ = false;
 		proc_ = sys_process_type(cmd_);
 		proc_.asynch(true);
 		proc_.run(args_.begin(), args_.end(), false, false, true);
@@ -257,25 +268,30 @@ class rain_workload_driver: public base_workload_driver
 			DCS_EXCEPTION_THROW(::std::runtime_error,
 								"Unable to start transient phase monitor thread for the RAIN workload driver");
 		}
+		thread_active_ = true;
 	}
 
 	private: void do_stop()
 	{
 		proc_.terminate();
 
-		if (::pthread_cancel(thread_) != 0)
+		if (thread_active_)
 		{
-			::std::ostringstream oss;
-			oss << "Unable to cancel transient phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
+			if (::pthread_cancel(thread_) != 0)
+			{
+				::std::ostringstream oss;
+				oss << "Unable to cancel transient phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
 
-			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
-		}
-		if (::pthread_join(thread_, 0) != 0)
-		{
-			::std::ostringstream oss;
-			oss << "Unable to join transient phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
+				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+			}
+			if (::pthread_join(thread_, 0) != 0)
+			{
+				::std::ostringstream oss;
+				oss << "Unable to join transient phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
 
-			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+			}
+			thread_active_ = false;
 		}
 	}
 
@@ -293,6 +309,7 @@ class rain_workload_driver: public base_workload_driver
 	private: ::std::string cmd_;
 	private: ::std::vector< ::std::string > args_;
 	private: bool ready_;
+	private: bool thread_active_;
 	private: sys_process_type proc_;
 	private: ::pthread_t thread_;
 	private: ::pthread_mutex_t mutex_;
