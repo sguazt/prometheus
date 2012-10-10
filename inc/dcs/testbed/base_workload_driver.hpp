@@ -34,6 +34,11 @@ class base_workload_driver
 		return do_ready();
 	}
 
+	public: bool has_observation() const
+	{
+		return do_has_observation();
+	}
+
 	public: double observation() const
 	{
 		return do_observation();
@@ -46,6 +51,8 @@ class base_workload_driver
 	private: virtual bool do_alive() const = 0;
 
 	private: virtual bool do_ready() const = 0;
+
+	private: virtual bool do_has_observation() const = 0;
 
 	private: virtual double do_observation() const = 0;
 

@@ -385,7 +385,18 @@ class rain_workload_driver: public base_workload_driver
 		return ret;
 	}
 
-	public: double do_observation() const
+	private: bool do_has_observation() const
+	{
+		bool ret(false);
+
+		::pthread_mutex_lock(&obs_mutex_);
+			ret = !obs_.empty();
+		::pthread_mutex_unlock(&obs_mutex_);
+
+		return ret;
+	}
+
+	private: double do_observation() const
 	{
 		//FIXME: parameterize the type of statistics the user want
 		::boost::accumulators::accumulator_set< double, ::boost::accumulators::stats< ::boost::accumulators::tag::mean > > acc;

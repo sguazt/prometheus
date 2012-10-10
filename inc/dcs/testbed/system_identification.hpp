@@ -129,7 +129,7 @@ class system_identification
 		::std::size_t t(0);
 		while (p_wkl_driver_->alive())
 		{
-			if (p_wkl_driver_->ready())
+			if (p_wkl_driver_->ready() && p_wkl_driver_->has_observation())
 			{
 				share_container share((*p_sig_gen_)());
 
@@ -138,6 +138,7 @@ class system_identification
 
 				DCS_DEBUG_TRACE( "-- Time " << (t*ts_) );
 				DCS_DEBUG_TRACE( "   Generated shares: " << dcs::debug::to_string(share.begin(), share.end()) );
+				DCS_DEBUG_TRACE( "   Current Response Time: " << p_wkl_driver_->observation() );
 
 				::std::size_t ix(0);
 				for (vm_iterator vm_it = vm_beg_it;
