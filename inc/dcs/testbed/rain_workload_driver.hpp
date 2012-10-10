@@ -132,9 +132,9 @@ inline
 }
 
 inline
-::std::string make_rain_metrics_file_path(::std::string const& rain_home = ".", ::std::string const& suffix = "")
+::std::string make_rain_metrics_file_path(::std::string const& path = ".", ::std::string const& suffix = "")
 {
-	  return rain_home + "/metrics-snapshots-cloudstone-001-" + suffix + ".log";
+	  return path + "/metrics-snapshots-cloudstone-001-" + suffix + ".log";
 }
 
 } // Namespace <unnamed>
@@ -176,7 +176,7 @@ class rain_workload_driver: public base_workload_driver
 								 ::std::string const& rain_home)
 	: cmd_(detail::make_java_command()),
 	  args_(detail::make_rain_args(to_string(wkl_cat), rain_home)),
-	  metrics_path_(detail::make_rain_metrics_file_path(rain_home)),
+	  metrics_path_(detail::make_rain_metrics_file_path()),
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false)
@@ -188,7 +188,7 @@ class rain_workload_driver: public base_workload_driver
 								 ::std::string const& java_home)
 	: cmd_(detail::make_java_command(java_home)),
 	  args_(detail::make_rain_args(to_string(wkl_cat), rain_home)),
-	  metrics_path_(detail::make_rain_metrics_file_path(rain_home)),
+	  metrics_path_(detail::make_rain_metrics_file_path()),
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false)
@@ -203,7 +203,7 @@ class rain_workload_driver: public base_workload_driver
 								 FwdIterT arg_last)
 	: cmd_(detail::make_java_command(java_home)),
 	  args_(detail::make_rain_args(to_string(wkl_cat), rain_home, arg_first, arg_last)),
-	  metrics_path_(detail::make_rain_metrics_file_path(rain_home)),
+	  metrics_path_(detail::make_rain_metrics_file_path()),
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false)
@@ -486,9 +486,16 @@ void* thread_monitor_rain_steady_state(void* arg)
 
 		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
-	::sleep(5);
+	::sleep(2);
 
 	::std::ifstream ifs(p_driver->metrics_file_path().c_str());
+	if (!ifs.is_open() || !ifs.good())
+	{
+		::std::ostringstream oss;
+		oss << "Cannot open file '" << p_driver->metrics_file_path() << "'";
+
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
 
 	while (ifs.good())
 	{
@@ -532,6 +539,8 @@ void* thread_monitor_rain_steady_state(void* arg)
 			}
 		}
 	}
+
+	ifs.close();
 
 	return 0;
 }
