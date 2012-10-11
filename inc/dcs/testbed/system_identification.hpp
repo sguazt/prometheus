@@ -36,6 +36,7 @@
 
 #include <boost/smart_ptr.hpp>
 #include <cstddef>
+#include <ctime>
 #include <dcs/assert.hpp>
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
@@ -150,7 +151,9 @@ class system_identification
 		p_wkl_driver_->start();
 
 		// Set shares according to the given signal
-		::std::size_t t(0);
+		::std::time_t t0;
+		::std::time_t t1;
+		t0 = ::std::time(&t1);
 		while (p_wkl_driver_->alive())
 		{
 			if (p_wkl_driver_->ready() && p_wkl_driver_->has_observation())
@@ -162,11 +165,14 @@ class system_identification
 
 				double rt = p_wkl_driver_->observation();
 
-				DCS_DEBUG_TRACE( "-- Time " << (t*ts_) );
+				t0 = t1;
+				::std::time(&t1);
+				double dt = ::std::difftime(t1, t0);
+				DCS_DEBUG_TRACE( "-- Time " << dt );
 				DCS_DEBUG_TRACE( "   Generated shares: " << dcs::debug::to_string(share.begin(), share.end()) );
 				DCS_DEBUG_TRACE( "   Current Response Time: " << rt );
 
-				ofs << t*ts_ << " " << rt;
+				ofs << dt << " " << rt;
 
 				::std::size_t ix(0);
 				for (vm_iterator vm_it = vm_beg_it;
@@ -192,8 +198,6 @@ class system_identification
 				// Wait until the next sampling time
 				::sleep(ts_);
 			}
-
-			++t;
 		}
 
 		// Stop the workload driver
