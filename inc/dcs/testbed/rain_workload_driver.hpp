@@ -156,6 +156,17 @@ class rain_workload_driver: public base_workload_driver
 	friend void* detail::thread_monitor_rain_steady_state(void*);
 
 
+	// We need to use such variable to initialize mutexes until C++11.
+	// Instead, since C++11, we can replace it with 'extended initializer
+	// lists' in the constructor, that is:
+	//   public: rain_workload_driver(...)
+	//   : ...,
+	//     ready_mutex_(PTHREAD_MUTEX_INITIALIZER),
+	//     obs_mutex_(PTHREAD_MUTEX_INITIALIZER)
+	//   {...}
+	private: static const ::pthread_mutex_t mutex_init_val_;
+
+
 	public: enum workload_category
 	{
 		olio_workload
@@ -169,8 +180,8 @@ class rain_workload_driver: public base_workload_driver
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
-	  ready_mutex_(PTHREAD_MUTEX_INITIALIZER),
-	  obs_mutex_(PTHREAD_MUTEX_INITIALIZER)
+	  ready_mutex_(mutex_init_val_),
+	  obs_mutex_(mutex_init_val_)
 	{
 	}
 
@@ -182,8 +193,8 @@ class rain_workload_driver: public base_workload_driver
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
-	  ready_mutex_(PTHREAD_MUTEX_INITIALIZER),
-	  obs_mutex_(PTHREAD_MUTEX_INITIALIZER)
+	  ready_mutex_(mutex_init_val_),
+	  obs_mutex_(mutex_init_val_)
 	{
 	}
 
@@ -196,8 +207,8 @@ class rain_workload_driver: public base_workload_driver
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
-	  ready_mutex_(PTHREAD_MUTEX_INITIALIZER),
-	  obs_mutex_(PTHREAD_MUTEX_INITIALIZER)
+	  ready_mutex_(mutex_init_val_),
+	  obs_mutex_(mutex_init_val_)
 	{
 	}
 
@@ -213,8 +224,8 @@ class rain_workload_driver: public base_workload_driver
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
-	  ready_mutex_(PTHREAD_MUTEX_INITIALIZER),
-	  obs_mutex_(PTHREAD_MUTEX_INITIALIZER)
+	  ready_mutex_(mutex_init_val_),
+	  obs_mutex_(mutex_init_val_)
 	{
 	}
 
@@ -445,6 +456,7 @@ class rain_workload_driver: public base_workload_driver
 	private: mutable ::pthread_mutex_t obs_mutex_;
 }; // rain_workload_driver
 
+const ::pthread_mutex_t rain_workload_driver::mutex_init_val_ = PTHREAD_MUTEX_INITIALIZER;
 
 namespace detail {
 
