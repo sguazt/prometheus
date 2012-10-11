@@ -1,3 +1,35 @@
+/**
+ * \file dcs/testbed/guassian_signal_generator.hpp
+ *
+ * \brief Generates signals according to a Normal distribution.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ *
+ * <hr/>
+ *
+ * Copyright (C) 2012       Marco Guazzone
+ *                          [Distributed Computing System (DCS) Group,
+ *                           Computer Science Institute,
+ *                           Department of Science and Technological Innovation,
+ *                           University of Piemonte Orientale,
+ *                           Alessandria (Italy)]
+ *
+ * This file is part of dcsxx-testbed.
+ *
+ * dcsxx-testbed is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * dcsxx-testbed is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with dcsxx-testbed. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef DCS_TESTBED_GAUSSIAN_SIGNAL_GENERATOR_HPP
 #define DCS_TESTBED_GAUSSIAN_SIGNAL_GENERATOR_HPP
 
@@ -12,8 +44,7 @@
 
 namespace dcs { namespace testbed {
 
-//FIXME: I need a way to pass a reference to a generic RNG in the constructor. But HOW?!?!?
-template <typename ValueT>
+template <typename ValueT, typename RandomGeneratorT>
 class gaussian_signal_generator: public base_signal_generator<ValueT>
 {
 	private: typedef base_signal_generator<ValueT> base_type;
@@ -21,9 +52,11 @@ class gaussian_signal_generator: public base_signal_generator<ValueT>
 	public: typedef typename base_type::vector_type vector_type;
 	private: typedef ::boost::random::normal_distribution<value_type> normal_distribution_type;
 	private: typedef ::std::vector<normal_distribution_type> normal_distribution_container;
+	private: typedef RandomGeneratorT random_generator_type;
 
 
-	public: gaussian_signal_generator(vector_type const& mu0, vector_type const& sigma0)
+	public: gaussian_signal_generator(vector_type const& mu0, vector_type const& sigma0, random_generator_type& rng)
+	: rng_(rng)
 	{
 		namespace ublas = ::boost::numeric::ublas;
 
@@ -40,20 +73,17 @@ class gaussian_signal_generator: public base_signal_generator<ValueT>
 		}
 	}
 
-//TODO: Commented until the FIXME above has not been solved
-//	private: vector_type do_generate()
-//	{
-//		random_generator_pointer ptr_rng(::dcs::eesim::registry<traits_type>::instance().uniform_random_generator_ptr());
-//
-//		::std::size_t n(distrs_.size());
-//		vector_type u(n);
-//		for (::std::size_t i = 0; i < n; ++i)
-//		{
-//			u(i) = distrs_[i](*ptr_rng);
-//		}
-//
-//		return u;
-//	}
+	private: vector_type do_generate()
+	{
+		::std::size_t n(distrs_.size());
+		vector_type u(n);
+		for (::std::size_t i = 0; i < n; ++i)
+		{
+			u(i) = distrs_[i](rng_);
+		}
+
+		return u;
+	}
 
 	private: void do_reset()
 	{
@@ -61,6 +91,7 @@ class gaussian_signal_generator: public base_signal_generator<ValueT>
 	}
 
 
+	private: random_generator_type& rng_;
 	private: normal_distribution_container distrs_;
 };
 
