@@ -1,7 +1,7 @@
 /**
  * \file dcs/testbed/libvirt_virtual_machine.hpp
  *
- * \brief Manage VMs by means of libvirt toolkit.
+ * \brief Manages VMs by means of libvirt toolkit.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *

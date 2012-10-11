@@ -1,7 +1,7 @@
 /**
  * \file dcs/testbed/system_identification.hpp
  *
- * \brief Class to perform a system identification experiment.
+ * \brief Performs system identification experiments.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
