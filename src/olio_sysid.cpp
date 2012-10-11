@@ -42,6 +42,7 @@
 #include <dcs/testbed/virtual_machines.hpp>
 #include <dcs/testbed/workload_drivers.hpp>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <stdexcept>
 #include <vector>
@@ -63,6 +64,9 @@ void usage(char const* progname)
 			  << " --out-dat-file <file path>" << std::endl
 			  << "   The path to the output data file." << std::endl
 			  << "   [default: ./olio-sysid-out.dat]." << std::endl
+			  << " --ts <time in secs>" << std::endl
+			  << "   Sampling time (in seconds)." << std::endl
+			  << "   [default: 10]." << std::endl
 			  << " --verbose" << std::endl
 			  << "   Show verbose messages." << std::endl
 			  << "   [default: disabled]." << std::endl
@@ -94,6 +98,7 @@ int main(int argc, char *argv[])
 	std::string olioweb_name;
 	std::string wkl_driver_path;
 	std::string out_dat_file;
+	double ts(10);
 
 	// Parse command line options
 	bool ok(true);
@@ -134,6 +139,19 @@ int main(int argc, char *argv[])
 			if (arg < argc)
 			{
 				out_dat_file = argv[arg];
+			}
+			else
+			{
+				ok = false;
+			}
+		}
+		else if (!std::strcmp("--ts", argv[arg]))
+		{
+			++arg;
+			if (arg < argc)
+			{
+				std::istringstream iss(argv[arg]);
+				iss >> ts;
 			}
 			else
 			{
@@ -225,11 +243,15 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
-		oss << "Workload driver path: " << wkl_driver_path;
+		oss << "Output data file: " << out_dat_file;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
-		oss << "Output data file: " << out_dat_file;
+		oss << "Sampling Time: " << ts;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Workload driver path: " << wkl_driver_path;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 	}
@@ -261,6 +283,7 @@ int main(int argc, char *argv[])
 
 		testbed::system_identification<real_type> sysid(vms.begin(), vms.end(), p_driver, p_sig_gen);
 		sysid.output_data_file(out_dat_file);
+		sysid.sampling_time(ts);
 
 		sysid.run();
 	}

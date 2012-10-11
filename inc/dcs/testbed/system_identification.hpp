@@ -45,6 +45,7 @@
 #include <dcs/testbed/base_workload_driver.hpp>
 #include <fstream>
 #include <iterator>
+#include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -75,12 +76,14 @@ class system_identification
 	private: static const ::std::string default_output_data_file_path;
 
 
+	/// Default constructor.
 	public: system_identification()
 	: ts_(default_sampling_time),
 	  out_dat_file_(default_output_data_file_path)
 	{
 	}
 
+	/// A constructor.
 	public: template <typename FwdIterT>
 			system_identification(FwdIterT vm_first, FwdIterT vm_last, workload_driver_pointer const& p_wkl_driver, signal_generator_pointer const& p_sig_gen)
 	: vms_(vm_first, vm_last),
@@ -94,7 +97,27 @@ class system_identification
 	/// Set the path of the output data file.
 	public: void output_data_file(::std::string const& s)
 	{
+		// pre: s != ""
+		DCS_ASSERT(!s.empty(),
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Cannot use empty string as output data file name"));
+
 		out_dat_file_ = s;
+	}
+
+	/// Set the sampling time.
+	public: void sampling_time(real_type t)
+	{
+		// pre: t > 0
+		DCS_ASSERT(t > 0,
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Sampling time must be positive"));
+		// pre: t <= max value
+		DCS_ASSERT(t <= ::std::numeric_limits<unsigned int>::max(),
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Sampling time too large"));
+
+		ts_ = static_cast<unsigned int>(t);
 	}
 
 	/**
