@@ -521,50 +521,91 @@ DCS_DEBUG_TRACE("Waiting... (Trial: " << trial << "/" << max_open_trials << ", Z
 		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 
-	while (ifs.good())
+	// Emulate the behavior of 'tail -f' command
+	::std::ifstream::pos_type fpos(0);
+	bool new_data(false);
+	do
 	{
-		::std::string line;
-
-		::std::getline(ifs, line);
-
-		::std::size_t n(line.size());
-		::std::size_t field(0);
-		for (::std::size_t pos = 0; pos < n; ++pos)
+		while (ifs.good())
 		{
-			// eat all heading space
-			for (; pos < n && ::std::isspace(line[pos]); ++pos)
+			fpos = ifs.tellg();
+
+			::std::string line;
+
+			::std::getline(ifs, line);
+
+DCS_DEBUG_TRACE("IFS STREAM -- POS: " << fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
+			::std::size_t n(line.size());
+			::std::size_t field(0);
+			for (::std::size_t pos = 0; pos < n; ++pos)
 			{
-				;
-			}
-			if (pos < n)
-			{
-				++field;
-				if (field < response_time_field)
+				// eat all heading space
+				for (; pos < n && ::std::isspace(line[pos]); ++pos)
 				{
-					// skip these fields
-					for (; pos < n && !::std::isspace(line[pos]); ++pos)
-					{
-						;
-					}
+					;
 				}
-				else
+				if (pos < n)
 				{
-					::std::size_t pos2 = pos;
-					for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
+					++field;
+					if (field < response_time_field)
 					{
-						;
+						// skip these fields
+						for (; pos < n && !::std::isspace(line[pos]); ++pos)
+						{
+							;
+						}
 					}
-					long rt_ms(0); // response time is given in multiple of ms
-					::std::istringstream iss(line.substr(pos, pos2-pos));
-					iss >> rt_ms;
+					else
+					{
+						::std::size_t pos2 = pos;
+						for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
+						{
+							;
+						}
+						long rt_ms(0); // response time is given in multiple of ms
+						::std::istringstream iss(line.substr(pos, pos2-pos));
+						iss >> rt_ms;
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << rt_ms);
-					p_driver->add_observation(static_cast<double>(rt_ms));
-					break;
+						p_driver->add_observation(static_cast<double>(rt_ms));
+						break;
+					}
 				}
 			}
 		}
-	}
+		ifs.close();
 
+		// Found EOF. Two possible reasons:
+		// 1. There is no data to read
+		// 2. There is new data but we need to refresh input buffers
+		// Investigate...
+
+		zzz_time = 1;
+		trial = 0;
+		do
+		{
+			++trial;
+			sleep(zzz_time);
+			++zzz_time;
+			ifs.open(p_driver->metrics_file_path().c_str());
+			ifs.seekg(0, ::std::ios_base::end);
+			if (fpos != ifs.tellg())
+			{
+				// The file has changed, we are in case #2
+				ifs.seekg(fpos);
+				new_data = true;
+DCS_DEBUG_TRACE("SOUGHT IFS STREAM -- OLD POS: " << fpos << " - POS: " << ifs.tellg() << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
+			}
+			else
+			{
+				// The file has not changed, maybe we are in case #1 (or simply we have to wait for other few secs)
+				new_data = false;
+			}
+		}
+		while (trial < max_open_trials && !new_data);
+	}
+	while (new_data);
+
+DCS_DEBUG_TRACE("OUT-OF-LOOP IFS STREAM -- EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
 	ifs.close();
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Leaving");
 
