@@ -34,6 +34,7 @@
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/smart_ptr.hpp>
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <dcs/logging.hpp>
 #include <dcs/testbed/signal_generators.hpp>
@@ -59,8 +60,12 @@ void usage(char const* progname)
 			  << "   [default: OlioDB]." << std::endl
 			  << " --help" << std::endl
 			  << "   Show this message." << std::endl
+			  << " --out-dat-file <file path>" << std::endl
+			  << "   The path to the output data file." << std::endl
+			  << "   [default: ./olio-sysid-out.dat]." << std::endl
 			  << " --verbose" << std::endl
 			  << "   Show verbose messages." << std::endl
+			  << "   [default: disabled]." << std::endl
 			  << " --web-uri <URI>" << std::endl
 			  << "   The URI used to connect to the libvirtd server where the OlioWeb VM is running." << std::endl
 			  << "   [default: default URI of this machine]." << std::endl
@@ -83,15 +88,16 @@ int main(int argc, char *argv[])
 //	::std::cout << "Attempting to connect to OlioDB and OlioWeb hypervisors" << ::std::endl;
 
 	bool verbose(false);
-	::std::string oliodb_uri;
-	::std::string olioweb_uri;
-	::std::string oliodb_name;
-	::std::string olioweb_name;
-	::std::string wkl_driver_path;
+	std::string oliodb_uri;
+	std::string olioweb_uri;
+	std::string oliodb_name;
+	std::string olioweb_name;
+	std::string wkl_driver_path;
+	std::string out_dat_file;
 
 	// Parse command line options
 	bool ok(true);
-	for (int arg = 1; arg < argc; ++arg)
+	for (int arg = 1; arg < argc && ok; ++arg)
 	{
 		if (!std::strcmp("--db-uri", argv[arg]))
 		{
@@ -103,7 +109,6 @@ int main(int argc, char *argv[])
 			else
 			{
 				ok = false;
-				break;
 			}
 		}
 		else if (!std::strcmp("--db-name", argv[arg]))
@@ -116,13 +121,24 @@ int main(int argc, char *argv[])
 			else
 			{
 				ok = false;
-				break;
 			}
 		}
 		else if (!std::strcmp("--help", argv[arg]))
 		{
 			usage(argv[0]);
 			return 0;
+		}
+		else if (!std::strcmp("--out-dat-file", argv[arg]))
+		{
+			++arg;
+			if (arg < argc)
+			{
+				out_dat_file = argv[arg];
+			}
+			else
+			{
+				ok = false;
+			}
 		}
 		else if (!std::strcmp("--verbose", argv[arg]))
 		{
@@ -138,7 +154,6 @@ int main(int argc, char *argv[])
 			else
 			{
 				ok = false;
-				break;
 			}
 		}
 		else if (!std::strcmp("--web-name", argv[arg]))
@@ -151,7 +166,6 @@ int main(int argc, char *argv[])
 			else
 			{
 				ok = false;
-				break;
 			}
 		}
 		else if (!std::strcmp("--wkl-driver-path", argv[arg]))
@@ -164,14 +178,13 @@ int main(int argc, char *argv[])
 			else
 			{
 				ok = false;
-				break;
 			}
 		}
 	}
 	if (!ok)
 	{
 		usage(argv[0]);
-		return 1;
+		return EXIT_FAILURE;
 	}
 	if (oliodb_name.empty())
 	{
@@ -184,6 +197,10 @@ int main(int argc, char *argv[])
 	if (wkl_driver_path.empty())
 	{
 		wkl_driver_path = "/usr/local/rain-workload-toolkit";
+	}
+	if (out_dat_file.empty())
+	{
+		out_dat_file = "./olio-sysid-out.dat";
 	}
 
 	int ret(0);
@@ -209,6 +226,10 @@ int main(int argc, char *argv[])
 		oss.str("");
 
 		oss << "Workload driver path: " << wkl_driver_path;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Output data file: " << out_dat_file;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 	}
@@ -239,6 +260,7 @@ int main(int argc, char *argv[])
 		boost::shared_ptr< testbed::base_signal_generator<real_type> > p_sig_gen(new testbed::sinusoidal_mesh_signal_generator<real_type>(ampl, freq, phase, bias));
 
 		testbed::system_identification<real_type> sysid(vms.begin(), vms.end(), p_driver, p_sig_gen);
+		sysid.output_data_file(out_dat_file);
 
 		sysid.run();
 	}

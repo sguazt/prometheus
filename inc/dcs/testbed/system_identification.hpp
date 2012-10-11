@@ -38,10 +38,15 @@
 #include <cstddef>
 #include <dcs/assert.hpp>
 #include <dcs/debug.hpp>
+#include <dcs/exception.hpp>
 #include <dcs/testbed/base_signal_generator.hpp>
 #include <dcs/testbed/base_virtual_machine.hpp>
 #include <dcs/testbed/base_workload_driver.hpp>
+#include <fstream>
 #include <iterator>
+#include <sstream>
+#include <stdexcept>
+#include <string>
 #include <unistd.h>
 #include <vector>
 
@@ -66,10 +71,12 @@ class system_identification
 
 
 	private: static const unsigned int default_sampling_time = 10;
+	private: static const ::std::string default_output_data_file_path;
 
 
 	public: system_identification()
-	: ts_(default_sampling_time)
+	: ts_(default_sampling_time),
+	  out_dat_file_(default_output_data_file_path)
 	{
 	}
 
@@ -78,8 +85,15 @@ class system_identification
 	: vms_(vm_first, vm_last),
 	  p_wkl_driver_(p_wkl_driver),
 	  p_sig_gen_(p_sig_gen),
-	  ts_(default_sampling_time)
+	  ts_(default_sampling_time),
+	  out_dat_file_(default_output_data_file_path)
 	{
+	}
+
+	/// Set the path of the output data file.
+	public: void output_data_file(::std::string const& s)
+	{
+		out_dat_file_ = s;
 	}
 
 	/**
@@ -109,6 +123,16 @@ class system_identification
 
 		//const ::std::size_t nt(10);//FIXME: parameterize
 
+		// Open output data file
+		::std::ofstream ofs(out_dat_file_.c_str());
+		if (!ofs.good())
+		{
+			::std::ostringstream oss;
+			oss << "Cannot open output data file '" << out_dat_file_ << "'";
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+
 		// Set initial shares
 		vm_iterator vm_end_it(vms_.end());
 		vm_iterator vm_beg_it(vms_.begin());
@@ -136,9 +160,13 @@ class system_identification
 				// check: consistency
 				DCS_DEBUG_ASSERT( share.size() == vms_.size() );
 
+				double rt = p_wkl_driver_->observation();
+
 				DCS_DEBUG_TRACE( "-- Time " << (t*ts_) );
 				DCS_DEBUG_TRACE( "   Generated shares: " << dcs::debug::to_string(share.begin(), share.end()) );
-				DCS_DEBUG_TRACE( "   Current Response Time: " << p_wkl_driver_->observation() );
+				DCS_DEBUG_TRACE( "   Current Response Time: " << rt );
+
+				ofs << t*ts_ << " " << rt;
 
 				::std::size_t ix(0);
 				for (vm_iterator vm_it = vm_beg_it;
@@ -152,10 +180,14 @@ class system_identification
 
 					DCS_DEBUG_TRACE( "   VM '" << p_vm->name() << "' :: Old CPU share: " << p_vm->cpu_share() << " :: New CPU share: " << share[ix] );
 
+					ofs << " " << p_vm->cpu_share();
+
 					p_vm->cpu_share(share[ix]);
 
 					++ix;
 				}
+
+				ofs << ::std::endl;
 
 				// Wait until the next sampling time
 				::sleep(ts_);
@@ -166,14 +198,21 @@ class system_identification
 
 		// Stop the workload driver
 		p_wkl_driver_->stop();
+
+		// Close output data file
+		ofs.close();
 	}
 
 
 	private: vm_container vms_; ///< VMs container
 	private: workload_driver_pointer p_wkl_driver_; ///< Ptr to workload driver
 	private: signal_generator_pointer p_sig_gen_; ///< Ptr to signal generator used to excite VMs
-	private: unsigned int ts_;
+	private: unsigned int ts_; ///< The sampling time
+	private: ::std::string out_dat_file_; ///< The path to the output data file
 }; // system_identification
+
+template <typename RealT>
+const ::std::string system_identification<RealT>::default_output_data_file_path("./sysid_out.dat");
 
 }} // Namespace dcs::testbed
 
