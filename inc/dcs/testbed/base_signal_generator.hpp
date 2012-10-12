@@ -34,7 +34,7 @@
 #define DCS_TESTBED_BASE_SIGNAL_GENERATOR_HPP
 
 
-#include <boost/numeric/ublas/vector.hpp>
+#include <vector>
 
 
 namespace dcs { namespace testbed {
@@ -43,7 +43,7 @@ template <typename ValueT>
 class base_signal_generator
 {
 	public: typedef ValueT value_type;
-	public: typedef ::boost::numeric::ublas::vector<value_type> vector_type;
+	public: typedef ::std::vector<value_type> vector_type;
 
 
 	public: vector_type operator()()

@@ -34,9 +34,10 @@
 #define DCS_TESTBED_GAUSSIAN_SIGNAL_GENERATOR_HPP
 
 
-#include <boost/numeric/ublas/operation/size.hpp>
 #include <boost/random/normal_distribution.hpp>
 #include <cstddef>
+#include <dcs/assert.hpp>
+#include <dcs/exception.hpp>
 #include <dcs/testbed/base_signal_generator.hpp>
 #include <stdexcept>
 #include <vector>
@@ -58,18 +59,14 @@ class gaussian_signal_generator: public base_signal_generator<ValueT>
 	public: gaussian_signal_generator(vector_type const& mu0, vector_type const& sigma0, random_generator_type& rng)
 	: rng_(rng)
 	{
-		namespace ublas = ::boost::numeric::ublas;
-
 		// pre: size(mu0) == size(sigma0)
-		if (ublas::size(mu0) != ublas::size(sigma0))
-		{
-				throw ::std::invalid_argument("Invalid vector size for Gaussian signal generator");
-		}
+		DCS_ASSERT(mu0.size() == sigma0.size(),
+				   DCS_EXCEPTION_THROW(::std::invalid_argument, "Size of input vectors does not match"));
 
-		::std::size_t n(ublas::size(mu0));
+		::std::size_t n(mu0.size());
 		for (::std::size_t i = 0; i < n; ++i)
 		{
-			distrs_.push_back(normal_distribution_type(mu0(i), sigma0(i)));
+			distrs_.push_back(normal_distribution_type(mu0[i], sigma0[i]));
 		}
 	}
 
@@ -79,7 +76,7 @@ class gaussian_signal_generator: public base_signal_generator<ValueT>
 		vector_type u(n);
 		for (::std::size_t i = 0; i < n; ++i)
 		{
-			u(i) = distrs_[i](rng_);
+			u[i] = distrs_[i](rng_);
 		}
 
 		return u;

@@ -34,7 +34,6 @@
 #define DCS_TESTBED_UNIFORM_SIGNAL_GENERATOR_HPP
 
 
-#include <boost/numeric/ublas/operation/size.hpp>
 #include <boost/random/uniform_real_distribution.hpp>
 #include <cstddef>
 #include <dcs/assert.hpp>
@@ -57,17 +56,15 @@ class uniform_signal_generator: public base_signal_generator<ValueT>
 	public: uniform_signal_generator(vector_type const& u_min, vector_type const& u_max, random_generator_type& rng)
 	: rng_(rng)
 	{
-		namespace ublas = ::boost::numeric::ublas;
-
 		// pre: size(u_min) == size(u_max)
-		DCS_ASSERT(ublas::size(u_min) == ublas::size(u_max),
+		DCS_ASSERT(u_min.size() == u_max.size(),
 				   DCS_EXCEPTION_THROW(::std::invalid_argument,
 									   "Size of min and max vectors does not match"));
 
-		::std::size_t n(ublas::size(u_min));
+		::std::size_t n(u_min.size());
 		for (::std::size_t i = 0; i < n; ++i)
 		{
-			distrs_.push_back(uniform_distribution_type(u_min(i), u_max(i)));
+			distrs_.push_back(uniform_distribution_type(u_min[i], u_max[i]));
 		}
 	}
 
@@ -78,7 +75,7 @@ class uniform_signal_generator: public base_signal_generator<ValueT>
 		vector_type u(n);
 		for (::std::size_t i = 0; i < n; ++i)
 		{
-			u(i) = distrs_[i](rng_);
+			u[i] = distrs_[i](rng_);
 		}
 
 		return u;

@@ -34,7 +34,6 @@
 #define DCS_TESTBED_SAWTOOTH_SIGNAL_GENERATOR_HPP
 
 
-#include <boost/numeric/ublas/operation/size.hpp>
 #include <dcs/testbed/base_signal_generator.hpp>
 #include <cstddef>
 
@@ -59,13 +58,13 @@ class sawtooth_signal_generator: public base_signal_generator<ValueT>
 
 	private: vector_type do_generate()
 	{
-		::std::size_t n(::boost::numeric::ublas::size(u_));
+		::std::size_t n(u_.size());
 		for (::std::size_t i = 0; i < n; ++i)
 		{
-			u_(i) += h_(i);
-			if (u_(i) > uh_(i))
+			u_[i] += h_[i];
+			if (u_[i] > uh_[i])
 			{
-				u_(i) = ul_(i);
+				u_[i] = ul_[i];
 			}
 		}
 

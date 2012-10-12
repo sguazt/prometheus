@@ -31,7 +31,6 @@
  * along with dcsxx-testbed.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <boost/numeric/ublas/vector.hpp>
 #include <boost/random.hpp>
 #include <boost/smart_ptr.hpp>
 #include <cstddef>
@@ -343,7 +342,6 @@ int main(int argc, char *argv[])
 	}
 
 	namespace testbed = ::dcs::testbed;
-	namespace ublas = ::boost::numeric::ublas;
 
 	typedef boost::shared_ptr< testbed::base_virtual_machine<real_type> > vm_pointer;
 	//typedef boost::random::mt19937 random_generator_type;
@@ -370,54 +368,54 @@ int main(int argc, char *argv[])
 		{
 			case detail::constant_signal:
 				{
-					ublas::scalar_vector<real_type> u0(nt, 1);
+					std::vector<real_type> u0(nt, 1);
 					p_sig_gen = boost::make_shared< testbed::constant_signal_generator<real_type> >(u0);
 				}
 				break;
 			case detail::gaussian_signal:
 				{
-					ublas::scalar_vector<real_type> mean(nt, sig_gauss_mean);
-					ublas::scalar_vector<real_type> sd(nt, sig_gauss_sd);
+					std::vector<real_type> mean(nt, sig_gauss_mean);
+					std::vector<real_type> sd(nt, sig_gauss_sd);
 					p_sig_gen = boost::shared_ptr< testbed::base_signal_generator<real_type> >(new testbed::gaussian_signal_generator<real_type, random_generator_type>(mean, sd, rng));
 				}
 				break;
 			case detail::sawtooth_signal:
 				{
-					ublas::scalar_vector<real_type> low(nt, sig_sawtooth_low);
-					ublas::scalar_vector<real_type> high(nt, sig_sawtooth_high);
-					ublas::scalar_vector<real_type> incr(nt, sig_sawtooth_incr);
+					std::vector<real_type> low(nt, sig_sawtooth_low);
+					std::vector<real_type> high(nt, sig_sawtooth_high);
+					std::vector<real_type> incr(nt, sig_sawtooth_incr);
 					p_sig_gen = boost::make_shared< testbed::sawtooth_signal_generator<real_type> >(low, high, incr);
 				}
 				break;
 			case detail::sinusoidal_signal:
 				{
-					ublas::scalar_vector<real_type> ampl(nt, sig_sine_ampl);
-					ublas::scalar_vector<real_type> freq(nt, sig_sine_freq);
-					ublas::scalar_vector<real_type> phase(nt, sig_sine_phase);
-					ublas::scalar_vector<real_type> bias(nt, sig_sine_bias);
-					p_sig_gen = boost::make_shared< testbed::sinusoidal_signal_generator<real_type> >(ampl, freq, phase, bias);
+					std::vector<real_type> ampl(nt, sig_sine_ampl);
+					std::vector<uint_type> freq(nt, sig_sine_freq);
+					std::vector<uint_type> phase(nt, sig_sine_phase);
+					std::vector<real_type> bias(nt, sig_sine_bias);
+					p_sig_gen = boost::make_shared< testbed::sinusoidal_signal_generator<real_type,uint_type> >(ampl, freq, phase, bias);
 				}
 				break;
 			case detail::sinusoidal_mesh_signal:
 				{
-					ublas::scalar_vector<real_type> ampl(nt, sig_sine_mesh_ampl);
-					ublas::scalar_vector<real_type> freq(nt, sig_sine_mesh_freq);
-					ublas::scalar_vector<real_type> phase(nt, sig_sine_mesh_phase);
-					ublas::scalar_vector<real_type> bias(nt, sig_sine_mesh_bias);
-					p_sig_gen = boost::make_shared< testbed::sinusoidal_mesh_signal_generator<real_type> >(ampl, freq, phase, bias);
+					std::vector<real_type> ampl(nt, sig_sine_mesh_ampl);
+					std::vector<uint_type> freq(nt, sig_sine_mesh_freq);
+					std::vector<uint_type> phase(nt, sig_sine_mesh_phase);
+					std::vector<real_type> bias(nt, sig_sine_mesh_bias);
+					p_sig_gen = boost::make_shared< testbed::sinusoidal_mesh_signal_generator<real_type,uint_type> >(ampl, freq, phase, bias);
 				}
 				break;
 			case detail::square_signal:
 				{
-					ublas::scalar_vector<real_type> low(nt, sig_square_low);
-					ublas::scalar_vector<real_type> high(nt, sig_square_high);
+					std::vector<real_type> low(nt, sig_square_low);
+					std::vector<real_type> high(nt, sig_square_high);
 					p_sig_gen = boost::make_shared< testbed::square_signal_generator<real_type> >(low, high);
 				}
 				break;
 			case detail::uniform_signal:
 				{
-					ublas::scalar_vector<real_type> min(nt, sig_unif_min);
-					ublas::scalar_vector<real_type> max(nt, sig_unif_max);
+					std::vector<real_type> min(nt, sig_unif_min);
+					std::vector<real_type> max(nt, sig_unif_max);
 					//p_sig_gen = boost::make_shared< testbed::uniform_signal_generator<real_type,random_generator_type> >(min, max, rng);
 					p_sig_gen = boost::shared_ptr< testbed::base_signal_generator<real_type> >(new testbed::uniform_signal_generator<real_type, random_generator_type>(min, max, rng));
 				}
