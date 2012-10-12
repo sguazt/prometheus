@@ -34,9 +34,6 @@
 #define DCS_TESTBED_RAIN_WORKLOAD_DRIVER_HPP
 
 
-#include <boost/accumulators/accumulators.hpp>
-#include <boost/accumulators/statistics/stats.hpp>
-#include <boost/accumulators/statistics/mean.hpp>
 #include <boost/smart_ptr.hpp>
 #include <cctype>
 #include <cerrno>
@@ -285,7 +282,7 @@ class rain_workload_driver: public base_workload_driver
 		return proc_;
 	}
 
-	private: void add_observation(double obs)
+	private: void add_observation(real_type obs)
 	{
 		::pthread_mutex_lock(&obs_mutex_);
 			obs_.push_back(obs);
@@ -425,10 +422,26 @@ class rain_workload_driver: public base_workload_driver
 		return ret;
 	}
 
-	private: double do_observation() const
+	private: ::std::vector<real_type> do_observations() const
+	{
+		::std::vector<real_type> obs;
+
+		::pthread_mutex_lock(&obs_mutex_);
+			while (!obs_.empty())
+			{
+				obs.push_back(obs_.front());
+				obs_.pop_front();
+			}
+		::pthread_mutex_unlock(&obs_mutex_);
+
+		return obs;
+	}
+
+/*
+	private: real_type do_observation() const
 	{
 		//FIXME: parameterize the type of statistics the user want
-		::boost::accumulators::accumulator_set< double, ::boost::accumulators::stats< ::boost::accumulators::tag::mean > > acc;
+		::boost::accumulators::accumulator_set< real_type, ::boost::accumulators::stats< ::boost::accumulators::tag::mean > > acc;
 
 		::pthread_mutex_lock(&obs_mutex_);
 			while (!obs_.empty())
@@ -440,6 +453,7 @@ class rain_workload_driver: public base_workload_driver
 
 		return ::boost::accumulators::mean(acc);
 	}
+*/
 
 
 	private: ::std::string cmd_;
@@ -449,7 +463,7 @@ class rain_workload_driver: public base_workload_driver
 	private: bool rampup_thread_active_;
 	private: bool steady_thread_active_;
 	private: sys_process_type proc_;
-	private: mutable ::std::list<unsigned long> obs_;
+	private: mutable ::std::list<real_type> obs_;
 	private: ::pthread_t rampup_thread_;
 	private: ::pthread_t steady_thread_;
 	private: mutable ::pthread_mutex_t ready_mutex_;

@@ -430,6 +430,7 @@ int main(int argc, char *argv[])
 		testbed::system_identification<real_type> sysid(vms.begin(), vms.end(), p_driver, p_sig_gen);
 		sysid.output_data_file(out_dat_file);
 		sysid.sampling_time(ts);
+		sysid.output_extended_format(true);
 
 		sysid.run();
 	}

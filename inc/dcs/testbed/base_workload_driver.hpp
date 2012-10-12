@@ -42,6 +42,9 @@ namespace dcs { namespace testbed {
 
 class base_workload_driver
 {
+	public: typedef double real_type;
+
+
 	public: virtual ~base_workload_driver()
 	{
 	}
@@ -71,9 +74,14 @@ class base_workload_driver
 		return do_has_observation();
 	}
 
-	public: double observation() const
+//	public: real_type observation() const
+//	{
+//		return do_observation();
+//	}
+
+	public: ::std::vector<real_type> observations() const
 	{
-		return do_observation();
+		return do_observations();
 	}
 
 	private: virtual void do_start() = 0;
@@ -86,7 +94,9 @@ class base_workload_driver
 
 	private: virtual bool do_has_observation() const = 0;
 
-	private: virtual double do_observation() const = 0;
+//	private: virtual double do_observation() const = 0;
+
+	private: virtual ::std::vector<real_type> do_observations() const = 0;
 
 }; // base_workload_driver
 

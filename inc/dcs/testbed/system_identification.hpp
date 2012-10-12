@@ -33,7 +33,9 @@
 #ifndef DCS_TESTBED_SYSTEM_IDENTIFICATION_HPP
 #define DCS_TESTBED_SYSTEM_IDENTIFICATION_HPP
 
-
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics/stats.hpp>
+#include <boost/accumulators/statistics/mean.hpp>
 #include <boost/smart_ptr.hpp>
 #include <cstddef>
 #include <ctime>
@@ -79,7 +81,8 @@ class system_identification
 	/// Default constructor.
 	public: system_identification()
 	: ts_(default_sampling_time),
-	  out_dat_file_(default_output_data_file_path)
+	  out_dat_file_(default_output_data_file_path),
+	  out_ext_fmt_(false)
 	{
 	}
 
@@ -90,7 +93,8 @@ class system_identification
 	  p_wkl_driver_(p_wkl_driver),
 	  p_sig_gen_(p_sig_gen),
 	  ts_(default_sampling_time),
-	  out_dat_file_(default_output_data_file_path)
+	  out_dat_file_(default_output_data_file_path),
+	  out_ext_fmt_(false)
 	{
 	}
 
@@ -103,6 +107,12 @@ class system_identification
 									   "Cannot use empty string as output data file name"));
 
 		out_dat_file_ = s;
+	}
+
+	/// Enabled or disable the extended format of the output data file.
+	public: void output_extended_format(bool val)
+	{
+		out_ext_fmt_ = val;
 	}
 
 	/// Set the sampling time.
@@ -181,22 +191,27 @@ class system_identification
 		{
 			if (p_wkl_driver_->ready() && p_wkl_driver_->has_observation())
 			{
+				// Stringstream used to hold common output info
+				::std::ostringstream oss;
+
+				// Compute the elapsed time
+				t0 = t1;
+				::std::time(&t1);
+				double dt = ::std::difftime(t1, t0);
+
+				DCS_DEBUG_TRACE( "-- Time " << dt );
+
+				oss << dt;
+
+				// Generate new shares
 				share_container share((*p_sig_gen_)());
 
 				// check: consistency
 				DCS_DEBUG_ASSERT( share.size() == vms_.size() );
 
-				double rt = p_wkl_driver_->observation();
-
-				t0 = t1;
-				::std::time(&t1);
-				double dt = ::std::difftime(t1, t0);
-				DCS_DEBUG_TRACE( "-- Time " << dt );
 				DCS_DEBUG_TRACE( "   Generated shares: " << dcs::debug::to_string(share.begin(), share.end()) );
-				DCS_DEBUG_TRACE( "   Current Response Time: " << rt );
 
-				ofs << dt << " " << rt;
-
+				// Set new shares to every VM
 				::std::size_t ix(0);
 				for (vm_iterator vm_it = vm_beg_it;
 					 vm_it != vm_end_it;
@@ -209,14 +224,47 @@ class system_identification
 
 					DCS_DEBUG_TRACE( "   VM '" << p_vm->name() << "' :: Old CPU share: " << p_vm->cpu_share() << " :: New CPU share: " << share[ix] );
 
-					ofs << " " << p_vm->cpu_share();
+					oss << " " << p_vm->cpu_share();
 
 					p_vm->cpu_share(share[ix]);
 
 					++ix;
 				}
 
-				ofs << ::std::endl;
+				// Get collected observations
+				typedef ::std::vector<real_type> obs_container;
+				typedef typename obs_container::const_iterator obs_iterator;
+				obs_container obs = p_wkl_driver_->observations();
+				//FIXME: parameterize the type of statistics the user want
+				::boost::accumulators::accumulator_set< real_type, ::boost::accumulators::stats< ::boost::accumulators::tag::mean > > acc;
+				obs_iterator obs_end_it(obs.end());
+				for (obs_iterator obs_it = obs.begin();
+					 obs_it != obs_end_it;
+					 ++obs_it)
+				{
+					real_type val(*obs_it);
+					acc(val);
+
+					if (out_ext_fmt_)
+					{
+						ofs << oss << " " << val << " " << "\"[DATA]\"" << ::std::endl;
+					}
+				}
+
+				// Compute a summary statistics of collected observation
+				//FIXME: parameterize the type of statistics the user want
+				real_type summary_obs = ::boost::accumulators::mean(acc);
+
+				DCS_DEBUG_TRACE( "   Current (summary) observation: " << summary_obs );
+
+				if (out_ext_fmt_)
+				{
+					ofs << oss << " " << summary_obs << " " << "\"[SUMMARY]\"" << ::std::endl;
+				}
+				else
+				{
+					ofs << oss << " " << summary_obs << ::std::endl;
+				}
 
 				// Wait until the next sampling time
 				::sleep(ts_);
@@ -236,6 +284,7 @@ class system_identification
 	private: signal_generator_pointer p_sig_gen_; ///< Ptr to signal generator used to excite VMs
 	private: unsigned int ts_; ///< The sampling time
 	private: ::std::string out_dat_file_; ///< The path to the output data file
+	private: bool out_ext_fmt_; ///< Flag to control whether to produce an output data file with extended format
 }; // system_identification
 
 template <typename RealT>
