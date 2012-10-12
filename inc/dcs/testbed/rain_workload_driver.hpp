@@ -498,6 +498,7 @@ void* thread_monitor_rain_steady_state(void* arg)
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Entering");
 	const ::std::size_t response_time_field(4);
 	const ::std::size_t max_open_trials(5);
+	const unsigned int min_zzz_time(2);
 
 	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
 
@@ -510,7 +511,7 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Entering");
 	}
 
 	::std::size_t trial(0);
-	unsigned int zzz_time(2);
+	unsigned int zzz_time(min_zzz_time);
 	::std::ifstream ifs;
 	do
 	{
@@ -591,7 +592,7 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << rt_ms);
 		// 2. There is new data but we need to refresh input buffers
 		// Investigate...
 
-		zzz_time = 1;
+		zzz_time = min_zzz_time;
 		trial = 0;
 		do
 		{
@@ -600,12 +601,23 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << rt_ms);
 			++zzz_time;
 			ifs.open(p_driver->metrics_file_path().c_str());
 			ifs.seekg(0, ::std::ios_base::end);
-			if (fpos != ifs.tellg())
+			::std::ifstream::pos_type new_fpos(ifs.tellg());
+			if (new_fpos == -1)
+			{
+				// Failed to get new position.
+				// This may be due to a temporary situation.
+				// So, instead of stop reading, try to reopen the file later,
+				// until we reach a number of trials equals to max_open_trials.
+				new_data = false;
+			}
+			else if (fpos != new_fpos)
 			{
 				// The file has changed, we are in case #2
+
+				// Restart to read file from the old position
 				ifs.seekg(fpos);
 				new_data = true;
-DCS_DEBUG_TRACE("SOUGHT IFS STREAM -- OLD POS: " << fpos << " - POS: " << ifs.tellg() << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
+DCS_DEBUG_TRACE("SOUGHT IFS STREAM -- OLD POS: " << fpos << " - NEW POS: " << new_fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
 			}
 			else
 			{
