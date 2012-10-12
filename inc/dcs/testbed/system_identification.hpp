@@ -247,7 +247,7 @@ class system_identification
 
 					if (out_ext_fmt_)
 					{
-						ofs << oss << " " << val << " " << "\"[DATA]\"" << ::std::endl;
+						ofs << oss.str() << " " << val << " " << "\"[DATA]\"" << ::std::endl;
 					}
 				}
 
@@ -259,11 +259,11 @@ class system_identification
 
 				if (out_ext_fmt_)
 				{
-					ofs << oss << " " << summary_obs << " " << "\"[SUMMARY]\"" << ::std::endl;
+					ofs << oss.str() << " " << summary_obs << " " << "\"[SUMMARY]\"" << ::std::endl;
 				}
 				else
 				{
-					ofs << oss << " " << summary_obs << ::std::endl;
+					ofs << oss.str() << " " << summary_obs << ::std::endl;
 				}
 
 				// Wait until the next sampling time
