@@ -398,9 +398,9 @@ class rain_workload_driver: public base_workload_driver
 		}
 	}
 
-	private: bool do_alive() const
+	private: bool do_done() const
 	{
-		return proc_.alive();
+		return !proc_.alive();
 	}
 
 	private: bool do_ready() const

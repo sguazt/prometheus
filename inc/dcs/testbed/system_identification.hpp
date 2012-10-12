@@ -177,7 +177,7 @@ class system_identification
 		::std::time_t t0;
 		::std::time_t t1;
 		t0 = ::std::time(&t1);
-		while (p_wkl_driver_->alive())
+		while (!p_wkl_driver_->done())
 		{
 			if (p_wkl_driver_->ready() && p_wkl_driver_->has_observation())
 			{

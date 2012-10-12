@@ -56,9 +56,9 @@ class base_workload_driver
 		this->do_stop();
 	}
 
-	public: bool alive() const
+	public: bool done() const
 	{
-		return do_alive();
+		return do_done();
 	}
 
 	public: bool ready() const
@@ -80,7 +80,7 @@ class base_workload_driver
 
 	private: virtual void do_stop() = 0;
 
-	private: virtual bool do_alive() const = 0;
+	private: virtual bool do_done() const = 0;
 
 	private: virtual bool do_ready() const = 0;
 
