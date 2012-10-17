@@ -412,9 +412,6 @@ int main(int argc, char *argv[])
 		// Create the signal generator
 		random_generator_type rng(rng_seed);
 		boost::shared_ptr< testbed::base_signal_generator<real_type> > p_sig_gen;
-		// Common params
-		p_sig_gen->upper_bound(sig_up_bound);
-		p_sig_gen->lower_bound(sig_lo_bound);
 		// Specialized params
 		switch (sig)
 		{
@@ -494,6 +491,9 @@ int main(int argc, char *argv[])
 				DCS_EXCEPTION_THROW(::std::runtime_error, "Unknown signal generator");
 				break;
 		}
+		// Common params
+		p_sig_gen->upper_bound(sig_up_bound);
+		p_sig_gen->lower_bound(sig_lo_bound);
 
 		testbed::system_identification<real_type> sysid(vms.begin(), vms.end(), p_driver, p_sig_gen);
 		sysid.output_data_file(out_dat_file);
