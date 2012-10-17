@@ -43,6 +43,7 @@
 #include <dcs/testbed/virtual_machines.hpp>
 #include <dcs/testbed/workload_drivers.hpp>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <stdexcept>
@@ -54,10 +55,12 @@ namespace detail { namespace /*<unnamed>*/ {
 enum signal_category
 {
 	constant_signal,
+	half_sinusoidal_mesh_signal,
+	half_sinusoidal_signal,
 	gaussian_signal,
 	sawtooth_signal,
-	sinusoidal_signal,
 	sinusoidal_mesh_signal,
+	sinusoidal_signal,
 	square_signal,
 	uniform_signal
 };
@@ -75,6 +78,8 @@ const ::std::string default_workload_driver_path("/usr/local/rain-workload-toolk
 const ::std::string default_out_dat_file("./olio-sysid-out.dat");
 const double default_sampling_time(10);
 const signal_category default_signal_category(constant_signal);
+const double default_signal_upper_bound(std::numeric_limits<double>::infinity());
+const double default_signal_lower_bound(-std::numeric_limits<double>::infinity());
 const double default_signal_sawtooth_low(0);
 const double default_signal_sawtooth_high(1);
 const double default_signal_sawtooth_incr(0.1);
@@ -86,6 +91,14 @@ const double default_signal_sine_mesh_amplitude(0.5);
 const unsigned int default_signal_sine_mesh_frequency(8);
 const unsigned int default_signal_sine_mesh_phase(0);
 const double default_signal_sine_mesh_bias(0.5);
+const double default_signal_half_sine_amplitude(0.5);
+const unsigned int default_signal_half_sine_frequency(8);
+const unsigned int default_signal_half_sine_phase(0);
+const double default_signal_half_sine_bias(0.5);
+const double default_signal_half_sine_mesh_amplitude(0.5);
+const unsigned int default_signal_half_sine_mesh_frequency(8);
+const unsigned int default_signal_half_sine_mesh_phase(0);
+const double default_signal_half_sine_mesh_bias(0.5);
 const double default_signal_square_low(0);
 const double default_signal_square_high(1);
 const double default_signal_uniform_min(0);
@@ -103,6 +116,14 @@ template <typename CharT, typename CharTraitsT>
 	if (!str.compare("constant"))
 	{
 		sig = constant_signal;
+	}
+	else if (!str.compare("half-sine"))
+	{
+		sig = half_sinusoidal_signal;
+	}
+	else if (!str.compare("half-sine-mesh"))
+	{
+		sig = half_sinusoidal_mesh_signal;
 	}
 	else if (!str.compare("gaussian"))
 	{
@@ -149,6 +170,12 @@ template <typename CharT, typename CharTraitsT>
 		case constant_signal:
 			os << "constant";
 			break;
+		case half_sinusoidal_signal:
+			os << "half-sine";
+			break;
+		case half_sinusoidal_mesh_signal:
+			os << "half-sine-mesh";
+			break;
 		case gaussian_signal:
 			os << "gaussian";
 			break;
@@ -192,6 +219,8 @@ void usage(char const* progname)
 				<< "   The type of signal used to excite the system under test." << ::std::endl
 				<< "   Possible values are:" << ::std::endl
 				<< "   - constant" << ::std::endl
+				<< "   - half-sine" << ::std::endl
+				<< "   - half-sine-mesh" << ::std::endl
 				<< "   - gaussian" << ::std::endl
 				<< "   - sawtooth" << ::std::endl
 				<< "   - sine" << ::std::endl
@@ -233,6 +262,8 @@ int main(int argc, char *argv[])
 	std::string out_dat_file;
 	uint_type rng_seed(5498);
 	detail::signal_category sig;
+	real_type sig_up_bound;
+	real_type sig_lo_bound;
 	real_type sig_sawtooth_low;
 	real_type sig_sawtooth_high;
 	real_type sig_sawtooth_incr;
@@ -244,6 +275,14 @@ int main(int argc, char *argv[])
 	uint_type sig_sine_mesh_freq;
 	uint_type sig_sine_mesh_phase;
 	real_type sig_sine_mesh_bias;
+	real_type sig_half_sine_ampl;
+	uint_type sig_half_sine_freq;
+	uint_type sig_half_sine_phase;
+	real_type sig_half_sine_bias;
+	real_type sig_half_sine_mesh_ampl;
+	uint_type sig_half_sine_mesh_freq;
+	uint_type sig_half_sine_mesh_phase;
+	real_type sig_half_sine_mesh_bias;
 	real_type sig_square_low;
 	real_type sig_square_high;
 	real_type sig_unif_min;
@@ -262,6 +301,8 @@ int main(int argc, char *argv[])
 		help = dcs::cli::simple::get_option(argv, argv+argc, "--help");
 		out_dat_file = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--out-dat-file", detail::default_out_dat_file);
 		sig = dcs::cli::simple::get_option<detail::signal_category>(argv, argv+argc, "--sig", detail::default_signal_category);
+		sig_up_bound = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-upper-bound", detail::default_signal_upper_bound);
+		sig_lo_bound = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-lower-bound", detail::default_signal_lower_bound);
 		sig_sawtooth_low = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-sawtooth-low", detail::default_signal_sawtooth_low);
 		sig_sawtooth_high = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-sawtooth-high", detail::default_signal_sawtooth_high);
 		sig_sawtooth_incr = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-sawtooth-incr", detail::default_signal_sawtooth_incr);
@@ -273,6 +314,14 @@ int main(int argc, char *argv[])
 		sig_sine_mesh_freq = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--sig-sine-mesh-frequency", detail::default_signal_sine_mesh_frequency);
 		sig_sine_mesh_phase = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--sig-sine-mesh-phase", detail::default_signal_sine_mesh_phase);
 		sig_sine_mesh_bias = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-sine-mesh-bias", detail::default_signal_sine_mesh_bias);
+		sig_half_sine_ampl = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-half-sine-amplitude", detail::default_signal_half_sine_amplitude);
+		sig_half_sine_freq = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--sig-half-sine-frequency", detail::default_signal_half_sine_frequency);
+		sig_half_sine_phase = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--sig-half-sine-phase", detail::default_signal_half_sine_phase);
+		sig_half_sine_bias = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-half-sine-bias", detail::default_signal_half_sine_bias);
+		sig_half_sine_mesh_ampl = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-half-sine-mesh-amplitude", detail::default_signal_half_sine_mesh_amplitude);
+		sig_half_sine_mesh_freq = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--sig-half-sine-mesh-frequency", detail::default_signal_half_sine_mesh_frequency);
+		sig_half_sine_mesh_phase = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--sig-half-sine-mesh-phase", detail::default_signal_half_sine_mesh_phase);
+		sig_half_sine_mesh_bias = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-half-sine-mesh-bias", detail::default_signal_half_sine_mesh_bias);
 		sig_square_low = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-square-low", detail::default_signal_square_low);
 		sig_square_high = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-square-high", detail::default_signal_square_high);
 		sig_unif_min = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-uniform-min", detail::default_signal_uniform_min);
@@ -360,10 +409,13 @@ int main(int argc, char *argv[])
 
 		boost::shared_ptr< testbed::base_workload_driver > p_driver(new testbed::rain_workload_driver(testbed::rain_workload_driver::olio_workload, wkl_driver_path));
 
+		// Create the signal generator
 		random_generator_type rng(rng_seed);
-
-		//boost::shared_ptr< testbed::base_signal_generator<real_type> > p_sig_gen(new testbed::sinusoidal_mesh_signal_generator<real_type>(ampl, freq, phase, bias));
 		boost::shared_ptr< testbed::base_signal_generator<real_type> > p_sig_gen;
+		// Common params
+		p_sig_gen->upper_bound(sig_up_bound);
+		p_sig_gen->lower_bound(sig_lo_bound);
+		// Specialized params
 		switch (sig)
 		{
 			case detail::constant_signal:
@@ -377,6 +429,24 @@ int main(int argc, char *argv[])
 					std::vector<real_type> mean(nt, sig_gauss_mean);
 					std::vector<real_type> sd(nt, sig_gauss_sd);
 					p_sig_gen = boost::shared_ptr< testbed::base_signal_generator<real_type> >(new testbed::gaussian_signal_generator<real_type, random_generator_type>(mean, sd, rng));
+				}
+				break;
+			case detail::half_sinusoidal_signal:
+				{
+					std::vector<real_type> ampl(nt, sig_half_sine_ampl);
+					std::vector<uint_type> freq(nt, sig_half_sine_freq);
+					std::vector<uint_type> phase(nt, sig_half_sine_phase);
+					std::vector<real_type> bias(nt, sig_half_sine_bias);
+					p_sig_gen = boost::make_shared< testbed::half_sinusoidal_signal_generator<real_type,uint_type> >(ampl, freq, phase, bias);
+				}
+				break;
+			case detail::half_sinusoidal_mesh_signal:
+				{
+					std::vector<real_type> ampl(nt, sig_half_sine_mesh_ampl);
+					std::vector<uint_type> freq(nt, sig_half_sine_mesh_freq);
+					std::vector<uint_type> phase(nt, sig_half_sine_mesh_phase);
+					std::vector<real_type> bias(nt, sig_half_sine_mesh_bias);
+					p_sig_gen = boost::make_shared< testbed::half_sinusoidal_mesh_signal_generator<real_type,uint_type> >(ampl, freq, phase, bias);
 				}
 				break;
 			case detail::sawtooth_signal:

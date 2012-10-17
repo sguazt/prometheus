@@ -35,9 +35,12 @@
 
 
 #include <boost/random/uniform_real_distribution.hpp>
+#include <cmath>
 #include <cstddef>
 #include <dcs/assert.hpp>
 #include <dcs/testbed/base_signal_generator.hpp>
+#include <limits>
+#include <stdexcept>
 
 
 namespace dcs { namespace testbed {
@@ -54,7 +57,9 @@ class uniform_signal_generator: public base_signal_generator<ValueT>
 
 
 	public: uniform_signal_generator(vector_type const& u_min, vector_type const& u_max, random_generator_type& rng)
-	: rng_(rng)
+	: rng_(rng),
+	  ub_( ::std::numeric_limits<value_type>::infinity()),
+	  lb_(-::std::numeric_limits<value_type>::infinity())
 	{
 		// pre: size(u_min) == size(u_max)
 		DCS_ASSERT(u_min.size() == u_max.size(),
@@ -75,7 +80,7 @@ class uniform_signal_generator: public base_signal_generator<ValueT>
 		vector_type u(n);
 		for (::std::size_t i = 0; i < n; ++i)
 		{
-			u[i] = distrs_[i](rng_);
+			u[i] = ::std::min(::std::max(distrs_[i](rng_), lb_[i]), ub_[i]);
 		}
 
 		return u;
@@ -87,9 +92,21 @@ class uniform_signal_generator: public base_signal_generator<ValueT>
 		// do nothing: we should reset the random number generator, but this should be done elsewhere.
 	}
 
+	private: void do_upper_bound(value_type val)
+	{
+		ub_ = vector_type(distrs_.size(), val);
+	}
+
+	private: void do_lower_bound(value_type val)
+	{
+		lb_ = vector_type(distrs_.size(), val);
+	}
+
 
 	private: random_generator_type& rng_;
 	private: uniform_distribution_container distrs_;
+	private: vector_type ub_;
+	private: vector_type lb_;
 }; // uniform_signal_generator
 
 }} // Namespace dcs::testbed

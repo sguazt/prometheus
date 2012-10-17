@@ -35,7 +35,9 @@
 
 
 #include <dcs/testbed/base_signal_generator.hpp>
+#include <cmath>
 #include <cstddef>
+#include <limits>
 
 
 namespace dcs { namespace testbed {
@@ -52,8 +54,11 @@ class sawtooth_signal_generator: public base_signal_generator<ValueT>
 	: ul_(ul),
 	  uh_(uh),
 	  u_(ul),
-	  h_(incr)
+	  h_(incr),
+	  ub_(ul.size(), ::std::numeric_limits<value_type>::infinity()),
+	  lb_(ul.size(),-::std::numeric_limits<value_type>::infinity())
 	{
+		//TODO: check preconditions on vector sizes
 	}
 
 	private: vector_type do_generate()
@@ -66,6 +71,7 @@ class sawtooth_signal_generator: public base_signal_generator<ValueT>
 			{
 				u_[i] = ul_[i];
 			}
+			u_[i] = ::std::min(::std::max(u_[i], lb_[i]), ub_[i]);
 		}
 
 		return u_;
@@ -76,11 +82,23 @@ class sawtooth_signal_generator: public base_signal_generator<ValueT>
 		u_ = ul_;
 	}
 
+	private: void do_upper_bound(value_type val)
+	{
+		ub_ = vector_type(ul_.size(), val);
+	}
 
-	private: vector_type ul_; ///< Lower bounds.
-	private: vector_type uh_; ///< Upper bounds.
+	private: void do_lower_bound(value_type val)
+	{
+		ub_ = vector_type(ul_.size(), val);
+	}
+
+
+	private: vector_type ul_; ///< Lower values
+	private: vector_type uh_; ///< Higher values
 	private: vector_type u_;
 	private: vector_type h_;
+	private: vector_type ub_; ///< Upper bound
+	private: vector_type lb_; ///< Lower bound
 };
 
 }} // Namespace dcs::testbed

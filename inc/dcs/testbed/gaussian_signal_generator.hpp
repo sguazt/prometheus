@@ -35,12 +35,13 @@
 
 
 #include <boost/random/normal_distribution.hpp>
+#include <cmath>
 #include <cstddef>
 #include <dcs/assert.hpp>
 #include <dcs/exception.hpp>
 #include <dcs/testbed/base_signal_generator.hpp>
+#include <limits>
 #include <stdexcept>
-#include <vector>
 
 
 namespace dcs { namespace testbed {
@@ -57,7 +58,9 @@ class gaussian_signal_generator: public base_signal_generator<ValueT>
 
 
 	public: gaussian_signal_generator(vector_type const& mu0, vector_type const& sigma0, random_generator_type& rng)
-	: rng_(rng)
+	: rng_(rng),
+	  ub_(mu0.size(), ::std::numeric_limits<value_type>::infinity()),
+	  lb_(mu0.size(),-::std::numeric_limits<value_type>::infinity())
 	{
 		// pre: size(mu0) == size(sigma0)
 		DCS_ASSERT(mu0.size() == sigma0.size(),
@@ -76,7 +79,7 @@ class gaussian_signal_generator: public base_signal_generator<ValueT>
 		vector_type u(n);
 		for (::std::size_t i = 0; i < n; ++i)
 		{
-			u[i] = distrs_[i](rng_);
+			u[i] = ::std::min(::std::max(distrs_[i](rng_), lb_[i]), ub_[i]);
 		}
 
 		return u;
@@ -88,8 +91,20 @@ class gaussian_signal_generator: public base_signal_generator<ValueT>
 	}
 
 
+	private: void do_upper_bound(value_type val)
+	{
+		ub_ = vector_type(distrs_.size(), val);
+	}
+
+	private: void do_lower_bound(value_type val)
+	{
+		lb_ = vector_type(distrs_.size(), val);
+	}
+
 	private: random_generator_type& rng_;
 	private: normal_distribution_container distrs_;
+	private: vector_type ub_;
+	private: vector_type lb_;
 };
 
 }} // Namespace dcs::testbed

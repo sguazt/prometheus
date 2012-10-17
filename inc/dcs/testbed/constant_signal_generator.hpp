@@ -34,7 +34,13 @@
 #define DCS_TESTBED_CONSTANT_SIGNAL_GENERATOR_HPP
 
 
+#include <algorithm>
+#include <boost/bind.hpp>
+#include <dcs/assert.hpp>
+#include <dcs/exception.hpp>
 #include <dcs/testbed/base_signal_generator.hpp>
+#include <functional>
+#include <stdexcept>
 
 
 namespace dcs { namespace testbed {
@@ -60,6 +66,22 @@ class constant_signal_generator: public base_signal_generator<ValueT>
 	private: void do_reset()
 	{
 		// do nothing: the signal is constant.
+	}
+
+	private: void do_upper_bound(value_type val)
+	{
+		// pre: for each ui in u_ : ui <= val
+		DCS_ASSERT(::std::count_if(u_.begin(), u_.end(), ::boost::bind(::std::greater<value_type>(), ::_1, val)) == 0,
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Invalid upper bound: some signal value is bigger"));
+	}
+
+	private: void do_lower_bound(value_type val)
+	{
+		// pre: for each ui in u_ : ui >= val
+		DCS_ASSERT(::std::count_if(u_.begin(), u_.end(), ::boost::bind(::std::less<value_type>(), ::_1, val)) == 0,
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Invalid lower bound: some signal value is smaller"));
 	}
 
 

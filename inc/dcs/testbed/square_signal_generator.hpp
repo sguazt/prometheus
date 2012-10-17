@@ -34,10 +34,49 @@
 #define DCS_TESTBED_SQUARE_SIGNAL_GENERATOR_HPP
 
 
+#include <cmath>
+#include <dcs/assert.hpp>
+#include <dcs/exception.hpp>
 #include <dcs/testbed/base_signal_generator.hpp>
+#include <limits>
 
 
 namespace dcs { namespace testbed {
+
+namespace detail { namespace /*<unnamed>*/ {
+
+/// Vectorized version of std::max
+template <typename InFwdIt1T, typename InFwdIt2T, typename OutFwdItT>
+OutFwdItT max(InFwdIt1T in1_first, InFwdIt1T in1_last, InFwdIt2T in2_first, OutFwdItT out_first)
+{
+	while (in1_first != in1_last)
+	{
+		*out_first = ::std::max(*in1_first, *in2_first);
+		++in1_first;
+		++in2_first;
+		++out_first;
+	}
+
+	return out_first;
+}
+
+/// Vectorized version of std::min
+template <typename InFwdIt1T, typename InFwdIt2T, typename OutFwdItT>
+OutFwdItT min(InFwdIt1T in1_first, InFwdIt1T in1_last, InFwdIt2T in2_first, OutFwdItT out_first)
+{
+	while (in1_first != in1_last)
+	{
+		*out_first = ::std::min(*in1_first, *in2_first);
+		++in1_first;
+		++in2_first;
+		++out_first;
+	}
+
+	return out_first;
+}
+
+}} // Namespace detail::<unnamed>
+
 
 template <typename ValueT>
 class square_signal_generator: public base_signal_generator<ValueT>
@@ -50,7 +89,9 @@ class square_signal_generator: public base_signal_generator<ValueT>
 	public: square_signal_generator(vector_type const& ul, vector_type const& uh)
 	: ul_(uh),
 	  uh_(ul),
-	  low_(false)
+	  low_(false),
+	  ub_( ::std::numeric_limits<value_type>::infinity()),
+	  lb_(-::std::numeric_limits<value_type>::infinity())
 	{
 	}
 
@@ -61,10 +102,14 @@ class square_signal_generator: public base_signal_generator<ValueT>
 
 		if (!low_)
 		{
-			return ul_;
+			vector_type u;
+			detail::max(ul_.begin(), ul_.end(), lb_.begin(), u.begin());
+			return u;
 		}
 
-		return uh_;
+		vector_type u;
+		detail::min(uh_.begin(), uh_.end(), ub_.begin(), u.begin());
+		return u;
 	}
 
 
@@ -73,10 +118,22 @@ class square_signal_generator: public base_signal_generator<ValueT>
 		low_ = false;
 	}
 
+	private: void do_upper_bound(value_type val)
+	{
+		ub_ = vector_type(ul_.size(), val);
+	}
+
+	private: void do_lower_bound(value_type val)
+	{
+		lb_ = vector_type(ul_.size(), val);
+	}
+
 
 	private: vector_type ul_; ///< Low-state values
 	private: vector_type uh_; ///< High-state values
 	private: bool low_; ///< Flag to control the high/low generation phase
+	private: vector_type ub_; ///< Upper bounds
+	private: vector_type lb_; ///< Lower bounds
 }; // square_signal_generator
 
 }} // Namespace dcs::testbed

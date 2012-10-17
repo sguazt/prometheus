@@ -56,6 +56,16 @@ class base_signal_generator
 		do_reset();
 	}
 
+	public: void upper_bound(value_type val)
+	{
+		do_upper_bound(val);
+	}
+
+	public: void lower_bound(value_type val)
+	{
+		do_lower_bound(val);
+	}
+
 	public: virtual ~base_signal_generator()
 	{
 		// empty
@@ -64,6 +74,10 @@ class base_signal_generator
 	private: virtual vector_type do_generate() = 0;
 
 	private: virtual void do_reset() = 0;
+
+	private: virtual void do_upper_bound(value_type val) = 0;
+
+	private: virtual void do_lower_bound(value_type val) = 0;
 }; // base_signal_generator
 
 }} // Namespace dcs::testbed

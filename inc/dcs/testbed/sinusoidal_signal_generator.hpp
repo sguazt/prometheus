@@ -57,6 +57,7 @@
 #include <dcs/testbed/base_signal_generator.hpp>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -83,7 +84,9 @@ class base_sinusoidal_signal_generator: public base_signal_generator<ValueT>
 	  p_(p),
 	  o_(a.size(),0),
 	  b_(a.size(),0),
-	  k_(a.size(),0)
+	  k_(a.size(),0),
+	  ub_(a.size(), ::std::numeric_limits<value_type>::infinity()),
+	  lb_(a.size(),-::std::numeric_limits<value_type>::infinity())
 	{
 		// pre: size(a) == size(p)
 		DCS_ASSERT(a_.size() == p_.size(),
@@ -96,7 +99,9 @@ class base_sinusoidal_signal_generator: public base_signal_generator<ValueT>
 	  p_(p),
 	  o_(o),
 	  b_(b),
-	  k_(a.size(),0)
+	  k_(a.size(),0),
+	  ub_(a.size(), ::std::numeric_limits<value_type>::infinity()),
+	  lb_(a.size(),-::std::numeric_limits<value_type>::infinity())
 	{
 		// pre: size(a) == size(p)
 		DCS_ASSERT(a_.size() == p_.size(),
@@ -132,12 +137,23 @@ class base_sinusoidal_signal_generator: public base_signal_generator<ValueT>
 		b_ = b;
 	}
 
+	private: void do_upper_bound(value_type val)
+	{
+		ub_ = vector_type(a_.size(), val);
+	}
 
-	protected: vector_type a_; ///< The amplitude of the signal (i.e., the peak deviation of the signal from its center position).
-	protected: uint_vector_type p_; ///< The frequency of the signal (i.e., the number of time samples per sine wave period).
-	protected: uint_vector_type o_; ///< The offset (phase-shift) of the signal (i.e., specifies where in signal cycle the oscillation begins at t = 0).
-	protected: vector_type b_; ///< The bias (DC offset) of the signal (i.e., the constant value added to the sine amplitude).
+	private: void do_lower_bound(value_type val)
+	{
+		lb_ = vector_type(a_.size(), val);
+	}
+
+	protected: vector_type a_; ///< The amplitude of the signal (i.e., the peak deviation of the signal from its center position)
+	protected: uint_vector_type p_; ///< The frequency of the signal (i.e., the number of time samples per sine wave period)
+	protected: uint_vector_type o_; ///< The offset (phase-shift) of the signal (i.e., specifies where in signal cycle the oscillation begins at t = 0)
+	protected: vector_type b_; ///< The bias (DC offset) of the signal (i.e., the constant value added to the sine amplitude)
 	protected: uint_vector_type k_; ///< A repeating integer ranging from 0 to p_-1
+	protected: vector_type ub_; ///< The upper bound value for the signal
+	protected: vector_type lb_; ///< The lower bound value for the signal
 }; // base_sinusoidal_signal_generator
 
 template <typename VT, typename UT>
@@ -175,6 +191,53 @@ class sinusoidal_signal_generator: public detail::base_sinusoidal_signal_generat
 		{
 			// Compute new signal value
 			u[i] = this->a_[i]*::std::sin(base_type::double_pi_*(this->k_[i]+this->o_[i])/this->p_[i])+this->b_[i];
+			// Bound the signal
+			u[i] = ::std::min(::std::max(u[i], this->lb_[i]), this->ub_[i]);
+
+			// Increment k_
+			this->k_[i] = (this->k_[i]+1) % (2*this->p_[i]);
+		}
+
+		return u;
+	}
+
+	private: void do_reset()
+	{
+		this->k_ = uint_vector_type(this->a_.size());
+	}
+}; // sinusoidal_signal_generator
+
+template <typename ValueT, typename UIntT>
+class half_sinusoidal_signal_generator: public detail::base_sinusoidal_signal_generator<ValueT,UIntT>
+{
+	private: typedef detail::base_sinusoidal_signal_generator<ValueT,UIntT> base_type;
+	public: typedef typename base_type::value_type value_type;
+	public: typedef typename base_type::vector_type vector_type;
+	public: typedef typename base_type::uint_type uint_type;
+	public: typedef typename base_type::uint_vector_type uint_vector_type;
+
+
+	public: half_sinusoidal_signal_generator(vector_type const& a, uint_vector_type const& p)
+	: base_type(a,p)
+	{
+	}
+
+	public: half_sinusoidal_signal_generator(vector_type const& a, uint_vector_type const& p, uint_vector_type const& o, vector_type const& b)
+	: base_type(a,p,o,b)
+	{
+	}
+
+	private: vector_type do_generate()
+	{
+		::std::size_t n(this->a_.size());
+		vector_type u(n);
+
+		for (::std::size_t i = 0; i < n; ++i)
+		{
+			// Compute new signal value
+			u[i] = this->a_[i]*::std::sin(base_type::double_pi_*(this->k_[i]+this->o_[i])/this->p_[i])+this->b_[i];
+			// Bound the signal
+			u[i] = ::std::min(::std::max(u[i], this->lb_[i]), this->ub_[i]);
 
 			// Increment k_
 			this->k_[i] = (this->k_[i]+1) % this->p_[i];
@@ -187,7 +250,7 @@ class sinusoidal_signal_generator: public detail::base_sinusoidal_signal_generat
 	{
 		this->k_ = uint_vector_type(this->a_.size());
 	}
-}; // sinusoidal_signal_generator
+}; // half_sinusoidal_signal_generator
 
 template <typename ValueT, typename UIntT>
 class sinusoidal_mesh_signal_generator: public detail::base_sinusoidal_signal_generator<ValueT,UIntT>
@@ -217,7 +280,10 @@ class sinusoidal_mesh_signal_generator: public detail::base_sinusoidal_signal_ge
 		// Compute signal value
 		for (::std::size_t i = 0; i < n; ++i)
 		{
+			// Compute new signal value
 			u[i] = this->a_[i]*::std::sin(base_type::double_pi_*(this->k_[i]+this->o_[i])/this->p_[i])+this->b_[i];
+			// Bound the signal
+			u[i] = ::std::min(::std::max(u[i], this->lb_[i]), this->ub_[i]);
 		}
 
 		// Increment k_
@@ -238,6 +304,59 @@ class sinusoidal_mesh_signal_generator: public detail::base_sinusoidal_signal_ge
 		this->k_ = uint_vector_type(this->a_.size());
 	}
 }; // sinusoidal_mesh_signal_generator
+
+template <typename ValueT, typename UIntT>
+class half_sinusoidal_mesh_signal_generator: public detail::base_sinusoidal_signal_generator<ValueT,UIntT>
+{
+	private: typedef detail::base_sinusoidal_signal_generator<ValueT,UIntT> base_type;
+	public: typedef typename base_type::value_type value_type;
+	public: typedef typename base_type::vector_type vector_type;
+	public: typedef typename base_type::uint_type uint_type;
+	public: typedef typename base_type::uint_vector_type uint_vector_type;
+
+
+	public: half_sinusoidal_mesh_signal_generator(vector_type const& a, uint_vector_type const& p)
+	: base_type(a,p)
+	{
+	}
+
+	public: half_sinusoidal_mesh_signal_generator(vector_type const& a, uint_vector_type const& p, uint_vector_type const& o, vector_type const& b)
+	: base_type(a,p,o,b)
+	{
+	}
+
+	private: vector_type do_generate()
+	{
+		::std::size_t n(this->a_.size());
+		vector_type u(n);
+
+		// Compute signal value
+		for (::std::size_t i = 0; i < n; ++i)
+		{
+			// Compute new signal value
+			u[i] = this->a_[i]*::std::sin(base_type::double_pi_*(this->k_[i]+this->o_[i])/this->p_[i])+this->b_[i];
+			// Bound the signal
+			u[i] = ::std::min(::std::max(u[i], this->lb_[i]), this->ub_[i]);
+		}
+
+		// Increment k_
+		for (::std::size_t i = 0; i < n; ++i)
+		{
+			this->k_[i] = (this->k_[i]+1) % this->p_[i];
+			if (this->k_[i] > 0)
+			{
+				break;
+			}
+		}
+
+		return u;
+	}
+
+	private: void do_reset()
+	{
+		this->k_ = uint_vector_type(this->a_.size());
+	}
+}; // half_sinusoidal_mesh_signal_generator
 
 }} // Namespace dcs::testbed
 
