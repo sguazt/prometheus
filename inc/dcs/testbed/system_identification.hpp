@@ -154,8 +154,18 @@ class system_identification
 
 		typedef typename vm_container::const_iterator vm_iterator;
 		typedef typename signal_generator_type::vector_type share_container;
+		typedef typename vm_type::identifier_type vm_identifier_type;
 
-		//const ::std::size_t nt(10);//FIXME: parameterize
+		DCS_DEBUG_TRACE( "BEGIN Execution of System Identification" );
+
+		vm_iterator vm_end_it(vms_.end());
+		vm_iterator vm_beg_it(vms_.begin());
+
+		if (vm_beg_it == vm_end_it)
+		{
+			// No VMs -> don't run anything
+			return;
+		}
 
 		// Open output data file
 		::std::ofstream ofs(out_dat_file_.c_str());
@@ -167,9 +177,18 @@ class system_identification
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
 
+		// Get current shares in order to restore them at the end of execution
+		share_container old_shares;
+		for (vm_iterator vm_it = vm_beg_it;
+			 vm_it != vm_end_it;
+			 ++vm_it)
+		{
+			vm_pointer p_vm(*vm_it);
+
+			old_shares.push_back(p_vm->cpu_share());
+		}
+
 		// Set initial shares
-		vm_iterator vm_end_it(vms_.end());
-		vm_iterator vm_beg_it(vms_.begin());
 		for (vm_iterator vm_it = vm_beg_it;
 			 vm_it != vm_end_it;
 			 ++vm_it)
@@ -184,19 +203,24 @@ class system_identification
 		p_wkl_driver_->start();
 
 		// Set shares according to the given signal
-		::std::time_t t0;
-		::std::time_t t1;
-		t0 = ::std::time(&t1);
+		::std::time_t t0(-1);
+		::std::time_t t1(-1);
+		::std::time(&t1);
 		while (!p_wkl_driver_->done())
 		{
+			DCS_DEBUG_TRACE( "   Driver is alive" );
 			if (p_wkl_driver_->ready() && p_wkl_driver_->has_observation())
 			{
 				// Stringstream used to hold common output info
 				::std::ostringstream oss;
 
 				// Compute the elapsed time
-				t0 = t1;
 				::std::time(&t1);
+				if (t0 == -1)
+				{
+					// Set t0 to the start of observation collection phase
+					t0 = t1;
+				}
 				double dt = ::std::difftime(t1, t0);
 
 				DCS_DEBUG_TRACE( "-- Time " << dt );
@@ -267,6 +291,7 @@ class system_identification
 				}
 
 				// Wait until the next sampling time
+				DCS_DEBUG_TRACE( "   Zzz... (: " << ts_ << ")" );
 				::sleep(ts_);
 			}
 		}
@@ -276,6 +301,20 @@ class system_identification
 
 		// Close output data file
 		ofs.close();
+
+		// Reset VM shares to values that VMs had just before running the driver
+		::std::size_t ix(0);
+		for (vm_iterator vm_it = vm_beg_it;
+			 vm_it != vm_end_it;
+			 ++vm_it)
+		{
+			vm_pointer p_vm(*vm_it);
+
+			p_vm->cpu_share(old_shares[ix]);
+			++ix;
+		}
+
+		DCS_DEBUG_TRACE( "END Execution of System Identification" );
 	}
 
 
