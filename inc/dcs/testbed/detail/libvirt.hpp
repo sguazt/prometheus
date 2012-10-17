@@ -457,6 +457,42 @@ int num_vcpus(virConnectPtr conn, virDomainPtr dom, int flags)
 	return ret;
 }
 
+unsigned int id(virConnectPtr conn, virDomainPtr dom)
+{
+	assert( conn );
+	assert( dom );
+
+	int ret(0);
+
+	ret = virDomainGetID(dom);
+	if (0 > ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to query the ID for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+		throw ::std::runtime_error(oss.str());
+	}
+
+	return ret;
+}
+
+::std::string name(virConnectPtr conn, virDomainPtr dom)
+{
+	assert( conn );
+	assert( dom );
+
+	char const* ret(0);
+
+	ret = virDomainGetName(dom);
+	if (0 == ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to query the name for domain: " << last_error(conn);
+		throw ::std::runtime_error(oss.str());
+	}
+
+	return ret;
+}
+
 }}}} // Namespace dcs::testbed::detail::libvirt
 
 #endif // DCS_TESTBED_DETAIL_LIBVIRT_HPP

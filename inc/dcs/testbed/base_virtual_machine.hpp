@@ -43,6 +43,7 @@ template <typename RealT>
 class base_virtual_machine
 {
 	public: typedef RealT real_type;
+	public: typedef unsigned long identifier_type;
 
 
 	public: virtual ~base_virtual_machine()
@@ -54,6 +55,12 @@ class base_virtual_machine
 	public: ::std::string name() const
 	{
 		return do_name();
+	}
+
+	/// Get the VM identifier
+	public: ::std::string id() const
+	{
+		return do_id();
 	}
 
 	/// Get the CPU share
@@ -69,6 +76,8 @@ class base_virtual_machine
 	}
 
 	private: virtual ::std::string do_name() const = 0;
+
+	private: virtual identifier_type do_id() const = 0;
 
 	private: virtual real_type do_cpu_share() const = 0;
 

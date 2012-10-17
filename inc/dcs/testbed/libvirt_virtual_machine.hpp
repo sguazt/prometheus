@@ -52,7 +52,8 @@ template <typename RealT>
 class libvirt_virtual_machine: public base_virtual_machine<RealT>
 {
 	private: typedef base_virtual_machine<RealT> base_type;
-	public: typedef RealT real_type;
+	public: typedef typename base_type::real_type real_type;
+	public: typedef typename base_type::identifier_type identifier_type;
 
 
 	public: libvirt_virtual_machine(::std::string const& vmm_uri, ::std::string const& name)
@@ -87,6 +88,21 @@ class libvirt_virtual_machine: public base_virtual_machine<RealT>
 	private: ::std::string do_name() const
 	{
 		return name_;
+	}
+
+	private: identifier_type do_id() const
+	{
+		DCS_ASSERT(0 != conn_,
+				   DCS_EXCEPTION_THROW(::std::runtime_error,
+									   "Not connected"));
+
+		virDomainPtr dom = detail::libvirt::connect_domain(conn_, name_);
+
+		identifier_type id = detail::libvirt::id(conn_, dom);
+
+		detail::libvirt::disconnect_domain(conn_, dom);
+
+		return id;
 	}
 
 	private: int do_num_vcpus() const
