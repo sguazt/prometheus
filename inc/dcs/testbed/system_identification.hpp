@@ -289,11 +289,11 @@ class system_identification
 				{
 					ofs << oss.str() << " " << summary_obs << ::std::endl;
 				}
-
-				// Wait until the next sampling time
-				DCS_DEBUG_TRACE( "   Zzz... (: " << ts_ << ")" );
-				::sleep(ts_);
 			}
+
+			// Wait until the next sampling time
+			DCS_DEBUG_TRACE( "   Zzz... (: " << ts_ << ")" );
+			::sleep(ts_);
 		}
 
 		// Stop the workload driver
