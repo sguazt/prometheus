@@ -78,8 +78,9 @@ const ::std::string default_workload_driver_path("/usr/local/rain-workload-toolk
 const ::std::string default_out_dat_file("./olio-sysid-out.dat");
 const double default_sampling_time(10);
 const signal_category default_signal_category(constant_signal);
-const double default_signal_upper_bound(std::numeric_limits<double>::infinity());
-const double default_signal_lower_bound(-std::numeric_limits<double>::infinity());
+const double default_signal_common_upper_bound(std::numeric_limits<double>::infinity());
+const double default_signal_common_lower_bound(-std::numeric_limits<double>::infinity());
+const double default_signal_const_val(1);
 const double default_signal_sawtooth_low(0);
 const double default_signal_sawtooth_high(1);
 const double default_signal_sawtooth_incr(0.1);
@@ -262,8 +263,19 @@ int main(int argc, char *argv[])
 	std::string out_dat_file;
 	uint_type rng_seed(5498);
 	detail::signal_category sig;
-	real_type sig_up_bound;
-	real_type sig_lo_bound;
+	real_type sig_common_up_bound;
+	real_type sig_common_lo_bound;
+	real_type sig_const_val;
+	real_type sig_gauss_mean;
+	real_type sig_gauss_sd;
+	real_type sig_half_sine_ampl;
+	uint_type sig_half_sine_freq;
+	uint_type sig_half_sine_phase;
+	real_type sig_half_sine_bias;
+	real_type sig_half_sine_mesh_ampl;
+	uint_type sig_half_sine_mesh_freq;
+	uint_type sig_half_sine_mesh_phase;
+	real_type sig_half_sine_mesh_bias;
 	real_type sig_sawtooth_low;
 	real_type sig_sawtooth_high;
 	real_type sig_sawtooth_incr;
@@ -275,20 +287,10 @@ int main(int argc, char *argv[])
 	uint_type sig_sine_mesh_freq;
 	uint_type sig_sine_mesh_phase;
 	real_type sig_sine_mesh_bias;
-	real_type sig_half_sine_ampl;
-	uint_type sig_half_sine_freq;
-	uint_type sig_half_sine_phase;
-	real_type sig_half_sine_bias;
-	real_type sig_half_sine_mesh_ampl;
-	uint_type sig_half_sine_mesh_freq;
-	uint_type sig_half_sine_mesh_phase;
-	real_type sig_half_sine_mesh_bias;
 	real_type sig_square_low;
 	real_type sig_square_high;
 	real_type sig_unif_min;
 	real_type sig_unif_max;
-	real_type sig_gauss_mean;
-	real_type sig_gauss_sd;
 	real_type ts;
 	bool verbose(false);
 	std::string wkl_driver_path;
@@ -301,8 +303,9 @@ int main(int argc, char *argv[])
 		help = dcs::cli::simple::get_option(argv, argv+argc, "--help");
 		out_dat_file = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--out-dat-file", detail::default_out_dat_file);
 		sig = dcs::cli::simple::get_option<detail::signal_category>(argv, argv+argc, "--sig", detail::default_signal_category);
-		sig_up_bound = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-upper-bound", detail::default_signal_upper_bound);
-		sig_lo_bound = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-lower-bound", detail::default_signal_lower_bound);
+		sig_common_up_bound = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-upper-bound", detail::default_signal_common_upper_bound);
+		sig_common_lo_bound = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-lower-bound", detail::default_signal_common_lower_bound);
+		sig_const_val = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-constant-val", detail::default_signal_const_val);
 		sig_sawtooth_low = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-sawtooth-low", detail::default_signal_sawtooth_low);
 		sig_sawtooth_high = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-sawtooth-high", detail::default_signal_sawtooth_high);
 		sig_sawtooth_incr = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-sawtooth-incr", detail::default_signal_sawtooth_incr);
@@ -381,6 +384,86 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
+		oss << "Signal lower bound: " << sig_lo_bound;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Signal upper bound: " << sig_up_bound;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		switch (sig)
+		{
+			case detail::constant_signal:
+				oss << "Constant signal - value: " << sig_const_value;
+				dcs::log_info(DCS_LOGGING_AT, oss.str());
+				oss.str("");
+				break;
+			case detail::gaussian_signal:
+				oss << "Gaussian signal -"
+					<< "  mean: " << sig_gauss_mean
+					<< ", standard deviation: " << sig_gauss_sd;
+				dcs::log_info(DCS_LOGGING_AT, oss.str());
+				oss.str("");
+				break;
+			case detail::half_sinusoidal_signal:
+				oss << "Half-sinusoidal signal -"
+					<< "  amplitude: " << sig_half_sine_ampl
+					<< ", frequency: " << sig_half_sine_freq
+					<< ", phase: " << sig_half_sine_phase
+					<< ", bias: " << sig_half_sine_bias;
+				dcs::log_info(DCS_LOGGING_AT, oss.str());
+				oss.str("");
+				break;
+			case detail::half_sinusoidal_mesh_signal:
+				oss << "Half-sinusoidal mesh signal -"
+					<< "  amplitude: " << sig_half_sine_mesh_ampl
+					<< ", frequency: " << sig_half_sine_mesh_freq
+					<< ", phase: " << sig_half_sine_mesh_phase
+					<< ", bias: " << sig_half_sine_mesh_bias;
+				dcs::log_info(DCS_LOGGING_AT, oss.str());
+				oss.str("");
+				break;
+			case detail::sawtooth_signal:
+				oss << "Sawtooth signal -"
+					<< "  lower value: " << sig_sawtooth_low
+					<< ", higher value: " << sig_sawtooth_high
+					<< ", increment: " << sig_sawtooth_incr;
+				dcs::log_info(DCS_LOGGING_AT, oss.str());
+				oss.str("");
+				break;
+			case detail::sinusoidal_signal:
+				oss << "Sinusoidal signal -"
+					<< "  amplitude: " << sig_sine_ampl
+					<< ", frequency: " << sig_sine_freq
+					<< ", phase: " << sig_sine_phase
+					<< ", bias: " << sig_sine_bias;
+				dcs::log_info(DCS_LOGGING_AT, oss.str());
+				oss.str("");
+				break;
+			case detail::sinusoidal_mesh_signal:
+				oss << "Sinusoidal mesh signal -"
+					<< "  amplitude: " << sig_sine_mesh_ampl
+					<< ", frequency: " << sig_sine_mesh_freq
+					<< ", phase: " << sig_sine_mesh_phase
+					<< ", bias: " << sig_sine_mesh_bias;
+				dcs::log_info(DCS_LOGGING_AT, oss.str());
+				oss.str("");
+				break;
+			case detail::square_signal:
+				oss << "Square signal -"
+					<< "  lower value: " << sig_square_low
+					<< ", higher value: " << sig_square_high
+				break;
+			case detail::uniform_signal:
+				oss << "Uniform signal -"
+					<< "  minimum value: " << sig_unif_min
+					<< ", maximum value: " << sig_unif_max
+				break;
+			default:
+				break;
+		}
+
 		oss << "Sampling time: " << ts;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
@@ -417,7 +500,7 @@ int main(int argc, char *argv[])
 		{
 			case detail::constant_signal:
 				{
-					std::vector<real_type> u0(nt, 1);
+					std::vector<real_type> u0(nt, sig_const_val);
 					p_sig_gen = boost::make_shared< testbed::constant_signal_generator<real_type> >(u0);
 				}
 				break;
