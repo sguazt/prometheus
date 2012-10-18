@@ -454,11 +454,15 @@ int main(int argc, char *argv[])
 				oss << "Square signal -"
 					<< "  lower value: " << sig_square_low
 					<< ", higher value: " << sig_square_high;
+				dcs::log_info(DCS_LOGGING_AT, oss.str());
+				oss.str("");
 				break;
 			case detail::uniform_signal:
 				oss << "Uniform signal -"
 					<< "  minimum value: " << sig_unif_min
 					<< ", maximum value: " << sig_unif_max;
+				dcs::log_info(DCS_LOGGING_AT, oss.str());
+				oss.str("");
 				break;
 			default:
 				break;
