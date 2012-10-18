@@ -384,18 +384,18 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
-		oss << "Signal lower bound: " << sig_lo_bound;
+		oss << "Signal lower bound: " << sig_common_lo_bound;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
-		oss << "Signal upper bound: " << sig_up_bound;
+		oss << "Signal upper bound: " << sig_common_up_bound;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
 		switch (sig)
 		{
 			case detail::constant_signal:
-				oss << "Constant signal - value: " << sig_const_value;
+				oss << "Constant signal - value: " << sig_const_val;
 				dcs::log_info(DCS_LOGGING_AT, oss.str());
 				oss.str("");
 				break;
@@ -453,12 +453,12 @@ int main(int argc, char *argv[])
 			case detail::square_signal:
 				oss << "Square signal -"
 					<< "  lower value: " << sig_square_low
-					<< ", higher value: " << sig_square_high
+					<< ", higher value: " << sig_square_high;
 				break;
 			case detail::uniform_signal:
 				oss << "Uniform signal -"
 					<< "  minimum value: " << sig_unif_min
-					<< ", maximum value: " << sig_unif_max
+					<< ", maximum value: " << sig_unif_max;
 				break;
 			default:
 				break;
@@ -575,8 +575,8 @@ int main(int argc, char *argv[])
 				break;
 		}
 		// Common params
-		p_sig_gen->upper_bound(sig_up_bound);
-		p_sig_gen->lower_bound(sig_lo_bound);
+		p_sig_gen->upper_bound(sig_common_up_bound);
+		p_sig_gen->lower_bound(sig_common_lo_bound);
 
 		testbed::system_identification<real_type> sysid(vms.begin(), vms.end(), p_driver, p_sig_gen);
 		sysid.output_data_file(out_dat_file);
