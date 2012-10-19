@@ -631,8 +631,10 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << rt_ms);
 		zzz_time = min_zzz_time;
 		do
 		{
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Zzz... (" << zzz_time << ")");
 			::sleep(zzz_time);
 			zzz_time = ::std::max((zzz_time+1) % max_zzz_time, min_zzz_time);
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Cheking for new data");
 
 			ifs.open(p_driver->metrics_file_path().c_str());
 			ifs.seekg(0, ::std::ios_base::end);
@@ -659,6 +661,7 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- SOUGHT IFS STREAM -- OLD POS: " << fpos 
 				// The file has not changed, maybe we are in case #1 (or simply we have to wait for other few secs)
 				new_data = false;
 			}
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Cheking for new data --> " << new_data);
 		}
 		while (!p_driver->done() && !new_data);
 	}
