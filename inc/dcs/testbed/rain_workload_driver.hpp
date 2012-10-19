@@ -37,6 +37,7 @@
 #include <boost/smart_ptr.hpp>
 #include <cctype>
 #include <cerrno>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <dcs/exception.hpp>
@@ -134,11 +135,33 @@ inline
 	  return path + "/metrics-snapshots-cloudstone-001-" + suffix + ".log";
 }
 
+template <typename T>
+inline
+T atomic_get(::pthread_mutex_t& mutex, T const& attr)
+{
+	T ret;
+
+	::pthread_mutex_lock(&mutex);
+		ret = attr;
+	::pthread_mutex_unlock(&mutex);
+
+	return ret;
+}
+
+template <typename T>
+inline
+void atomic_set(::pthread_mutex_t& mutex, T& attr, T val)
+{
+	::pthread_mutex_lock(&mutex);
+		attr = val;
+	::pthread_mutex_unlock(&mutex);
+}
+
 } // Namespace <unnamed>
 
-void* thread_monitor_rain_rampup(void* arg);
+static void* thread_monitor_rain_rampup(void* arg);
 
-void* thread_monitor_rain_steady_state(void* arg);
+static void* thread_monitor_rain_steady_state(void* arg);
 
 } // Namespace detail
 
@@ -267,9 +290,7 @@ class rain_workload_driver: public base_workload_driver
 
 	private: void ready(bool val)
 	{
-		::pthread_mutex_lock(&ready_mutex_);
-			ready_ = val;
-		::pthread_mutex_unlock(&ready_mutex_);
+		detail::atomic_set(ready_mutex_, ready_, val);
 	}
 
 	private: sys_process_type& process()
@@ -397,18 +418,18 @@ class rain_workload_driver: public base_workload_driver
 
 	private: bool do_done() const
 	{
-		return !proc_.alive();
+		bool ret(false);
+
+		::pthread_mutex_lock(&obs_mutex_);
+			ret = !proc_.alive();
+		::pthread_mutex_unlock(&obs_mutex_);
+
+		return ret;
 	}
 
 	private: bool do_ready() const
 	{
-		bool ret(false);
-
-		::pthread_mutex_lock(&ready_mutex_);
-			ret = ready_;
-		::pthread_mutex_unlock(&ready_mutex_);
-
-		return ret;
+		return detail::atomic_get(ready_mutex_, ready_);
 	}
 
 	private: bool do_has_observation() const
@@ -513,6 +534,7 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Entering");
 	const ::std::size_t response_time_field(4);
 	const ::std::size_t max_open_trials(5);
 	const unsigned int min_zzz_time(2);
+	const unsigned int max_zzz_time(10);
 
 	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
 
@@ -531,7 +553,7 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Entering");
 	{
 		++trial;
 
-DCS_DEBUG_TRACE("Waiting... (Trial: " << trial << "/" << max_open_trials << ", Zzz: " << zzz_time << ")");
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Waiting... (Trial: " << trial << "/" << max_open_trials << ", Zzz: " << zzz_time << ")");
 		::sleep(zzz_time);
 		++zzz_time;
 
@@ -561,7 +583,7 @@ DCS_DEBUG_TRACE("Waiting... (Trial: " << trial << "/" << max_open_trials << ", Z
 
 			::std::getline(ifs, line);
 
-DCS_DEBUG_TRACE("IFS STREAM -- POS: " << fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- IFS STREAM -- POS: " << fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
 			::std::size_t n(line.size());
 			::std::size_t field(0);
 			for (::std::size_t pos = 0; pos < n; ++pos)
@@ -607,12 +629,11 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << rt_ms);
 		// Investigate...
 
 		zzz_time = min_zzz_time;
-		trial = 0;
 		do
 		{
-			++trial;
-			sleep(zzz_time);
-			++zzz_time;
+			::sleep(zzz_time);
+			zzz_time = ::std::max((zzz_time+1) % max_zzz_time, min_zzz_time);
+
 			ifs.open(p_driver->metrics_file_path().c_str());
 			ifs.seekg(0, ::std::ios_base::end);
 			::std::ifstream::pos_type new_fpos(ifs.tellg());
@@ -631,7 +652,7 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << rt_ms);
 				// Restart to read file from the old position
 				ifs.seekg(fpos);
 				new_data = true;
-DCS_DEBUG_TRACE("SOUGHT IFS STREAM -- OLD POS: " << fpos << " - NEW POS: " << new_fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- SOUGHT IFS STREAM -- OLD POS: " << fpos << " - NEW POS: " << new_fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
 			}
 			else
 			{
@@ -639,11 +660,11 @@ DCS_DEBUG_TRACE("SOUGHT IFS STREAM -- OLD POS: " << fpos << " - NEW POS: " << ne
 				new_data = false;
 			}
 		}
-		while (trial < max_open_trials && !new_data);
+		while (!p_driver->done() && !new_data);
 	}
-	while (new_data);
+	while (!p_driver->done() && new_data);
 
-DCS_DEBUG_TRACE("OUT-OF-LOOP IFS STREAM -- EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- OUT-OF-LOOP IFS STREAM -- EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
 	ifs.close();
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Leaving");
 
