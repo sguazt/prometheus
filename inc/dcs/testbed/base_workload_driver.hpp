@@ -34,6 +34,7 @@
 #define DCS_TESTBED_BASE_WORKLOAD_DRIVER_HPP
 
 
+#include <ctime>
 #include <string>
 #include <vector>
 
@@ -42,7 +43,66 @@ namespace dcs { namespace testbed {
 
 class base_workload_driver
 {
+	public: class observation;
+
+
 	public: typedef double real_type;
+	public: typedef observation observation_type;
+
+
+	public: class observation
+	{
+		friend class base_workload_driver;
+
+
+		public: ::std::time_t timestamp() const
+		{
+			return ts_;
+		}
+
+		public: ::std::string operation() const
+		{
+			return op_;
+		}
+
+		public: real_type value() const
+		{
+			return val_;
+		}
+
+		protected: void timestamp(::std::time_t val)
+		{
+			ts_ = val;
+		}
+
+		protected: void operation(::std::string const& val)
+		{
+			op_ = val;
+		}
+
+		protected: void value(real_type val)
+		{
+			val_ = val;
+		}
+
+
+		private: ::std::time_t ts_;
+		private: ::std::string op_;
+		private: real_type val_;
+	}; // observation
+
+
+	protected: static observation_type make_observation(::std::time_t ts,
+														::std::string const& op,
+														real_type val)
+	{
+		observation_type obs;
+		obs.timestamp(ts);
+		obs.operation(op);
+		obs.value(val);
+
+		return obs;
+	}
 
 
 	public: virtual ~base_workload_driver()
@@ -74,12 +134,7 @@ class base_workload_driver
 		return do_has_observation();
 	}
 
-//	public: real_type observation() const
-//	{
-//		return do_observation();
-//	}
-
-	public: ::std::vector<real_type> observations() const
+	public: ::std::vector<observation> observations() const
 	{
 		return do_observations();
 	}
@@ -94,9 +149,7 @@ class base_workload_driver
 
 	private: virtual bool do_has_observation() const = 0;
 
-//	private: virtual double do_observation() const = 0;
-
-	private: virtual ::std::vector<real_type> do_observations() const = 0;
+	private: virtual ::std::vector<observation> do_observations() const = 0;
 
 }; // base_workload_driver
 

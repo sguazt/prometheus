@@ -256,7 +256,8 @@ class system_identification
 				}
 
 				// Get collected observations
-				typedef ::std::vector<real_type> obs_container;
+				typedef typename workload_driver_type::observation_type observation_type;
+				typedef ::std::vector<observation_type> obs_container;
 				typedef typename obs_container::const_iterator obs_iterator;
 				obs_container obs = p_wkl_driver_->observations();
 				//FIXME: parameterize the type of statistics the user want
@@ -266,12 +267,12 @@ class system_identification
 					 obs_it != obs_end_it;
 					 ++obs_it)
 				{
-					real_type val(*obs_it);
+					real_type val(obs_it->value());
 					acc(val);
 
 					if (out_ext_fmt_)
 					{
-						ofs << oss.str() << " " << val << " " << "\"[DATA]\"" << ::std::endl;
+						ofs << oss.str() << " " << obs_it->timestamp() << " " << val << " " << "\"[DATA]\"" << ::std::endl;
 					}
 				}
 
@@ -283,7 +284,7 @@ class system_identification
 
 				if (out_ext_fmt_)
 				{
-					ofs << oss.str() << " " << summary_obs << " " << "\"[SUMMARY]\"" << ::std::endl;
+					ofs << oss.str() << " " << dt << " " << summary_obs << " " << "\"[SUMMARY]\"" << ::std::endl;
 				}
 				else
 				{

@@ -168,8 +168,10 @@ static void* thread_monitor_rain_steady_state(void* arg);
 
 class rain_workload_driver: public base_workload_driver
 {
+	private: typedef base_workload_driver base_type;
 	private: typedef ::dcs::system::posix_process sys_process_type;
 	private: typedef ::boost::shared_ptr<sys_process_type> sys_process_pointer;
+	public: typedef base_type::observation_type observation_type;
 
 
 	friend void* detail::thread_monitor_rain_rampup(void*);
@@ -303,11 +305,18 @@ class rain_workload_driver: public base_workload_driver
 		return proc_;
 	}
 
-	private: void add_observation(real_type obs)
+	private: void add_observation(observation_type const& obs)
 	{
 		::pthread_mutex_lock(&obs_mutex_);
 			obs_.push_back(obs);
 		::pthread_mutex_unlock(&obs_mutex_);
+	}
+
+	private: void add_observation(::std::time_t ts,
+								  ::std::string const& op,
+								  real_type val)
+	{
+		this->add_observation(base_type::make_observation(ts, op, val));
 	}
 
 	private: ::pthread_t& rampup_thread()
@@ -443,9 +452,9 @@ class rain_workload_driver: public base_workload_driver
 		return ret;
 	}
 
-	private: ::std::vector<real_type> do_observations() const
+	private: ::std::vector<observation_type> do_observations() const
 	{
-		::std::vector<real_type> obs;
+		::std::vector<observation_type> obs;
 
 		::pthread_mutex_lock(&obs_mutex_);
 			while (!obs_.empty())
@@ -484,7 +493,7 @@ class rain_workload_driver: public base_workload_driver
 	private: bool rampup_thread_active_;
 	private: bool steady_thread_active_;
 	private: sys_process_type proc_;
-	private: mutable ::std::list<real_type> obs_;
+	private: mutable ::std::list<observation_type> obs_;
 	private: ::pthread_t rampup_thread_;
 	private: ::pthread_t steady_thread_;
 	private: mutable ::pthread_mutex_t ready_mutex_;
@@ -531,6 +540,8 @@ void* thread_monitor_rain_steady_state(void* arg)
 	// - <number of observations>
 
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Entering");
+	const ::std::size_t timestamp_field(2);
+	const ::std::size_t operation_field(3);
 	const ::std::size_t response_time_field(4);
 	const ::std::size_t max_open_trials(5);
 	const unsigned int min_zzz_time(2);
@@ -584,6 +595,9 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Waiting... (Trial: " << trial << "/" << 
 			::std::getline(ifs, line);
 
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- IFS STREAM -- POS: " << fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
+			::std::time_t obs_ts(0); // timestamp (in secs from Epoch)
+			::std::string obs_op; // Operation label
+			long obs_rtms(0); // response time (in ms)
 			::std::size_t n(line.size());
 			::std::size_t field(0);
 			for (::std::size_t pos = 0; pos < n; ++pos)
@@ -596,30 +610,55 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- IFS STREAM -- POS: " << fpos << " - GOOD
 				if (pos < n)
 				{
 					++field;
-					if (field < response_time_field)
+
+					switch (field)
 					{
-						// skip these fields
-						for (; pos < n && !::std::isspace(line[pos]); ++pos)
+						case timestamp_field:
 						{
-							;
+							::std::size_t pos2(pos);
+							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
+							{
+								;
+							}
+							::std::istringstream iss(line.substr(pos, pos2-pos));
+							iss >> obs_ts;
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Timestamp: " << obs_ts);
+							break;
 						}
-					}
-					else
-					{
-						::std::size_t pos2 = pos;
-						for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
+						case operation_field:
 						{
-							;
+							::std::size_t pos2(pos);
+							for (; pos2 < n && ::std::isalpha(line[pos2]); ++pos2)
+							{
+								;
+							}
+							obs_op = line.substr(pos, pos2-pos);
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Operation: " << obs_op);
+							break;
 						}
-						long rt_ms(0); // response time is given in multiple of ms
-						::std::istringstream iss(line.substr(pos, pos2-pos));
-						iss >> rt_ms;
-DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << rt_ms);
-						p_driver->add_observation(static_cast<double>(rt_ms));
-						break;
+						case response_time_field:
+						{
+							::std::size_t pos2(pos);
+							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
+							{
+								;
+							}
+							::std::istringstream iss(line.substr(pos, pos2-pos));
+							iss >> obs_rtms;
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << obs_rtms);
+							break;
+						}
+						default:
+							// skip these fields
+							for (; pos < n && !::std::isspace(line[pos]); ++pos)
+							{
+								;
+							}
+							break;
 					}
 				}
 			}
+			p_driver->add_observation(obs_ts, obs_op, obs_rtms);
 		}
 
 		// Found EOF. Two possible reasons:
