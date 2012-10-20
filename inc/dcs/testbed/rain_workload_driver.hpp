@@ -621,7 +621,6 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << rt_ms);
 				}
 			}
 		}
-		ifs.close();
 
 		// Found EOF. Two possible reasons:
 		// 1. There is no data to read
@@ -629,38 +628,48 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << rt_ms);
 		// Investigate...
 
 		zzz_time = min_zzz_time;
+		new_data = false;
 		do
 		{
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Zzz... (" << zzz_time << ")");
+			// Sleep for a while, just to let new data arrive
 			::sleep(zzz_time);
 			zzz_time = ::std::max((zzz_time+1) % max_zzz_time, min_zzz_time);
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Cheking for new data");
 
-			ifs.open(p_driver->metrics_file_path().c_str());
-			ifs.seekg(0, ::std::ios_base::end);
-			::std::ifstream::pos_type new_fpos(ifs.tellg());
-			if (new_fpos == -1)
+			// Close to stream in order to avoid possible failures during the following call to open
+			ifs.close();
+			// Reopen the stream "at end"
+			ifs.open(p_driver->metrics_file_path().c_str(), ::std::ios_base::ate);
+			if (ifs.good())
 			{
-				// Failed to get new position.
-				// This may be due to a temporary situation.
-				// So, instead of stop reading, try to reopen the file later,
-				// until we reach a number of trials equals to max_open_trials.
-				new_data = false;
-			}
-			else if (fpos != new_fpos)
-			{
-				// The file has changed, we are in case #2
+				ifs.sync();
+				::std::ifstream::pos_type new_fpos(ifs.tellg());
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- REOPENED (good) -- OLD POS: " << fpos << " - NEW POS: " << new_fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs) << " - IN_AVAIL: " << ifs.rdbuf()->in_avail());
+				if (fpos != new_fpos)
+				{
+					// The file has changed, we are in case #2
 
-				// Restart to read file from the old position
-				ifs.seekg(fpos);
-				new_data = true;
+					// Restart to read file from the old position
+					ifs.seekg(fpos);
+					new_data = true;
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- SOUGHT IFS STREAM -- OLD POS: " << fpos << " - NEW POS: " << new_fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
+				}
+//				else
+//				{
+//					// We are here because
+//					// - new_fpos==-1 -> Failed to get new position.
+//					//   This may be due to a temporary situation.
+//					//   So, instead of stop reading, try to reopen the file later.
+//					// - fpos==new_fpos -> The file has not changed, maybe we are in case #1 (or simply we have to wait for other few secs)
+//					new_data = false;
+//				}
 			}
-			else
-			{
-				// The file has not changed, maybe we are in case #1 (or simply we have to wait for other few secs)
-				new_data = false;
-			}
+//			else
+//			{
+//DCS_DEBUG_TRACE("STEADY-STATE THREAD -- REOPENED (failed) -- OLD POS: " << fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
+//				new_data = false;
+//			}
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Cheking for new data --> " << new_data);
 		}
 		while (!p_driver->done() && !new_data);
@@ -668,7 +677,10 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Cheking for new data --> " << new_data);
 	while (!p_driver->done() && new_data);
 
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- OUT-OF-LOOP IFS STREAM -- EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
-	ifs.close();
+	if (ifs.is_open())
+	{
+		ifs.close();
+	}
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Leaving");
 
 	return 0;
