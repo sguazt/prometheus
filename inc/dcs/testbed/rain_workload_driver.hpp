@@ -427,13 +427,14 @@ class rain_workload_driver: public base_workload_driver
 
 	private: bool do_done() const
 	{
-		bool ret(false);
-
-		::pthread_mutex_lock(&obs_mutex_);
-			ret = !proc_.alive();
-		::pthread_mutex_unlock(&obs_mutex_);
-
-		return ret;
+//		bool ret(false);
+//
+//		::pthread_mutex_lock(&obs_mutex_);
+//			ret = !proc_.alive();
+//		::pthread_mutex_unlock(&obs_mutex_);
+//
+//		return ret;
+		return !proc_.alive();
 	}
 
 	private: bool do_ready() const
@@ -711,9 +712,11 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- SOUGHT IFS STREAM -- OLD POS: " << fpos 
 //			}
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Cheking for new data --> " << new_data);
 		}
-		while (!p_driver->done() && !new_data);
+		//while (!p_driver->done() && !new_data);
+		while (!new_data);
 	}
-	while (!p_driver->done() && new_data);
+	//while (!p_driver->done() && new_data);
+	while (new_data);
 
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- OUT-OF-LOOP IFS STREAM -- EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
 	if (ifs.is_open())
