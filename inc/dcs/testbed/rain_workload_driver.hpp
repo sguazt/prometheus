@@ -639,11 +639,18 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Waiting... (Trial: " << trial << "/" << 
 
 			::std::getline(ifs, line);
 
-DCS_DEBUG_TRACE("STEADY-STATE THREAD -- IFS STREAM -- POS: " << fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
+DCS_DEBUG_TRACE("STEADY-STATE THREAD -- IFS STREAM -- LINE: " << line << " - POS: " << fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
+
+			const ::std::size_t n(line.size());
+
+			if (!ifs.good() || n == 0)
+			{
+				continue;
+			}
+
 			::std::time_t obs_ts(0); // timestamp (in secs from Epoch)
 			::std::string obs_op; // Operation label
 			long obs_rtms(0); // response time (in ms)
-			::std::size_t n(line.size());
 			::std::size_t field(0);
 			for (::std::size_t pos = 0; pos < n; ++pos)
 			{
@@ -706,6 +713,7 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << obs_rtms);
 					}
 				}
 			}
+
 			p_driver->add_observation(obs_ts, obs_op, obs_rtms);
 		}
 
