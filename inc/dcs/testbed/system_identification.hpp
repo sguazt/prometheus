@@ -248,7 +248,7 @@ class system_identification
 
 					DCS_DEBUG_TRACE( "   VM '" << p_vm->name() << "' :: Old CPU share: " << p_vm->cpu_share() << " :: New CPU share: " << share[ix] );
 
-					oss << " " << p_vm->cpu_share();
+					oss << "," << p_vm->cpu_share();
 
 					p_vm->cpu_share(share[ix]);
 
@@ -272,7 +272,7 @@ class system_identification
 
 					if (out_ext_fmt_)
 					{
-						ofs << oss.str() << " " << obs_it->timestamp() << " " << val << " " << "\"[DATA]\"" << ::std::endl;
+						ofs << oss.str() << "," << obs_it->timestamp() << "," << "\"" << obs_it->operation() << "\"" << "," << val << "," << "\"[DATA]\"" << ::std::endl;
 					}
 				}
 
@@ -284,11 +284,11 @@ class system_identification
 
 				if (out_ext_fmt_)
 				{
-					ofs << oss.str() << " " << dt << " " << summary_obs << " " << "\"[SUMMARY]\"" << ::std::endl;
+					ofs << oss.str() << "," << dt << "\"\"," << " " << summary_obs << "," << "\"[SUMMARY]\"" << ::std::endl;
 				}
 				else
 				{
-					ofs << oss.str() << " " << summary_obs << ::std::endl;
+					ofs << oss.str() << "," << summary_obs << ::std::endl;
 				}
 			}
 
