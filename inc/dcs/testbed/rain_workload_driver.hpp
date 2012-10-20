@@ -660,6 +660,7 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- IFS STREAM -- POS: " << fpos << " - GOOD
 							::std::istringstream iss(line.substr(pos, pos2-pos));
 							iss >> obs_ts;
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Timestamp: " << obs_ts);
+							pos = pos2;
 							break;
 						}
 						case operation_field:
@@ -671,6 +672,7 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Timestamp: " << obs_ts);
 							}
 							obs_op = line.substr(pos, pos2-pos);
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Operation: " << obs_op);
+							pos = pos2;
 							break;
 						}
 						case response_time_field:
@@ -683,6 +685,7 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Operation: " << obs_op);
 							::std::istringstream iss(line.substr(pos, pos2-pos));
 							iss >> obs_rtms;
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << obs_rtms);
+							pos = pos2;
 							break;
 						}
 						default:
