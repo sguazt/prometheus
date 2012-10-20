@@ -203,7 +203,9 @@ class rain_workload_driver: public base_workload_driver
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
 	  ready_mutex_(mutex_init_val_),
-	  obs_mutex_(mutex_init_val_)
+	  obs_mutex_(mutex_init_val_),
+	  rampup_thread_mutex_(mutex_init_val_),
+	  steady_thread_mutex_(mutex_init_val_)
 	{
 	}
 
@@ -216,7 +218,9 @@ class rain_workload_driver: public base_workload_driver
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
 	  ready_mutex_(mutex_init_val_),
-	  obs_mutex_(mutex_init_val_)
+	  obs_mutex_(mutex_init_val_),
+	  rampup_thread_mutex_(mutex_init_val_),
+	  steady_thread_mutex_(mutex_init_val_)
 	{
 	}
 
@@ -230,7 +234,9 @@ class rain_workload_driver: public base_workload_driver
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
 	  ready_mutex_(mutex_init_val_),
-	  obs_mutex_(mutex_init_val_)
+	  obs_mutex_(mutex_init_val_),
+	  rampup_thread_mutex_(mutex_init_val_),
+	  steady_thread_mutex_(mutex_init_val_)
 	{
 	}
 
@@ -247,7 +253,9 @@ class rain_workload_driver: public base_workload_driver
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
 	  ready_mutex_(mutex_init_val_),
-	  obs_mutex_(mutex_init_val_)
+	  obs_mutex_(mutex_init_val_),
+	  rampup_thread_mutex_(mutex_init_val_),
+	  steady_thread_mutex_(mutex_init_val_)
 	{
 	}
 
