@@ -329,6 +329,36 @@ class rain_workload_driver: public base_workload_driver
 		return rampup_thread_;
 	}
 
+	private: void rampup_thread_active(bool val)
+	{
+		detail::atomic_set(rampup_thread_mutex_, rampup_thread_active_, val);
+	}
+
+	private: bool rampup_thread_active() const
+	{
+		return detail::atomic_get(rampup_thread_mutex_, rampup_thread_active_);
+	}
+
+	private: ::pthread_t& steady_state_thread()
+	{
+		return steady_thread_;
+	}
+
+	private: ::pthread_t const& steady_state_thread() const
+	{
+		return steady_thread_;
+	}
+
+	private: void steady_state_thread_active(bool val)
+	{
+		detail::atomic_set(steady_thread_mutex_, steady_thread_active_, val);
+	}
+
+	private: bool steady_state_thread_active() const
+	{
+		return detail::atomic_get(steady_thread_mutex_, steady_thread_active_);
+	}
+
 	private: void do_start()
 	{
 		// Stop previously running process and thread (if any)
@@ -336,12 +366,12 @@ class rain_workload_driver: public base_workload_driver
 		{
 			proc_.terminate();
 		}
-		if (rampup_thread_active_)
+		if (this->rampup_thread_active())
 		{
 			pthread_cancel(rampup_thread_);
 			pthread_join(rampup_thread_, 0);
 		}
-		if (steady_thread_active_)
+		if (this->steady_state_thread_active())
 		{
 			pthread_cancel(steady_thread_);
 			pthread_join(steady_thread_, 0);
@@ -349,8 +379,8 @@ class rain_workload_driver: public base_workload_driver
 
 		// Run a new process
 		ready_ = false;
-		rampup_thread_active_ = false;
-		steady_thread_active_ = false;
+		this->rampup_thread_active(false);
+		this->steady_state_thread_active(false);
 		proc_.command(cmd_);
 		proc_.asynch(true);
 		proc_.run(args_.begin(), args_.end(), false, true);
@@ -370,7 +400,6 @@ class rain_workload_driver: public base_workload_driver
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
-		rampup_thread_active_ = true;
 		// Run a thread to monitor RAIN steady-state phase
 		if (::pthread_create(&steady_thread_, 0, &detail::thread_monitor_rain_steady_state, this) != 0)
 		{
@@ -379,14 +408,13 @@ class rain_workload_driver: public base_workload_driver
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
-		steady_thread_active_ = true;
 	}
 
 	private: void do_stop()
 	{
 		proc_.terminate();
 
-		if (rampup_thread_active_)
+		if (this->rampup_thread_active())
 		{
 			if (::pthread_cancel(rampup_thread_) != 0)
 			{
@@ -402,10 +430,10 @@ class rain_workload_driver: public base_workload_driver
 
 				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 			}
-			rampup_thread_active_ = false;
+			this->rampup_thread_active(false);
 		}
 
-		if (steady_thread_active_)
+		if (this->steady_state_thread_active())
 		{
 			if (::pthread_cancel(steady_thread_) != 0)
 			{
@@ -421,7 +449,7 @@ class rain_workload_driver: public base_workload_driver
 
 				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 			}
-			steady_thread_active_ = false;
+			this->steady_state_thread_active(false);
 		}
 	}
 
@@ -499,6 +527,8 @@ class rain_workload_driver: public base_workload_driver
 	private: ::pthread_t steady_thread_;
 	private: mutable ::pthread_mutex_t ready_mutex_;
 	private: mutable ::pthread_mutex_t obs_mutex_;
+	private: mutable ::pthread_mutex_t rampup_thread_mutex_;
+	private: mutable ::pthread_mutex_t steady_thread_mutex_;
 }; // rain_workload_driver
 
 const ::pthread_mutex_t rain_workload_driver::mutex_init_val_ = PTHREAD_MUTEX_INITIALIZER;
@@ -508,6 +538,8 @@ namespace detail {
 void* thread_monitor_rain_rampup(void* arg)
 {
 	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
+
+	p_driver->rampup_thread_active(true);
 
 	::std::istream& is = p_driver->process().output_stream();
 
@@ -524,6 +556,8 @@ void* thread_monitor_rain_rampup(void* arg)
 			break;
 		}
 	}
+
+	p_driver->rampup_thread_active(false);
 
 	return 0;
 }
@@ -549,6 +583,8 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Entering");
 	const unsigned int max_zzz_time(10);
 
 	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
+
+	p_driver->steady_state_thread_active(true);
 
 	if (pthread_join(p_driver->rampup_thread(), 0) != 0)
 	{
@@ -724,6 +760,8 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- OUT-OF-LOOP IFS STREAM -- EOF: " << ifs.
 		ifs.close();
 	}
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Leaving");
+
+	p_driver->steady_state_thread_active(false);
 
 	return 0;
 }
