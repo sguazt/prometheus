@@ -41,15 +41,14 @@
 #include <cstdlib>
 #include <cstring>
 #include <dcs/exception.hpp>
+#include <dcs/logging.hpp>
 #include <dcs/system/posix_process.hpp>
 #include <dcs/system/process_status_category.hpp>
 #include <dcs/testbed/base_workload_driver.hpp>
 #include <fstream>
 #include <istream>
 #include <list>
-extern "C" {
 #include <pthread.h>
-}
 #include <sstream>
 #include <string>
 #include <vector>
@@ -269,12 +268,12 @@ class rain_workload_driver: public base_workload_driver
 		{
 			// empty
 		}
-		if (rampup_thread_active_)
+		if (this->rampup_thread_active())
 		{
 			::pthread_cancel(rampup_thread_);
 			::pthread_join(rampup_thread_, 0);
 		}
-		if (steady_thread_active_)
+		if (this->steady_state_thread_active())
 		{
 			::pthread_cancel(steady_thread_);
 			::pthread_join(steady_thread_, 0);
@@ -561,8 +560,14 @@ void* thread_monitor_rain_rampup(void* arg)
 		if (line.find("Ramp up finished") != ::std::string::npos)
 		{
 			p_driver->ready(true);
+#ifndef DCS_DEBUG
 			break;
+#endif // DCS_DEBUG
 		}
+
+#ifdef DCS_DEBUG
+		dcs::log_info(DCS_LOGGING_AT, line);
+#endif // DCS_DEBUG
 	}
 
 	p_driver->rampup_thread_active(false);
