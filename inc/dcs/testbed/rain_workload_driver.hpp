@@ -277,6 +277,7 @@ class rain_workload_driver: public base_workload_driver
 
 	public: ~rain_workload_driver()
 	{
+		// Terminate process
 		try
 		{
 			proc_.terminate();
@@ -285,6 +286,7 @@ class rain_workload_driver: public base_workload_driver
 		{
 			// empty
 		}
+		// Remove threads
 		if (this->rampup_thread_active())
 		{
 			::pthread_cancel(rampup_thread_);
@@ -300,6 +302,10 @@ class rain_workload_driver: public base_workload_driver
 			::pthread_cancel(logger_thread_);
 			::pthread_join(logger_thread_, 0);
 		}
+		// Destroy mutexes
+		::pthread_mutex_destroy(&rampup_thread_mutex_);
+		::pthread_mutex_destroy(&steady_thread_mutex_);
+		::pthread_mutex_destroy(&logger_thread_mutex_);
 	}
 
 	public: ::std::string metrics_file_path() const
@@ -417,18 +423,18 @@ class rain_workload_driver: public base_workload_driver
 		}
 		if (this->rampup_thread_active())
 		{
-			pthread_cancel(rampup_thread_);
-			pthread_join(rampup_thread_, 0);
+			::pthread_cancel(rampup_thread_);
+			::pthread_join(rampup_thread_, 0);
 		}
 		if (this->steady_state_thread_active())
 		{
-			pthread_cancel(steady_thread_);
-			pthread_join(steady_thread_, 0);
+			::pthread_cancel(steady_thread_);
+			::pthread_join(steady_thread_, 0);
 		}
 		if (this->logger_thread_active())
 		{
-			pthread_cancel(logger_thread_);
-			pthread_join(logger_thread_, 0);
+			::pthread_cancel(logger_thread_);
+			::pthread_join(logger_thread_, 0);
 		}
 
 		// Run a new process
@@ -671,7 +677,7 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Entering");
 
 	p_driver->steady_state_thread_active(true);
 
-	if (pthread_join(p_driver->rampup_thread(), 0) != 0)
+	if (::pthread_join(p_driver->rampup_thread(), 0) != 0)
 	{
 		::std::ostringstream oss;
 		oss << "Error while joining RAIN ramp-up thread: " << ::strerror(errno);
@@ -868,7 +874,7 @@ void* thread_log_rain_steady_state_out(void* arg)
 
 	p_driver->logger_thread_active(true);
 
-	if (pthread_join(p_driver->rampup_thread(), 0) != 0)
+	if (::pthread_join(p_driver->rampup_thread(), 0) != 0)
 	{
 		::std::ostringstream oss;
 		oss << "Error while joining RAIN ramp-up thread: " << ::strerror(errno);
