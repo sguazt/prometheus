@@ -158,9 +158,17 @@ void atomic_set(::pthread_mutex_t& mutex, T& attr, T val)
 
 } // Namespace <unnamed>
 
+/// Monitors the RAIN ramp-up (transient) phase
 static void* thread_monitor_rain_rampup(void* arg);
 
+/**
+ * \brief Monitors the RAIN steady-state phase and parses the RAIN metrics
+ *  snapshot file.
+ */
 static void* thread_monitor_rain_steady_state(void* arg);
+
+/// Redirects the RAIN steady-state standard output to a log file.
+static void* thread_log_rain_steady_state_out(void* arg);
 
 } // Namespace detail
 
@@ -175,6 +183,7 @@ class rain_workload_driver: public base_workload_driver
 
 	friend void* detail::thread_monitor_rain_rampup(void*);
 	friend void* detail::thread_monitor_rain_steady_state(void*);
+	friend void* detail::thread_log_rain_steady_state_out(void*);
 
 
 	// We need to use such variable to initialize mutexes until C++11.
@@ -201,10 +210,12 @@ class rain_workload_driver: public base_workload_driver
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
+	  logger_thread_active_(false),
 	  ready_mutex_(mutex_init_val_),
 	  obs_mutex_(mutex_init_val_),
 	  rampup_thread_mutex_(mutex_init_val_),
-	  steady_thread_mutex_(mutex_init_val_)
+	  steady_thread_mutex_(mutex_init_val_),
+	  logger_thread_mutex_(mutex_init_val_)
 	{
 	}
 
@@ -216,10 +227,12 @@ class rain_workload_driver: public base_workload_driver
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
+	  logger_thread_active_(false),
 	  ready_mutex_(mutex_init_val_),
 	  obs_mutex_(mutex_init_val_),
 	  rampup_thread_mutex_(mutex_init_val_),
-	  steady_thread_mutex_(mutex_init_val_)
+	  steady_thread_mutex_(mutex_init_val_),
+	  logger_thread_mutex_(mutex_init_val_)
 	{
 	}
 
@@ -232,10 +245,12 @@ class rain_workload_driver: public base_workload_driver
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
+	  logger_thread_active_(false),
 	  ready_mutex_(mutex_init_val_),
 	  obs_mutex_(mutex_init_val_),
 	  rampup_thread_mutex_(mutex_init_val_),
-	  steady_thread_mutex_(mutex_init_val_)
+	  steady_thread_mutex_(mutex_init_val_),
+	  logger_thread_mutex_(mutex_init_val_)
 	{
 	}
 
@@ -251,10 +266,12 @@ class rain_workload_driver: public base_workload_driver
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
+	  logger_thread_active_(false),
 	  ready_mutex_(mutex_init_val_),
 	  obs_mutex_(mutex_init_val_),
 	  rampup_thread_mutex_(mutex_init_val_),
-	  steady_thread_mutex_(mutex_init_val_)
+	  steady_thread_mutex_(mutex_init_val_),
+	  logger_thread_mutex_(mutex_init_val_)
 	{
 	}
 
@@ -277,6 +294,11 @@ class rain_workload_driver: public base_workload_driver
 		{
 			::pthread_cancel(steady_thread_);
 			::pthread_join(steady_thread_, 0);
+		}
+		if (this->logger_thread_active())
+		{
+			::pthread_cancel(logger_thread_);
+			::pthread_join(logger_thread_, 0);
 		}
 	}
 
@@ -366,6 +388,26 @@ class rain_workload_driver: public base_workload_driver
 		return detail::atomic_get(steady_thread_mutex_, steady_thread_active_);
 	}
 
+	private: ::pthread_t& logger_thread()
+	{
+		return logger_thread_;
+	}
+
+	private: ::pthread_t const& logger_thread() const
+	{
+		return logger_thread_;
+	}
+
+	private: void logger_thread_active(bool val)
+	{
+		detail::atomic_set(logger_thread_mutex_, logger_thread_active_, val);
+	}
+
+	private: bool logger_thread_active() const
+	{
+		return detail::atomic_get(logger_thread_mutex_, logger_thread_active_);
+	}
+
 	private: void do_start()
 	{
 		// Stop previously running process and thread (if any)
@@ -383,11 +425,17 @@ class rain_workload_driver: public base_workload_driver
 			pthread_cancel(steady_thread_);
 			pthread_join(steady_thread_, 0);
 		}
+		if (this->logger_thread_active())
+		{
+			pthread_cancel(logger_thread_);
+			pthread_join(logger_thread_, 0);
+		}
 
 		// Run a new process
 		ready_ = false;
 		this->rampup_thread_active(false);
 		this->steady_state_thread_active(false);
+		this->logger_thread_active(false);
 		proc_.command(cmd_);
 		proc_.asynch(true);
 		proc_.run(args_.begin(), args_.end(), false, true);
@@ -412,6 +460,14 @@ class rain_workload_driver: public base_workload_driver
 		{
 			::std::ostringstream oss;
 			oss << "Unable to start steady-state monitor thread for the RAIN workload driver: " << ::strerror(errno);
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+		// Run a thread to log the RAIN standard output during the steady-state phase
+		if (::pthread_create(&steady_thread_, 0, &detail::thread_log_rain_steady_state_out, this) != 0)
+		{
+			::std::ostringstream oss;
+			oss << "Unable to start steady-state output logger thread for the RAIN workload driver: " << ::strerror(errno);
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
@@ -445,18 +501,37 @@ class rain_workload_driver: public base_workload_driver
 			if (::pthread_cancel(steady_thread_) != 0)
 			{
 				::std::ostringstream oss;
-				oss << "Unable to cancel ramp-up phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
+				oss << "Unable to cancel steady-state phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
 
 				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 			}
 			if (::pthread_join(steady_thread_, 0) != 0)
 			{
 				::std::ostringstream oss;
-				oss << "Unable to join ramp-up phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
+				oss << "Unable to join steady-state phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
 
 				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 			}
 			this->steady_state_thread_active(false);
+		}
+
+		if (this->logger_thread_active())
+		{
+			if (::pthread_cancel(logger_thread_) != 0)
+			{
+				::std::ostringstream oss;
+				oss << "Unable to cancel steady-state phase output logger thread for the RAIN workload driver: " << ::strerror(errno);
+
+				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+			}
+			if (::pthread_join(logger_thread_, 0) != 0)
+			{
+				::std::ostringstream oss;
+				oss << "Unable to join steady-state phase output logger thread for the RAIN workload driver: " << ::strerror(errno);
+
+				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+			}
+			this->logger_thread_active(false);
 		}
 	}
 
@@ -528,17 +603,21 @@ class rain_workload_driver: public base_workload_driver
 	private: bool ready_;
 	private: bool rampup_thread_active_;
 	private: bool steady_thread_active_;
+	private: bool logger_thread_active_;
 	private: sys_process_type proc_;
 	private: mutable ::std::list<observation_type> obs_;
 	private: ::pthread_t rampup_thread_;
 	private: ::pthread_t steady_thread_;
+	private: ::pthread_t logger_thread_;
 	private: mutable ::pthread_mutex_t ready_mutex_;
 	private: mutable ::pthread_mutex_t obs_mutex_;
 	private: mutable ::pthread_mutex_t rampup_thread_mutex_;
 	private: mutable ::pthread_mutex_t steady_thread_mutex_;
+	private: mutable ::pthread_mutex_t logger_thread_mutex_;
 }; // rain_workload_driver
 
 const ::pthread_mutex_t rain_workload_driver::mutex_init_val_ = PTHREAD_MUTEX_INITIALIZER;
+
 
 namespace detail {
 
@@ -560,14 +639,8 @@ void* thread_monitor_rain_rampup(void* arg)
 		if (line.find("Ramp up finished") != ::std::string::npos)
 		{
 			p_driver->ready(true);
-#ifndef DCS_DEBUG
 			break;
-#endif // DCS_DEBUG
 		}
-
-#ifdef DCS_DEBUG
-		dcs::log_info(DCS_LOGGING_AT, line);
-#endif // DCS_DEBUG
 	}
 
 	p_driver->rampup_thread_active(false);
@@ -577,7 +650,6 @@ void* thread_monitor_rain_rampup(void* arg)
 
 void* thread_monitor_rain_steady_state(void* arg)
 {
-	// Parse the RAIN metric snapshot file
 	// Available fields in a row (each field is separated by one or more white-spaces):
 	// - '[' <generated-during> ']'
 	// - <timestamp>
@@ -786,6 +858,36 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- OUT-OF-LOOP IFS STREAM -- EOF: " << ifs.
 DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Leaving");
 
 	p_driver->steady_state_thread_active(false);
+
+	return 0;
+}
+
+void* thread_log_rain_steady_state_out(void* arg)
+{
+	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
+
+	p_driver->logger_thread_active(true);
+
+	if (pthread_join(p_driver->rampup_thread(), 0) != 0)
+	{
+		::std::ostringstream oss;
+		oss << "Error while joining RAIN ramp-up thread: " << ::strerror(errno);
+
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+
+	::std::istream& is = p_driver->process().output_stream();
+
+	while (is.good())
+	{
+		::std::string line;
+
+		::std::getline(is, line);
+
+		::dcs::log_info(DCS_LOGGING_AT, line);
+	}
+
+	p_driver->logger_thread_active(false);
 
 	return 0;
 }
