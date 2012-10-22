@@ -195,6 +195,7 @@ class rain_workload_driver: public base_workload_driver
 	//     obs_mutex_(PTHREAD_MUTEX_INITIALIZER)
 	//   {...}
 	private: static const ::pthread_mutex_t mutex_init_val_;
+	private: static const ::pthread_cond_t cond_init_val_;
 
 
 	public: enum workload_category
@@ -215,7 +216,9 @@ class rain_workload_driver: public base_workload_driver
 	  obs_mutex_(mutex_init_val_),
 	  rampup_thread_mutex_(mutex_init_val_),
 	  steady_thread_mutex_(mutex_init_val_),
-	  logger_thread_mutex_(mutex_init_val_)
+	  logger_thread_mutex_(mutex_init_val_),
+	  steady_state_mutex_(mutex_init_val_),
+	  steady_state_cond_(cond_init_val_)
 	{
 	}
 
@@ -232,7 +235,9 @@ class rain_workload_driver: public base_workload_driver
 	  obs_mutex_(mutex_init_val_),
 	  rampup_thread_mutex_(mutex_init_val_),
 	  steady_thread_mutex_(mutex_init_val_),
-	  logger_thread_mutex_(mutex_init_val_)
+	  logger_thread_mutex_(mutex_init_val_),
+	  steady_state_mutex_(mutex_init_val_),
+	  steady_state_cond_(cond_init_val_)
 	{
 	}
 
@@ -250,7 +255,9 @@ class rain_workload_driver: public base_workload_driver
 	  obs_mutex_(mutex_init_val_),
 	  rampup_thread_mutex_(mutex_init_val_),
 	  steady_thread_mutex_(mutex_init_val_),
-	  logger_thread_mutex_(mutex_init_val_)
+	  logger_thread_mutex_(mutex_init_val_),
+	  steady_state_mutex_(mutex_init_val_),
+	  steady_state_cond_(cond_init_val_)
 	{
 	}
 
@@ -271,7 +278,9 @@ class rain_workload_driver: public base_workload_driver
 	  obs_mutex_(mutex_init_val_),
 	  rampup_thread_mutex_(mutex_init_val_),
 	  steady_thread_mutex_(mutex_init_val_),
-	  logger_thread_mutex_(mutex_init_val_)
+	  logger_thread_mutex_(mutex_init_val_),
+	  steady_state_mutex_(mutex_init_val_),
+	  steady_state_cond_(cond_init_val_)
 	{
 	}
 
@@ -302,10 +311,13 @@ class rain_workload_driver: public base_workload_driver
 			::pthread_cancel(logger_thread_);
 			::pthread_join(logger_thread_, 0);
 		}
+		// Destroy condition variables
+		::pthread_cond_destroy(&steady_state_cond_);
 		// Destroy mutexes
 		::pthread_mutex_destroy(&rampup_thread_mutex_);
 		::pthread_mutex_destroy(&steady_thread_mutex_);
 		::pthread_mutex_destroy(&logger_thread_mutex_);
+		::pthread_mutex_destroy(&steady_state_mutex_);
 	}
 
 	public: ::std::string metrics_file_path() const
@@ -620,9 +632,13 @@ class rain_workload_driver: public base_workload_driver
 	private: mutable ::pthread_mutex_t rampup_thread_mutex_;
 	private: mutable ::pthread_mutex_t steady_thread_mutex_;
 	private: mutable ::pthread_mutex_t logger_thread_mutex_;
+	private: mutable ::pthread_mutex_t steady_state_mutex_;
+	private: mutable ::pthread_cond_t steady_state_cond_;
 }; // rain_workload_driver
 
 const ::pthread_mutex_t rain_workload_driver::mutex_init_val_ = PTHREAD_MUTEX_INITIALIZER;
+
+const ::pthread_cond_t rain_workload_driver::cond_init_val_ = PTHREAD_COND_INITIALIZER;
 
 
 namespace detail {
@@ -632,6 +648,8 @@ void* thread_monitor_rain_rampup(void* arg)
 	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
 
 	p_driver->rampup_thread_active(true);
+
+	::pthread_mutex_lock(&(p_driver->steady_state_mutex_));
 
 	::std::istream& is = p_driver->process().output_stream();
 
@@ -650,6 +668,9 @@ void* thread_monitor_rain_rampup(void* arg)
 	}
 
 	p_driver->rampup_thread_active(false);
+
+	::pthread_cond_broadcast(&(p_driver->steady_state_cond_));
+	::pthread_mutex_unlock(&(p_driver->steady_state_mutex_));
 
 	return 0;
 }
@@ -677,13 +698,16 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Entering");
 
 	p_driver->steady_state_thread_active(true);
 
-	if (::pthread_join(p_driver->rampup_thread(), 0) != 0)
-	{
-		::std::ostringstream oss;
-		oss << "Error while joining RAIN ramp-up thread: " << ::strerror(errno);
+//	if (::pthread_join(p_driver->rampup_thread(), 0) != 0)
+//	{
+//		::std::ostringstream oss;
+//		oss << "Error while joining RAIN ramp-up thread: " << ::strerror(errno);
+//
+//		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+//	}
+	::pthread_mutex_lock(&(p_driver->steady_state_mutex_));
+	::pthread_cond_wait(&(p_driver->steady_state_cond_), &(p_driver->steady_state_mutex_));
 
-		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
-	}
 
 	::std::size_t trial(0);
 	unsigned int zzz_time(min_zzz_time);
@@ -874,13 +898,15 @@ void* thread_log_rain_steady_state_out(void* arg)
 
 	p_driver->logger_thread_active(true);
 
-	if (::pthread_join(p_driver->rampup_thread(), 0) != 0)
-	{
-		::std::ostringstream oss;
-		oss << "Error while joining RAIN ramp-up thread: " << ::strerror(errno);
-
-		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
-	}
+//	if (::pthread_join(p_driver->rampup_thread(), 0) != 0)
+//	{
+//		::std::ostringstream oss;
+//		oss << "Error while joining RAIN ramp-up thread: " << ::strerror(errno);
+//
+//		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+//	}
+	::pthread_mutex_lock(&(p_driver->steady_state_mutex_));
+	::pthread_cond_wait(&(p_driver->steady_state_cond_), &(p_driver->steady_state_mutex_));
 
 	::std::istream& is = p_driver->process().output_stream();
 
