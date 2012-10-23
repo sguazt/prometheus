@@ -177,6 +177,9 @@ class system_identification
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
 
+		// Write first part of header to output file
+		ofs << "\"Sampling Time\"";
+
 		// Get current shares in order to restore them at the end of execution
 		share_container old_shares;
 		for (vm_iterator vm_it = vm_beg_it;
@@ -195,9 +198,17 @@ class system_identification
 		{
 			vm_pointer p_vm(*vm_it);
 
+			// Set share
 			p_vm->cpu_share(*share_first);
+
+			// Write VM-related stuff of header to output file
+			ofs << ",\"" << p_vm->name() << " CPU Share\"";
+
 			++share_first;
 		}
+
+		// Write last part of header to output file
+		ofs << ",\"Operation Time\",\"Operation Name\",\"Performance Index\",\"Entry Type\"" << ::std::endl;
 
 		// Start the workload driver
 		p_wkl_driver_->start();
