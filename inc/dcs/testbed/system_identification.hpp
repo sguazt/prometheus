@@ -284,7 +284,7 @@ class system_identification
 
 				if (out_ext_fmt_)
 				{
-					ofs << oss.str() << "," << dt << "\"\"," << " " << summary_obs << "," << "\"[SUMMARY]\"" << ::std::endl;
+					ofs << oss.str() << "," << dt << ",\"\"," << summary_obs << "," << "\"[SUMMARY]\"" << ::std::endl;
 				}
 				else
 				{
