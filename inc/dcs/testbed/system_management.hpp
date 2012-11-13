@@ -291,7 +291,19 @@ class system_management
 					 ++obs_it)
 				{
 					real_type val(obs_it->value());
+#ifdef EWMA_ON_SINGLE_OBSERVATION
+					if (ewma_init)
+					{
+						ewma_init = false;
+						ewma_obs_ = val;
+					}
+					else
+					{
+						ewma_obs_ = ewma_factor_*val+(1-ewma_factor_)*ewma_obs_;
+					}
+#else
 					acc(val);
+#endif // EWMA_ON_SINGLE_OBSERVATION
 				}
 
 				// Compute a summary statistics of collected observation
@@ -300,6 +312,7 @@ class system_management
 
 				DCS_DEBUG_TRACE( "   Current (summary) observation: " << summary_obs );
 
+#ifndef EWMA_ON_SINGLE_OBSERVATION
 				if (ewma_init)
 				{
 					ewma_init = false;
@@ -309,6 +322,7 @@ class system_management
 				{
 					ewma_obs_ = ewma_factor_*summary_obs+(1-ewma_factor_)*ewma_obs_;
 				}
+#endif // EWMA_ON_SINGLE_OBSERVATION
 
 				DCS_DEBUG_TRACE( "   Current EWMA (summary) observation: " << ewma_obs_ );
 
