@@ -172,6 +172,7 @@ class system_management
 		}
 */
 
+/*
 		// Open output data file
 		::std::ofstream ofs(out_dat_file_.c_str());
 		if (!ofs.good())
@@ -181,6 +182,7 @@ class system_management
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
+*/
 
 /*
 		// Write first part of header to output file
@@ -310,7 +312,21 @@ class system_management
 
 				DCS_DEBUG_TRACE( "   Current EWMA (summary) observation: " << ewma_obs_ );
 
+				// Open output data file
+				::std::ofstream ofs(out_dat_file_.c_str());
+				if (!ofs.good())
+				{
+					::std::ostringstream oss;
+					oss << "Cannot open output data file '" << out_dat_file_ << "'";
+
+					DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				}
+
+				// Write current observation (and overwrite old ones)
 				ofs << ewma_obs_ << ::std::endl;
+
+				// Close output data file
+				ofs.close();
 			}
 
 			// Wait until the next sampling time
@@ -321,8 +337,8 @@ class system_management
 		// Stop the workload driver
 		p_wkl_driver_->stop();
 
-		// Close output data file
-		ofs.close();
+//		// Close output data file
+//		ofs.close();
 
 /*
 		// Reset VM shares to values that VMs had just before running the driver
