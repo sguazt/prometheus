@@ -713,7 +713,7 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Entering");
 	const ::std::size_t timestamp_field(2);
 	const ::std::size_t operation_field(3);
 	const ::std::size_t response_time_field(4);
-	const ::std::size_t max_open_trials(5);
+	const ::std::size_t max_open_trials(50);
 	const unsigned int min_zzz_time(2);
 	const unsigned int max_zzz_time(10);
 
