@@ -45,6 +45,8 @@
 #include <dcs/system/posix_process.hpp>
 #include <dcs/system/process_status_category.hpp>
 #include <dcs/testbed/base_workload_driver.hpp>
+#include <dcs/testbed/workload_category.hpp>
+#include <dcs/testbed/workload_generator_category.hpp>
 #include <fstream>
 #include <istream>
 #include <list>
@@ -96,12 +98,29 @@ inline
  */
 template <typename FwdIterT>
 inline
-::std::vector< ::std::string > make_rain_args(::std::string const& workload,
+::std::vector< ::std::string > make_rain_args(workload_category wkl_cat,
 											  ::std::string const& rain_home,
 											  FwdIterT arg_first,
 											  FwdIterT arg_last)
 {
 	::std::vector< ::std::string > args(arg_first, arg_last);
+
+	::std::string workload;
+	switch (wkl_cat)
+	{
+		case olio_workload:
+			workload = "olio";
+			break;
+		case rubis_workload:
+			workload = "rubis";
+			break;
+		default:
+		{
+			::std::ostringstream oss;
+			oss << "Workload '" << to_string(wkl_cat) << "' not handled";
+			DCS_EXCEPTION_THROW(::std::invalid_argument, oss.str());
+		}
+	}
 
 	args.push_back("-cp");
 	args.push_back(rain_home + "/rain.jar:" + rain_home + "/workloads/" + workload + ".jar");
@@ -112,26 +131,43 @@ inline
 }
 
 inline
-::std::vector< ::std::string > make_rain_args(::std::string const& workload,
+::std::vector< ::std::string > make_rain_args(workload_category wkl_cat,
 											  ::std::string const& rain_home)
 {
 	::std::vector< ::std::string > java_args;
 	java_args.push_back("-Xmx1g");
 	java_args.push_back("-Xms256m");
 
-	return make_rain_args(workload, rain_home, java_args.begin(), java_args.end());
+	return make_rain_args(wkl_cat, rain_home, java_args.begin(), java_args.end());
 }
 
 inline
-::std::vector< ::std::string > make_rain_args(::std::string const& workload)
+::std::vector< ::std::string > make_rain_args(workload_category wkl_cat)
 {
-	return make_rain_args(workload, ".");
+	return make_rain_args(wkl_cat, ".");
 }
 
 inline
-::std::string make_rain_metrics_file_path(::std::string const& path = ".", ::std::string const& suffix = "")
+::std::string make_rain_metrics_file_path(workload_category wkl_cat, ::std::string const& path = ".", ::std::string const& suffix = "")
 {
-	  return path + "/metrics-snapshots-cloudstone-001-" + suffix + ".log";
+	::std::string workload;
+	switch (wkl_cat)
+	{
+		case olio_workload:
+			workload = "cloudstone";
+			break;
+		case rubis_workload:
+			workload = "rubis";
+			break;
+		default:
+		{
+			::std::ostringstream oss;
+			oss << "Workload '" << to_string(wkl_cat) << "' not handled";
+			DCS_EXCEPTION_THROW(::std::invalid_argument, oss.str());
+		}
+	}
+
+	return path + "/metrics-snapshots-" + workload + "-001-" + suffix + ".log";
 }
 
 template <typename T>
@@ -198,16 +234,10 @@ class rain_workload_driver: public base_workload_driver
 //	private: static const ::pthread_cond_t cond_init_val_;
 
 
-	public: enum workload_category
-	{
-		olio_workload
-	};
-
-
 	public: rain_workload_driver(workload_category wkl_cat)
 	: cmd_(detail::make_java_command()),
-	  args_(detail::make_rain_args(to_string(wkl_cat))),
-	  metrics_path_(detail::make_rain_metrics_file_path()),
+	  args_(detail::make_rain_args(wkl_cat)),
+	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
@@ -225,8 +255,8 @@ class rain_workload_driver: public base_workload_driver
 	public: rain_workload_driver(workload_category wkl_cat,
 								 ::std::string const& rain_home)
 	: cmd_(detail::make_java_command()),
-	  args_(detail::make_rain_args(to_string(wkl_cat), rain_home)),
-	  metrics_path_(detail::make_rain_metrics_file_path()),
+	  args_(detail::make_rain_args(wkl_cat, rain_home)),
+	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
@@ -245,8 +275,8 @@ class rain_workload_driver: public base_workload_driver
 								 ::std::string const& rain_home,
 								 ::std::string const& java_home)
 	: cmd_(detail::make_java_command(java_home)),
-	  args_(detail::make_rain_args(to_string(wkl_cat), rain_home)),
-	  metrics_path_(detail::make_rain_metrics_file_path()),
+	  args_(detail::make_rain_args(wkl_cat, rain_home)),
+	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
@@ -268,8 +298,8 @@ class rain_workload_driver: public base_workload_driver
 								 FwdIterT arg_first,
 								 FwdIterT arg_last)
 	: cmd_(detail::make_java_command(java_home)),
-	  args_(detail::make_rain_args(to_string(wkl_cat), rain_home, arg_first, arg_last)),
-	  metrics_path_(detail::make_rain_metrics_file_path()),
+	  args_(detail::make_rain_args(wkl_cat, rain_home, arg_first, arg_last)),
+	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
 	  rampup_thread_active_(false),
 	  steady_thread_active_(false),
@@ -325,18 +355,6 @@ class rain_workload_driver: public base_workload_driver
 	public: ::std::string metrics_file_path() const
 	{
 		return metrics_path_;
-	}
-
-	private: static ::std::string to_string(workload_category wkl_cat)
-	{
-		switch (wkl_cat)
-		{
-			case olio_workload:
-				return "olio";
-		}
-
-		DCS_EXCEPTION_THROW(::std::invalid_argument,
-							"Unknown workload category");
 	}
 
 	private: void ready(bool val)
@@ -426,6 +444,11 @@ class rain_workload_driver: public base_workload_driver
 	private: bool logger_thread_active() const
 	{
 		return detail::atomic_get(logger_thread_mutex_, logger_thread_active_);
+	}
+
+	private: workload_generator_category do_category() const
+	{
+		return rain_workload_generator;
 	}
 
 	private: void do_start()

@@ -43,6 +43,7 @@
 #include <dcs/testbed/virtual_machines.hpp>
 #include <dcs/testbed/workload_category.hpp>
 #include <dcs/testbed/workload_drivers.hpp>
+#include <dcs/testbed/workload_generator_category.hpp>
 #include <iostream>
 #include <limits>
 #include <sstream>
@@ -75,8 +76,10 @@ const ::std::string default_oliodb_name("OlioDB");
 const ::std::string default_oliodb_uri("");
 const ::std::string default_olioweb_name("OlioWeb");
 const ::std::string default_olioweb_uri("");
-const ::std::string default_workload_driver_path("/usr/local/rain-workload-toolkit");
-const ::std::string default_out_dat_file("./olio-sysid-out.dat");
+const dcs::testbed::workload_category default_workload(dcs::testbed::olio_workload);
+const dcs::testbed::workload_generator_category default_workload_driver(dcs::testbed::rain_workload_generator);
+const ::std::string default_workload_driver_rain_path("/usr/local/opt/rain-workload-toolkit");
+const ::std::string default_out_dat_file("./sysid-out.dat");
 const double default_sampling_time(10);
 const signal_category default_signal_category(constant_signal);
 const double default_signal_common_upper_bound(std::numeric_limits<double>::infinity());
@@ -216,7 +219,7 @@ void usage(char const* progname)
 				<< "   Show this message." << ::std::endl
 				<< " --out-dat-file <file path>" << ::std::endl
 				<< "   The path to the output data file." << ::std::endl
-				<< "   [default: ./olio-sysid-out.dat]." << ::std::endl
+				<< "   [default: '" << default_out_dat_file << "']" << ::std::endl
 				<< " --sig <signal category>" << ::std::endl
 				<< "   The type of signal used to excite the system under test." << ::std::endl
 				<< "   Possible values are:" << ::std::endl
@@ -229,10 +232,10 @@ void usage(char const* progname)
 				<< "   - sine-mesh" << ::std::endl
 				<< "   - square" << ::std::endl
 				<< "   - uniform" << ::std::endl
-				<< "   [default: constant]." << ::std::endl
+				<< "   [default: '" << default_signal_category << "']." << ::std::endl
 				<< " --ts <time in secs>" << ::std::endl
 				<< "   Sampling time (in seconds)." << ::std::endl
-				<< "   [default: 10]." << ::std::endl
+				<< "   [default: " << default_sampling_time << "]." << ::std::endl
 				<< " --verbose" << ::std::endl
 				<< "   Show verbose messages." << ::std::endl
 				<< "   [default: disabled]." << ::std::endl
@@ -242,9 +245,15 @@ void usage(char const* progname)
 				<< " --web-name <name>" << ::std::endl
 				<< "   The name of the domain running the OlioWeb VM." << ::std::endl
 				<< "   [default: OlioWeb]." << ::std::endl
+				<< " --wkl <name>" << ::std::endl
+				<< "   The workload to generate. Possible values are: 'olio', 'rubis'." << ::std::endl
+				<< "   [default: '" << default_workload << "']." << ::std::endl
+				<< " --wkl-driver <name>" << ::std::endl
+				<< "   The workload driver to use. Possible values are: 'rain'." << ::std::endl
+				<< "   [default: '" << default_workload_driver << "']." << ::std::endl
 				<< " --wkl-driver-path <name>" << ::std::endl
 				<< "   The full path to the workload driver for Olio." << ::std::endl
-				<< "   [default: /usr/local/rain-workload-toolkit]." << ::std::endl
+				<< "   [default: '" << default_workload_driver_rain_path << "']." << ::std::endl
 				<< ::std::endl;
 }
 
@@ -253,14 +262,13 @@ void usage(char const* progname)
 
 int main(int argc, char *argv[])
 {
+	namespace testbed = ::dcs::testbed;
+
 	typedef double real_type;
 	typedef unsigned int uint_type;
 
 	bool help(false);
-	std::string oliodb_uri;
-	std::string olioweb_uri;
-	std::string oliodb_name;
-	std::string olioweb_name;
+	std::vector<std::string> vm_uris;
 	std::string out_dat_file;
 	uint_type rng_seed(5498);
 	detail::signal_category sig;
@@ -294,13 +302,14 @@ int main(int argc, char *argv[])
 	real_type sig_unif_max;
 	real_type ts;
 	bool verbose(false);
-	std::string wkl_driver_path;
+	testbed::workload_category wkl;
+	testbed::workload_generator_category wkl_driver;
+	std::string wkl_driver_rain_path;
 
 	// Parse command line options
 	try
 	{
-		oliodb_uri = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--db-uri", detail::default_oliodb_uri);
-		oliodb_name = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--db-name", detail::default_oliodb_name);
+		vm_uris = dcs::cli::simple::get_options<std::string>(argv, argv+argc, "--vm-uri", detail::default_oliodb_uri);
 		help = dcs::cli::simple::get_option(argv, argv+argc, "--help");
 		out_dat_file = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--out-dat-file", detail::default_out_dat_file);
 		sig = dcs::cli::simple::get_option<detail::signal_category>(argv, argv+argc, "--sig", detail::default_signal_category);
@@ -334,9 +343,9 @@ int main(int argc, char *argv[])
 		sig_gauss_sd = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-gaussian-sd", detail::default_signal_gaussian_sd);
 		ts = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--ts", detail::default_sampling_time);
 		verbose = dcs::cli::simple::get_option(argv, argv+argc, "--verbose");
-		olioweb_uri = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--web-uri", detail::default_olioweb_uri);
-		olioweb_name = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--web-name", detail::default_olioweb_name);
-		wkl_driver_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-path", detail::default_workload_driver_path);
+		wkl = dcs::cli::simple::get_option<testbed::workload_category>(argv, argv+argc, "--wkl", detail::default_workload);
+		wkl_driver = dcs::cli::simple::get_option<testbed::workload_generator_category>(argv, argv+argc, "--wkl-driver", detail::default_workload_driver);
+		wkl_driver_rain_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-path", detail::default_workload_driver_rain_path);
 	}
 	catch (std::exception const& e)
 	{
@@ -361,19 +370,14 @@ int main(int argc, char *argv[])
 	{
 		std::ostringstream oss;
 
-		oss << "OlioDB URI: " << oliodb_uri;
-		dcs::log_info(DCS_LOGGING_AT, oss.str());
-		oss.str("");
-
-		oss << "OlioDB VM name: " << oliodb_name;
-		dcs::log_info(DCS_LOGGING_AT, oss.str());
-		oss.str("");
-
-		oss << "OlioWeb URI: " << olioweb_uri;
-		dcs::log_info(DCS_LOGGING_AT, oss.str());
-		oss.str("");
-
-		oss << "OlioWeb VM name: " << olioweb_name;
+		for (std::size_t i = 0; i < vm_uris.size(); ++i)
+		{
+			if (i > 0)
+			{
+				oss << ", ";
+			}
+			oss << "VM URI: " << vm_uris[i];
+		}
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
@@ -473,12 +477,18 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
-		oss << "Workload driver path: " << wkl_driver_path;
+		oss << "Workload: " << wkl;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Workload driver: " << wkl_driver;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Workload driver RAIN path: " << wkl_driver_rain_path;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 	}
-
-	namespace testbed = ::dcs::testbed;
 
 	typedef boost::shared_ptr< testbed::base_virtual_machine<real_type> > vm_pointer;
 	//typedef boost::random::mt19937 random_generator_type;
@@ -486,16 +496,26 @@ int main(int argc, char *argv[])
 
 	try
 	{
-		vm_pointer p_oliodb_vm(new testbed::libvirt_virtual_machine<real_type>(oliodb_uri, oliodb_name));
-		vm_pointer p_olioweb_vm(new testbed::libvirt_virtual_machine<real_type>(olioweb_uri, olioweb_name));
-
-		const std::size_t nt(2); // Number of tiers
+		const std::size_t nt(vm_uris.size()); // Number of tiers
 
 		std::vector<vm_pointer> vms(nt);
-		vms[0] = p_olioweb_vm;
-		vms[1] = p_oliodb_vm;
 
-		boost::shared_ptr< testbed::base_workload_driver > p_driver(new testbed::rain_workload_driver(testbed::olio_workload, wkl_driver_path));
+		std::vector<std::string>::const_iterator uri_end_it(vm_uris.end());
+		for (std::vector<std::string>::const_iterator it = vm_uris.begin();
+			 it != uri_end_it;
+			 ++it)
+		{
+			vm_pointer p_vm(new testbed::libvirt_virtual_machine<real_type>(*it));
+		}
+
+		boost::shared_ptr< testbed::base_workload_driver > p_driver;
+
+		switch (wkl_driver)
+		{
+			case testbed::rain_workload_generator:
+				p_driver = ::boost::make_shared<testbed::rain_workload_driver>(wkl, wkl_driver_rain_path);
+				break;
+		}
 
 		// Create the signal generator
 		random_generator_type rng(rng_seed);

@@ -1,7 +1,7 @@
 /**
- * \file olio_mgmt.hpp
+ * \file rubis_mgmt.hpp
  *
- * \brief Driver for managing an Apache Olio instance.
+ * \brief Driver for managing a RUBiS instance.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
@@ -30,7 +30,6 @@
  * along with dcsxx-testbed.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//#include <boost/random.hpp>
 #include <boost/smart_ptr.hpp>
 #include <cstddef>
 #include <cstdlib>
@@ -38,8 +37,9 @@
 #include <dcs/cli.hpp>
 #include <dcs/logging.hpp>
 #include <dcs/testbed/system_management.hpp>
-//#include <dcs/testbed/virtual_machines.hpp>
+#include <dcs/testbed/workload_category.hpp>
 #include <dcs/testbed/workload_drivers.hpp>
+#include <dcs/testbed/workload_generator_category.hpp>
 #include <iostream>
 #include <limits>
 #include <sstream>
@@ -55,44 +55,36 @@ namespace detail { namespace /*<unnamed>*/ {
 //	mean_aggregation
 //};
 
-//const ::std::string default_oliodb_name("OlioDB");
-//const ::std::string default_oliodb_uri("");
-//const ::std::string default_olioweb_name("OlioWeb");
-//const ::std::string default_olioweb_uri("");
-const ::std::string default_workload_driver_path("/usr/local/rain-workload-toolkit");
-const ::std::string default_out_dat_file("./olio-sysid-out.dat");
+const dcs::testbed::workload_category default_workload(dcs::testbed::olio_workload);
+const dcs::testbed::workload_generator_category default_workload_driver(dcs::testbed::rain_workload_generator);
+const ::std::string default_workload_driver_rain_path("/usr/local/opt/rain-workload-toolkit");
+const ::std::string default_out_dat_file("./sysmgt-out.dat");
 const double default_sampling_time(10);
 const double default_ewma_smooth_factor(0.9);
 
 void usage(char const* progname)
 {
 	::std::cerr << "Usage: " << progname << " [options]" << ::std::endl
-//				<< " --db-uri <URI>" << ::std::endl
-//				<< "   The URI used to connect to the libvirtd server where the OlioDB VM is running." << ::std::endl
-//				<< "   [default: default URI of this machine]." << ::std::endl
-//				<< " --db-name <name>" << ::std::endl
-//				<< "   The name of the domain running the OlioDB VM." << ::std::endl
-//				<< "   [default: OlioDB]." << ::std::endl
 				<< " --help" << ::std::endl
 				<< "   Show this message." << ::std::endl
 				<< " --out-dat-file <file path>" << ::std::endl
 				<< "   The path to the output data file." << ::std::endl
-				<< "   [default: ./olio-sysid-out.dat]." << ::std::endl
+				<< "   [default: '" << default_out_dat_file << "']." << ::std::endl
 				<< " --ts <time in secs>" << ::std::endl
 				<< "   Sampling time (in seconds)." << ::std::endl
-				<< "   [default: 10]." << ::std::endl
+				<< "   [default: " << default_sampling_time << "]." << ::std::endl
 				<< " --verbose" << ::std::endl
 				<< "   Show verbose messages." << ::std::endl
 				<< "   [default: disabled]." << ::std::endl
-//				<< " --web-uri <URI>" << ::std::endl
-//				<< "   The URI used to connect to the libvirtd server where the OlioWeb VM is running." << ::std::endl
-//				<< "   [default: default URI of this machine]." << ::std::endl
-//				<< " --web-name <name>" << ::std::endl
-//				<< "   The name of the domain running the OlioWeb VM." << ::std::endl
-//				<< "   [default: OlioWeb]." << ::std::endl
-				<< " --wkl-driver-path <name>" << ::std::endl
-				<< "   The full path to the workload driver for Olio." << ::std::endl
-				<< "   [default: /usr/local/rain-workload-toolkit]." << ::std::endl
+				<< " --wkl <name>" << ::std::endl
+				<< "   The workload to generate. Possible values are: 'olio', 'rubis'." << ::std::endl
+				<< "   [default: '" << default_workload << "']." << ::std::endl
+				<< " --wkl-driver <name>" << ::std::endl
+				<< "   The workload driver to use. Possible values are: 'rain'." << ::std::endl
+				<< "   [default: '" << default_workload_driver << "']." << ::std::endl
+				<< " --wkl-driver-rain-path <name>" << ::std::endl
+				<< "   The full path to the RAIN workload driver." << ::std::endl
+				<< "   [default: '" << default_workload_driver_rain_path << "']." << ::std::endl
 				<< ::std::endl;
 }
 
@@ -104,30 +96,28 @@ int main(int argc, char *argv[])
 	typedef double real_type;
 	typedef unsigned int uint_type;
 
+	namespace testbed = ::dcs::testbed;
+
 	bool help(false);
-	std::string oliodb_uri;
-	std::string olioweb_uri;
-	std::string oliodb_name;
-	std::string olioweb_name;
 	std::string out_dat_file;
 	real_type ewma_smooth_factor;
 	real_type ts;
 	bool verbose(false);
-	std::string wkl_driver_path;
+	testbed::workload_category wkl;
+	testbed::workload_generator_category wkl_driver;
+	std::string wkl_driver_rain_path;
 
 	// Parse command line options
 	try
 	{
-//		oliodb_uri = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--db-uri", detail::default_oliodb_uri);
-//		oliodb_name = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--db-name", detail::default_oliodb_name);
 		help = dcs::cli::simple::get_option(argv, argv+argc, "--help");
 		out_dat_file = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--out-dat-file", detail::default_out_dat_file);
 		ewma_smooth_factor = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--aggr-ewma-factor", detail::default_ewma_smooth_factor);
 		ts = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--ts", detail::default_sampling_time);
 		verbose = dcs::cli::simple::get_option(argv, argv+argc, "--verbose");
-//		olioweb_uri = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--web-uri", detail::default_olioweb_uri);
-//		olioweb_name = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--web-name", detail::default_olioweb_name);
-		wkl_driver_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-path", detail::default_workload_driver_path);
+		wkl = dcs::cli::simple::get_option<testbed::workload_category>(argv, argv+argc, "--wkl", detail::default_workload);
+		wkl_driver = dcs::cli::simple::get_option<testbed::workload_generator_category>(argv, argv+argc, "--wkl-driver", detail::default_workload_driver);
+		wkl_driver_rain_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-rain-path", detail::default_workload_driver_rain_path);
 	}
 	catch (std::exception const& e)
 	{
@@ -152,22 +142,6 @@ int main(int argc, char *argv[])
 	{
 		std::ostringstream oss;
 
-//		oss << "OlioDB URI: " << oliodb_uri;
-//		dcs::log_info(DCS_LOGGING_AT, oss.str());
-//		oss.str("");
-
-//		oss << "OlioDB VM name: " << oliodb_name;
-//		dcs::log_info(DCS_LOGGING_AT, oss.str());
-//		oss.str("");
-
-//		oss << "OlioWeb URI: " << olioweb_uri;
-//		dcs::log_info(DCS_LOGGING_AT, oss.str());
-//		oss.str("");
-
-//		oss << "OlioWeb VM name: " << olioweb_name;
-//		dcs::log_info(DCS_LOGGING_AT, oss.str());
-//		oss.str("");
-
 		oss << "Output data file: " << out_dat_file;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
@@ -180,12 +154,18 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
-		oss << "Workload driver path: " << wkl_driver_path;
+		oss << "Workload: " << wkl;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Workload driver: " << wkl_driver;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Workload driver RAIN path: " << wkl_driver_rain_path;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 	}
-
-	namespace testbed = ::dcs::testbed;
 
 //	typedef boost::shared_ptr< testbed::base_virtual_machine<real_type> > vm_pointer;
 
@@ -200,7 +180,14 @@ int main(int argc, char *argv[])
 //		vms[0] = p_olioweb_vm;
 //		vms[1] = p_oliodb_vm;
 
-		boost::shared_ptr< testbed::base_workload_driver > p_driver(new testbed::rain_workload_driver(testbed::olio_workload, wkl_driver_path));
+		boost::shared_ptr< testbed::base_workload_driver > p_driver;
+
+		switch (wkl_driver)
+		{
+			case testbed::rain_workload_generator:
+				p_driver = ::boost::make_shared<testbed::rain_workload_driver>(wkl, wkl_driver_rain_path);
+				break;
+		}
 
 		testbed::system_management<real_type> sysmgt(p_driver);
 		sysmgt.output_data_file(out_dat_file);

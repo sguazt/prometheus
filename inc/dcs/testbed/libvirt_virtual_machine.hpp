@@ -39,6 +39,7 @@
 #include <dcs/logging.hpp>
 #include <dcs/testbed/base_virtual_machine.hpp>
 #include <dcs/testbed/detail/libvirt.hpp>
+#include <dcs/uri.hpp>
 #include <iostream>
 #include <libvirt/libvirt.h>
 #include <sstream>
@@ -55,6 +56,22 @@ class libvirt_virtual_machine: public base_virtual_machine<RealT>
 	public: typedef typename base_type::real_type real_type;
 	public: typedef typename base_type::identifier_type identifier_type;
 
+
+	public: libvirt_virtual_machine(::std::string const& vm_uri)
+	: uri_(),
+	  name_(),
+	  conn_(0)
+	{
+		::dcs::uri uri(vm_uri);
+		if (!uri.relative())
+		{
+			uri_ = uri.scheme() + "://" + uri.authority() + "/";
+		}
+		typename ::std::string::size_type pos((uri.path().at(0) == '/') ? 1 : 0);
+		name_ = uri.path().substr(pos);
+
+		init();
+	}
 
 	public: libvirt_virtual_machine(::std::string const& vmm_uri, ::std::string const& name)
 	: uri_(vmm_uri),

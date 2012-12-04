@@ -35,6 +35,7 @@
 
 
 #include <ctime>
+#include <dcs/testbed/workload_generator_category.hpp>
 #include <string>
 #include <vector>
 
@@ -109,14 +110,19 @@ class base_workload_driver
 	{
 	}
 
+	public: workload_generator_category category() const
+	{
+		return do_category();
+	}
+
 	public: void start()
 	{
-		this->do_start();
+		do_start();
 	}
 
 	public: void stop()
 	{
-		this->do_stop();
+		do_stop();
 	}
 
 	public: bool done() const
@@ -138,6 +144,8 @@ class base_workload_driver
 	{
 		return do_observations();
 	}
+
+	private: virtual workload_generator_category do_category() const = 0;
 
 	private: virtual void do_start() = 0;
 
