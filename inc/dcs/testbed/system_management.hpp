@@ -53,9 +53,9 @@
 #include <unistd.h>
 #include <vector>
 
-#ifdef DCS_DEBUG
-# include <boost/numeric/ublas/io.hpp>
-#endif // DCS_DEBUG
+//#ifdef DCS_DEBUG
+//# include <boost/numeric/ublas/io.hpp>
+//#endif // DCS_DEBUG
 
 
 namespace dcs { namespace testbed {
@@ -64,36 +64,32 @@ template <typename RealT>
 class system_management
 {
 	public: typedef RealT real_type;
-//	public: typedef base_virtual_machine<real_type> vm_type;
-//	public: typedef ::boost::shared_ptr<vm_type> vm_pointer;
+	public: typedef base_virtual_machine<real_type> vm_type;
+	public: typedef ::boost::shared_ptr<vm_type> vm_pointer;
 	public: typedef base_workload_driver workload_driver_type;
 	public: typedef ::boost::shared_ptr<workload_driver_type> workload_driver_pointer;
-//	private: typedef ::std::vector<vm_pointer> vm_container;
+	private: typedef ::std::vector<vm_pointer> vm_container;
 
 
 	private: static const unsigned int default_sampling_time = 10;
 	private: static const ::std::string default_output_data_file_path;
-	private: static const real_type default_ewma_smoothing_factor;
 
 
 	/// Default constructor.
 	public: system_management()
 	: ts_(default_sampling_time),
-	  out_dat_file_(default_output_data_file_path),
-	  ewma_factor_(default_ewma_smoothing_factor),
-	  ewma_obs_(0)
+	  out_dat_file_(default_output_data_file_path)
 	{
 	}
 
 	/// A constructor.
-	public: //template <typename FwdIterT>
-			system_management(/*FwdIterT vm_first, FwdIterT vm_last, */workload_driver_pointer const& p_wkl_driver)
-	: /*vms_(vm_first, vm_last),*/
+	public: template <typename FwdIterT>
+			system_management(FwdIterT vm_first, FwdIterT vm_last, workload_driver_pointer const& p_wkl_driver, system_controller_pointer const& p_sys_ctl)
+	: vms_(vm_first, vm_last),
 	  p_wkl_driver_(p_wkl_driver),
+	  p_sys_ctl_(p_sys_ctl),
 	  ts_(default_sampling_time),
-	  out_dat_file_(default_output_data_file_path),
-	  ewma_factor_(default_ewma_smoothing_factor),
-	  ewma_obs_(0)
+	  out_dat_file_(default_output_data_file_path)
 	{
 	}
 
@@ -123,45 +119,33 @@ class system_management
 		ts_ = static_cast<unsigned int>(t);
 	}
 
-	/// Set the EWMA smoothing factor.
-	public: void ewma_smoothing_factor(real_type v)
+	/**
+	 * \brief Perform system management by using as initial shares the
+	 *  100% of resource.
+	 */
+	public: void run()
 	{
-		// pre: 0 <= v <= 1
-		DCS_ASSERT(v >= 0.0 && v <= 1.0,
-				   DCS_EXCEPTION_THROW(::std::invalid_argument,
-									   "EWMA smoothing factor must be in the [0,1] range"));
+		::std::vector<real_type> init_shares(vms_.size(), 1);
 
-		ewma_factor_ = v;
+		this->run(init_shares.begin(), init_shares.end());
 	}
-
-//	/**
-//	 * \brief Perform system management by using as initial shares the
-//	 *  100% of resource.
-//	 */
-//	public: void run()
-//	{
-//		::std::vector<real_type> init_shares(vms_.size(), 1);
-//
-//		this->run(init_shares.begin(), init_shares.end());
-//	}
 
 	/**
 	 * \brief Perform system management with the given initial shares.
 	 */
-	public: /*template <typename FwdIterT>*/
-			void run(/*FwdIterT share_first, FwdIterT share_end*/)
+	public: template <typename FwdIterT>
+			void run(FwdIterT share_first, FwdIterT share_end)
 	{
-//		// distance(share_first,share_end) == size(vms_)
-//		DCS_ASSERT(static_cast< ::std::size_t >(::std::distance(share_first, share_end)) == vms_.size(),
-//				   DCS_EXCEPTION_THROW(::std::invalid_argument,
-//									   "Share container size does not match"));
-//
-//		typedef typename vm_container::const_iterator vm_iterator;
-//		typedef typename vm_type::identifier_type vm_identifier_type;
+		// distance(share_first,share_end) == size(vms_)
+		DCS_ASSERT(static_cast< ::std::size_t >(::std::distance(share_first, share_end)) == vms_.size(),
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Share container size does not match"));
+
+		typedef typename vm_container::const_iterator vm_iterator;
+		typedef typename vm_type::identifier_type vm_identifier_type;
 
 		DCS_DEBUG_TRACE( "BEGIN Execution of System Management" );
 
-/*
 		vm_iterator vm_end_it(vms_.end());
 		vm_iterator vm_beg_it(vms_.begin());
 
@@ -170,9 +154,7 @@ class system_management
 			// No VMs -> don't run anything
 			return;
 		}
-*/
 
-/*
 		// Open output data file
 		::std::ofstream ofs(out_dat_file_.c_str());
 		if (!ofs.good())
@@ -182,9 +164,7 @@ class system_management
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
-*/
 
-/*
 		// Write first part of header to output file
 		ofs << "\"Sampling Time\"";
 
@@ -217,7 +197,6 @@ class system_management
 
 		// Write last part of header to output file
 		ofs << ",\"Operation Time\",\"Operation Name\",\"Performance Index\",\"Entry Type\"" << ::std::endl;
-*/
 
 		// Start the workload driver
 		p_wkl_driver_->start();
@@ -226,7 +205,6 @@ class system_management
 		::std::time_t t0(-1);
 		::std::time_t t1(-1);
 		::std::time(&t1);
-		bool ewma_init(true);
 		while (!p_wkl_driver_->done())
 		{
 			DCS_DEBUG_TRACE( "   Driver is alive" );
@@ -248,10 +226,13 @@ class system_management
 
 				oss << dt;
 
-/*
-				// Generate new shares
-				share_container share((*p_sig_gen_)());
+				p_sys_ctl->control(vm_beg_it, vm_end_it);
 
+				// Generate new shares
+				share_container share;
+
+
+				
 				// check: consistency
 				DCS_DEBUG_ASSERT( share.size() == vms_.size() );
 
@@ -276,7 +257,6 @@ class system_management
 
 					++ix;
 				}
-*/
 
 				// Get collected observations
 				typedef typename workload_driver_type::observation_type observation_type;
@@ -291,19 +271,7 @@ class system_management
 					 ++obs_it)
 				{
 					real_type val(obs_it->value());
-#ifdef EWMA_ON_SINGLE_OBSERVATION
-					if (ewma_init)
-					{
-						ewma_init = false;
-						ewma_obs_ = val;
-					}
-					else
-					{
-						ewma_obs_ = ewma_factor_*val+(1-ewma_factor_)*ewma_obs_;
-					}
-#else
 					acc(val);
-#endif // EWMA_ON_SINGLE_OBSERVATION
 				}
 
 				// Compute a summary statistics of collected observation
@@ -311,20 +279,6 @@ class system_management
 				real_type summary_obs = ::boost::accumulators::mean(acc);
 
 				DCS_DEBUG_TRACE( "   Current (summary) observation: " << summary_obs );
-
-#ifndef EWMA_ON_SINGLE_OBSERVATION
-				if (ewma_init)
-				{
-					ewma_init = false;
-					ewma_obs_ = summary_obs;
-				}
-				else
-				{
-					ewma_obs_ = ewma_factor_*summary_obs+(1-ewma_factor_)*ewma_obs_;
-				}
-#endif // EWMA_ON_SINGLE_OBSERVATION
-
-				DCS_DEBUG_TRACE( "   Current EWMA (summary) observation: " << ewma_obs_ );
 
 				// Open output data file
 				::std::ofstream ofs(out_dat_file_.c_str());
@@ -351,10 +305,9 @@ class system_management
 		// Stop the workload driver
 		p_wkl_driver_->stop();
 
-//		// Close output data file
-//		ofs.close();
+		// Close output data file
+		ofs.close();
 
-/*
 		// Reset VM shares to values that VMs had just before running the driver
 		::std::size_t ix(0);
 		for (vm_iterator vm_it = vm_beg_it;
@@ -366,19 +319,16 @@ class system_management
 			p_vm->cpu_share(old_shares[ix]);
 			++ix;
 		}
-*/
 
 		DCS_DEBUG_TRACE( "END Execution of System Management" );
 	}
 
 
-//	private: vm_container vms_; ///< VMs container
+	private: vm_container vms_; ///< VMs container
 	private: workload_driver_pointer p_wkl_driver_; ///< Ptr to workload driver
-//	private: signal_generator_pointer p_sig_gen_; ///< Ptr to signal generator used to excite VMs
+	private: signal_generator_pointer p_sig_gen_; ///< Ptr to signal generator used to excite VMs
 	private: unsigned int ts_; ///< The sampling time
 	private: ::std::string out_dat_file_; ///< The path to the output data file
-	private: real_type ewma_factor_; ///< The EWMA smoothing factor
-	private: real_type ewma_obs_; ///< The current EWMA observation
 }; // system_management
 
 template <typename RealT>

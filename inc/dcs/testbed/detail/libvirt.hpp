@@ -34,12 +34,14 @@
 #define DCS_TESTBED_DETAIL_LIBVIRT_HPP
 
 
-#include <cassert>
+#include <boost/cstdint.hpp>
 #include <cstdlib>
 #include <cstring>
-#ifndef NDEBUG
+#include <dcs/assert.hpp>
+#include <dcs/exception.hpp>
+#ifdef DCS_DEBUG
 # include <iostream>
-#endif // NDEBUG
+#endif // DCS_DEBUG
 #include <libvirt/libvirt.h>
 #include <libvirt/virterror.h>
 #include <sstream>
@@ -85,7 +87,7 @@ namespace dcs { namespace testbed { namespace detail { namespace libvirt {
 
 ::std::string last_error(virConnectPtr conn)
 {
-	assert( conn );
+	DCS_DEBUG_ASSERT( conn );
 
 	::std::string err_str;
 	virErrorPtr err = new virError();
@@ -122,7 +124,7 @@ virConnectPtr connect(::std::string const& uri)
 	{
 		::std::ostringstream oss;
 		oss << "No connection to hypervisor with URI '" << uri << "': " << last_error(0);
-		throw ::std::runtime_error(oss.str());
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 
 	return conn;
@@ -130,7 +132,7 @@ virConnectPtr connect(::std::string const& uri)
 
 void disconnect(virConnectPtr conn)
 {
-	assert( conn );
+	DCS_DEBUG_ASSERT( conn );
 
 	if (0 != virConnectClose(conn))
 	{
@@ -150,7 +152,7 @@ void disconnect(virConnectPtr conn)
 	{
 		::std::ostringstream oss;
 		oss << "Failed to get hypervisor type: " << last_error(conn);
-		throw ::std::runtime_error(oss.str());
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 
 	unsigned long hvVer;
@@ -159,7 +161,7 @@ void disconnect(virConnectPtr conn)
 	{
 		::std::ostringstream oss;
 		oss << "Failed to get hypervisor version: " << last_error(conn);
-		throw ::std::runtime_error(oss.str());
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 
 	unsigned long major;
@@ -180,14 +182,14 @@ void disconnect(virConnectPtr conn)
 
 virDomainPtr connect_domain(virConnectPtr conn, ::std::string const& name)
 {
-	assert( conn );
+	DCS_DEBUG_ASSERT( conn );
 
 	virDomainPtr dom = virDomainLookupByName(conn, name.c_str());
 	if (0 == dom)
 	{
 		::std::ostringstream oss;
 		oss << "Failed to get Domain for \"" << name << "\": " << last_error(conn);
-		throw ::std::runtime_error(oss.str());
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 
 	return dom;
@@ -195,14 +197,14 @@ virDomainPtr connect_domain(virConnectPtr conn, ::std::string const& name)
 
 void disconnect_domain(virConnectPtr conn, virDomainPtr dom)
 {
-	assert( conn );
-	assert( dom );
+	DCS_DEBUG_ASSERT( conn );
+	DCS_DEBUG_ASSERT( dom );
 
 	if (0 != virDomainFree(dom))
 	{
 		::std::ostringstream oss;
 		oss << "Failed to free data for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
-		throw ::std::runtime_error(oss.str());
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 }
 
@@ -312,8 +314,8 @@ struct sched_param_value<char*>
 template <typename ParamT>
 ParamT sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& name, int flags)
 {
-	assert( conn );
-	assert( dom );
+	DCS_DEBUG_ASSERT( conn );
+	DCS_DEBUG_ASSERT( dom );
 
 	int ret(0);
 
@@ -325,7 +327,7 @@ ParamT sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& na
 	{
 		::std::ostringstream oss;
 		oss << "Failed to get scheduler type for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
-		throw ::std::runtime_error(oss.str());
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 #ifndef NDEBUG
 	::std::clog << "Scheduler: " << ::std::string(sched) << ::std::endl;
@@ -338,7 +340,7 @@ ParamT sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& na
 	{
 		::std::ostringstream oss;
 		oss << "Failed to get scheduler parameters for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
-		throw ::std::runtime_error(oss.str());
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 #ifndef NDEBUG
 	for (int i = 0; i < sched_nparams; ++i)
@@ -364,7 +366,7 @@ ParamT sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& na
 	{
 		::std::ostringstream oss;
 		oss << "Failed to get scheduler parameter '" << name << "' for domain \"" << virDomainGetName(dom) << "\": Not Found";
-		throw ::std::runtime_error(oss.str());
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 
 	return value;
@@ -373,8 +375,8 @@ ParamT sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& na
 template <typename ParamT>
 void sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& name, ParamT value, int flags)
 {
-	assert( conn );
-	assert( dom );
+	DCS_DEBUG_ASSERT( conn );
+	DCS_DEBUG_ASSERT( dom );
 
 	int ret(0);
 
@@ -386,7 +388,7 @@ void sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& name
 	{
 		::std::ostringstream oss;
 		oss << "Failed to get scheduler type for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
-		throw ::std::runtime_error(oss.str());
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 #ifndef NDEBUG
 	::std::clog << "Scheduler: " << ::std::string(sched) << ::std::endl;
@@ -399,7 +401,7 @@ void sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& name
 	{
 		::std::ostringstream oss;
 		oss << "Failed to get scheduler parameters for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
-		throw ::std::runtime_error(oss.str());
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 #ifndef NDEBUG
 	for (int i = 0; i < sched_nparams; ++i)
@@ -425,7 +427,7 @@ void sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& name
 		{
 			::std::ostringstream oss;
 			oss << "Failed to set scheduler parameters for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
-			throw ::std::runtime_error(oss.str());
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
 	}
 
@@ -435,14 +437,14 @@ void sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& name
 	{
 		::std::ostringstream oss;
 		oss << "Failed to set scheduler parameter '" << name << "' for domain \"" << virDomainGetName(dom) << "\": Not Found";
-		throw ::std::runtime_error(oss.str());
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 }
 
 int num_vcpus(virConnectPtr conn, virDomainPtr dom, int flags)
 {
-	assert( conn );
-	assert( dom );
+	DCS_DEBUG_ASSERT( conn );
+	DCS_DEBUG_ASSERT( dom );
 
 	int ret(0);
 
@@ -451,7 +453,7 @@ int num_vcpus(virConnectPtr conn, virDomainPtr dom, int flags)
 	{
 		::std::ostringstream oss;
 		oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
-		throw ::std::runtime_error(oss.str());
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 
 	return ret;
@@ -459,8 +461,8 @@ int num_vcpus(virConnectPtr conn, virDomainPtr dom, int flags)
 
 unsigned int id(virConnectPtr conn, virDomainPtr dom)
 {
-	assert( conn );
-	assert( dom );
+	DCS_DEBUG_ASSERT( conn );
+	DCS_DEBUG_ASSERT( dom );
 
 	int ret(0);
 
@@ -469,7 +471,7 @@ unsigned int id(virConnectPtr conn, virDomainPtr dom)
 	{
 		::std::ostringstream oss;
 		oss << "Failed to query the ID for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
-		throw ::std::runtime_error(oss.str());
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 
 	return ret;
@@ -477,8 +479,8 @@ unsigned int id(virConnectPtr conn, virDomainPtr dom)
 
 ::std::string name(virConnectPtr conn, virDomainPtr dom)
 {
-	assert( conn );
-	assert( dom );
+	DCS_DEBUG_ASSERT( conn );
+	DCS_DEBUG_ASSERT( dom );
 
 	char const* ret(0);
 
@@ -487,10 +489,29 @@ unsigned int id(virConnectPtr conn, virDomainPtr dom)
 	{
 		::std::ostringstream oss;
 		oss << "Failed to query the name for domain: " << last_error(conn);
-		throw ::std::runtime_error(oss.str());
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 
 	return ret;
+}
+
+int max_num_cpus(virConnectPtr conn)
+{
+	DCS_DEBUG_ASSERT( conn );
+
+	virNodeInfoPtr info(0);
+	int ret;
+
+	ret = virNodeGetInfo(conn, info);
+	if (-1 == ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to get node info: " << last_error(conn);
+
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+
+	return VIR_NODEINFO_MAXCPUS(info);
 }
 
 }}}} // Namespace dcs::testbed::detail::libvirt
