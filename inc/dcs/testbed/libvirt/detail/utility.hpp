@@ -1,5 +1,5 @@
 /**
- * \file dcs/testbed/detail/libvirt.hpp
+ * \file dcs/testbed/libvirt/detail/utility.hpp
  *
  * \brief Utilities to communicate with libvirt.
  *
@@ -14,24 +14,24 @@
  *                           University of Piemonte Orientale,
  *                           Alessandria (Italy)]
  *
- * This file is part of dcsxx-testbed.
+ * This file is part of dcsxx-testbed (below referred to as "this program").
  *
- * dcsxx-testbed is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
  * by the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * dcsxx-testbed is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with dcsxx-testbed. If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DCS_TESTBED_DETAIL_LIBVIRT_HPP
-#define DCS_TESTBED_DETAIL_LIBVIRT_HPP
+#ifndef DCS_TESTBED_LIBVIRT_DETAIL_UTILITY_HPP
+#define DCS_TESTBED_LIBVIRT_DETAIL_UTILITY_HPP
 
 
 #include <boost/cstdint.hpp>
@@ -39,9 +39,7 @@
 #include <cstring>
 #include <dcs/assert.hpp>
 #include <dcs/exception.hpp>
-#ifdef DCS_DEBUG
-# include <iostream>
-#endif // DCS_DEBUG
+#include <dcs/uri.hpp>
 #include <libvirt/libvirt.h>
 #include <libvirt/virterror.h>
 #include <sstream>
@@ -49,7 +47,21 @@
 #include <string>
 
 
-namespace dcs { namespace testbed { namespace detail { namespace libvirt {
+namespace dcs { namespace testbed { namespace libvirt { namespace detail {
+
+inline
+::std::string vmm_uri(::std::string const& uri)
+{
+    ::std::ostringstream oss;
+
+    ::dcs::uri u(uri);
+    if (!u.relative())
+    {
+        oss << u.scheme() << "://" << u.authority() << "/";
+    }
+
+    return oss.str();
+}
 
 ::std::string to_string(virTypedParameter const& param)
 {
@@ -329,9 +341,7 @@ ParamT sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& na
 		oss << "Failed to get scheduler type for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
 		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
-#ifndef NDEBUG
-	::std::clog << "Scheduler: " << ::std::string(sched) << ::std::endl;
-#endif // NDEBUG
+	DCS_DEBUG_TRACE("Scheduler: " << ::std::string(sched));
 	::std::free(sched);
 
 	virTypedParameterPtr sched_params = new virTypedParameter[sched_nparams];
@@ -342,12 +352,12 @@ ParamT sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& na
 		oss << "Failed to get scheduler parameters for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
 		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
-#ifndef NDEBUG
+#ifdef DCS_DEBUG
 	for (int i = 0; i < sched_nparams; ++i)
 	{
-		::std::clog << "Scheduler parameter #" << (i+1) << ": <" << sched_params[i].field << "," << to_string(sched_params[i]) << ">" << ::std::endl;
+		DCS_DEBUG_TRACE("Scheduler parameter #" << (i+1) << ": <" << sched_params[i].field << "," << to_string(sched_params[i]) << ">");
 	}
-#endif // NDEBUG
+#endif // DCS_DEBUG
 
 	ParamT value;
 	bool found(false);
@@ -390,9 +400,7 @@ void sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& name
 		oss << "Failed to get scheduler type for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
 		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
-#ifndef NDEBUG
-	::std::clog << "Scheduler: " << ::std::string(sched) << ::std::endl;
-#endif // NDEBUG
+	DCS_DEBUG_TRACE("Scheduler: " << ::std::string(sched));
 	::std::free(sched);
 
 	virTypedParameterPtr sched_params = new virTypedParameter[sched_nparams];
@@ -403,12 +411,12 @@ void sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& name
 		oss << "Failed to get scheduler parameters for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
 		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
-#ifndef NDEBUG
+#ifdef DCS_DEBUG
 	for (int i = 0; i < sched_nparams; ++i)
 	{
-		::std::clog << "Scheduler parameter #" << (i+1) << ": <" << sched_params[i].field << "," << to_string(sched_params[i]) << ">" << ::std::endl;
+		DCS_DEBUG_TRACE("Scheduler parameter #" << (i+1) << ": <" << sched_params[i].field << "," << to_string(sched_params[i]) << ">");
 	}
-#endif // NDEBUG
+#endif // DCS_DEBUG
 
 	bool found(false);
 	for (int i = 0; i < sched_nparams && !found; ++i)
@@ -459,7 +467,7 @@ int num_vcpus(virConnectPtr conn, virDomainPtr dom, int flags)
 	return ret;
 }
 
-unsigned int id(virConnectPtr conn, virDomainPtr dom)
+unsigned int domain_id(virConnectPtr conn, virDomainPtr dom)
 {
 	DCS_DEBUG_ASSERT( conn );
 	DCS_DEBUG_ASSERT( dom );
@@ -499,10 +507,10 @@ int max_num_cpus(virConnectPtr conn)
 {
 	DCS_DEBUG_ASSERT( conn );
 
-	virNodeInfoPtr info(0);
+	virNodeInfo info;
 	int ret;
 
-	ret = virNodeGetInfo(conn, info);
+	ret = virNodeGetInfo(conn, &info);
 	if (-1 == ret)
 	{
 		::std::ostringstream oss;
@@ -514,6 +522,6 @@ int max_num_cpus(virConnectPtr conn)
 	return VIR_NODEINFO_MAXCPUS(info);
 }
 
-}}}} // Namespace dcs::testbed::detail::libvirt
+}}}} // Namespace dcs::testbed::libvirt::detail
 
-#endif // DCS_TESTBED_DETAIL_LIBVIRT_HPP
+#endif // DCS_TESTBED_LIBVIRT_DETAIL_UTILITY_HPP

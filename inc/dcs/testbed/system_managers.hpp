@@ -1,7 +1,7 @@
 /**
- * \file dcs/testbed/virtual_machines.hpp
+ * \file dcs/testbed/system_managers.hpp
  *
- * \brief Includes all virtual machine classes.
+ * \brief Includes all system manager classes.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
@@ -30,12 +30,12 @@
  * along with dcsxx-testbed. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DCS_TESTBED_VIRTUAL_MACHINES_HPP
-#define DCS_TESTBED_VIRTUAL_MACHINES_HPP
+#ifndef DCS_TESTBED_SYSTEM_MANAGERS_HPP
+#define DCS_TESTBED_SYSTEM_MANAGERS_HPP
 
 
-#include <dcs/testbed/base_virtual_machine.hpp>
-#include <dcs/testbed/libvirt/virtual_machine.hpp>
+#include <dcs/testbed/base_system_manager.hpp>
+//#include <dcs/testbed/lq/system_manager.hpp>
 
 
-#endif // DCS_TESTBED_VIRTUAL_MACHINES_HPP
+#endif // DCS_TESTBED_SYSTEM_MANAGERS_HPP

@@ -42,6 +42,7 @@
 #include <dcs/assert.hpp>
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
+#include <dcs/testbed/base_system_manager.hpp>
 #include <dcs/testbed/base_virtual_machine.hpp>
 #include <dcs/testbed/base_workload_driver.hpp>
 #include <fstream>
@@ -60,13 +61,16 @@
 
 namespace dcs { namespace testbed {
 
-template <typename RealT>
+template <typename TraitsT>
 class system_management
 {
-	public: typedef RealT real_type;
-	public: typedef base_virtual_machine<real_type> vm_type;
+	public: typedef TraitsT traits_type;
+	public: typedef typename traits_type::real_type real_type;
+	public: typedef base_virtual_machine<traits_type> vm_type;
 	public: typedef ::boost::shared_ptr<vm_type> vm_pointer;
-	public: typedef base_workload_driver workload_driver_type;
+	public: typedef base_system_manager<traits_type> sys_manager_type;
+	public: typedef ::boost::shared_ptr<sys_manager_type> sys_manager_pointer;
+	public: typedef base_workload_driver<traits_type> workload_driver_type;
 	public: typedef ::boost::shared_ptr<workload_driver_type> workload_driver_pointer;
 	private: typedef ::std::vector<vm_pointer> vm_container;
 
@@ -84,10 +88,10 @@ class system_management
 
 	/// A constructor.
 	public: template <typename FwdIterT>
-			system_management(FwdIterT vm_first, FwdIterT vm_last, workload_driver_pointer const& p_wkl_driver, system_controller_pointer const& p_sys_ctl)
+			system_management(FwdIterT vm_first, FwdIterT vm_last, workload_driver_pointer const& p_wkl_driver, sys_manager_pointer const& p_sys_mgt)
 	: vms_(vm_first, vm_last),
 	  p_wkl_driver_(p_wkl_driver),
-	  p_sys_ctl_(p_sys_ctl),
+	  p_sys_mgt_(p_sys_mgt),
 	  ts_(default_sampling_time),
 	  out_dat_file_(default_output_data_file_path)
 	{
@@ -136,6 +140,7 @@ class system_management
 	public: template <typename FwdIterT>
 			void run(FwdIterT share_first, FwdIterT share_end)
 	{
+/*TODO...
 		// distance(share_first,share_end) == size(vms_)
 		DCS_ASSERT(static_cast< ::std::size_t >(::std::distance(share_first, share_end)) == vms_.size(),
 				   DCS_EXCEPTION_THROW(::std::invalid_argument,
@@ -226,7 +231,7 @@ class system_management
 
 				oss << dt;
 
-				p_sys_ctl->control(vm_beg_it, vm_end_it);
+				p_sys_mgt_->manage(vm_beg_it, vm_end_it);
 
 				// Generate new shares
 				share_container share;
@@ -321,21 +326,19 @@ class system_management
 		}
 
 		DCS_DEBUG_TRACE( "END Execution of System Management" );
+*/
 	}
 
 
 	private: vm_container vms_; ///< VMs container
 	private: workload_driver_pointer p_wkl_driver_; ///< Ptr to workload driver
-	private: signal_generator_pointer p_sig_gen_; ///< Ptr to signal generator used to excite VMs
+	private: sys_manager_pointer p_sys_mgt_; ///< Ptr to system manager used to manage VMs
 	private: unsigned int ts_; ///< The sampling time
 	private: ::std::string out_dat_file_; ///< The path to the output data file
 }; // system_management
 
 template <typename RealT>
 const ::std::string system_management<RealT>::default_output_data_file_path("./sysmgnt_out.dat");
-
-template <typename RealT>
-const RealT system_management<RealT>::default_ewma_smoothing_factor(0.7);
 
 }} // Namespace dcs::testbed
 

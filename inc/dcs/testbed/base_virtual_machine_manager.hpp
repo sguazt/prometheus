@@ -1,7 +1,7 @@
 /**
- * \file dcs/testbed/base_virtual_machine.hpp
+ * \file dcs/testbed/base_virtual_machine_manager.hpp
  *
- * \brief Base class for VMs.
+ * \brief Base class for VM managers.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
@@ -30,90 +30,67 @@
  * along with dcsxx-testbed.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DCS_TESTBED_BASE_VIRTUAL_MACHINE_HPP
-#define DCS_TESTBED_BASE_VIRTUAL_MACHINE_HPP
+#ifndef DCS_TESTBED_BASE_VIRTUAL_MACHINE_MANAGER_HPP
+#define DCS_TESTBED_BASE_VIRTUAL_MACHINE_MANAGER_HPP
 
 
+#include <boost/shared_ptr.hpp>
+#include <dcs/testbed/base_virtual_machine.hpp>
 #include <string>
 
 
 namespace dcs { namespace testbed {
 
-// Forward declarations
 template <typename TraitsT>
-class base_virtual_machine_manager;
-
-
-template <typename TraitsT>
-class base_virtual_machine
+class base_virtual_machine_manager
 {
 	public: typedef TraitsT traits_type;
-	public: typedef typename traits_type::real_type real_type;
-	public: typedef typename traits_type::uint_type uint_type;
+	public: typedef base_virtual_machine<traits_type> vm_type;
+	public: typedef ::boost::shared_ptr<vm_type> vm_pointer;
 	public: typedef ::std::string identifier_type;
-	public: typedef base_virtual_machine_manager<traits_type>* vmm_pointer;
+	public: typedef typename vm_type::identifier_type vm_identifier_type;
 
 
-	public: virtual ~base_virtual_machine()
+	public: base_virtual_machine_manager()
+	{
+	}
+
+	public: virtual ~base_virtual_machine_manager()
 	{
 		// empty
 	}
 
-	/// Get the VM name
-	public: ::std::string name() const
-	{
-		return do_name();
-	}
-
-	/// Get the VM identifier
-	public: ::std::string id() const
+	public: identifier_type id() const
 	{
 		return do_id();
 	}
 
-	public: vmm_pointer vmm() const
+	/// Get the VM associated to the given id
+	public: vm_pointer vm(vm_identifier_type const& id)
 	{
-		return do_vmm();
+		return do_vm(id);
 	}
 
-	public: vmm_pointer vmm()
+	/// Get the VM associated to the given id
+	public: vm_pointer vm(vm_identifier_type const& id) const
 	{
-		return do_vmm();
+		return do_vm(id);
 	}
 
-	/// Get the CPU share
-	public: real_type cpu_share() const
+	public: bool alive() const
 	{
-		return do_cpu_share();
+		return do_alive();
 	}
-
-	/// Set the CPU share
-	public: void cpu_share(real_type value)
-	{
-		do_cpu_share(value);
-	}
-
-	// Get the total number of virtual CPUs
-	public: uint_type num_vcpus() const
-	{
-		return do_num_vcpus();
-	}
-
-	private: virtual ::std::string do_name() const = 0;
 
 	private: virtual identifier_type do_id() const = 0;
 
-	private: virtual vmm_pointer do_vmm() const = 0;
+	private: virtual vm_pointer do_vm(vm_identifier_type const& id) = 0;
 
-	private: virtual vmm_pointer do_vmm() = 0;
+	private: virtual vm_pointer do_vm(vm_identifier_type const& id) const = 0;
 
-	private: virtual real_type do_cpu_share() const = 0;
-
-	private: virtual void do_cpu_share(real_type value) = 0;
-
-	private: virtual uint_type do_num_vcpus() const = 0;
-}; // base_virtual_machine
+	private: virtual bool do_alive() const = 0;
+}; // base_virtual_machine_manager
 
 }} // Namespace dcs::testbed
 
-#endif // DCS_TESTBED_BASE_VIRTUAL_MACHINE_HPP
+#endif // DCS_TESTBED_BASE_VIRTUAL_MACHINE_MANAGER_HPP

@@ -1,41 +1,48 @@
 /**
- * \file dcs/testbed/virtual_machines.hpp
+ * \file dcs/testbed/traits.hpp
  *
- * \brief Includes all virtual machine classes.
+ * \brief Type traits class.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
  * <hr/>
  *
- * Copyright (C) 2012       Marco Guazzone
+ * Copyright (C) 2012       Marco Guazzone (marco.guazzone@gmail.com)
  *                          [Distributed Computing System (DCS) Group,
  *                           Computer Science Institute,
  *                           Department of Science and Technological Innovation,
  *                           University of Piemonte Orientale,
  *                           Alessandria (Italy)]
  *
- * This file is part of dcsxx-testbed.
+ * This file is part of dcsxx-testbed (below referred to as "this program").
  *
- * dcsxx-testbed is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
  * by the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * dcsxx-testbed is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with dcsxx-testbed. If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DCS_TESTBED_VIRTUAL_MACHINES_HPP
-#define DCS_TESTBED_VIRTUAL_MACHINES_HPP
+#ifndef DCS_TESTBED_TRAITS_HPP
+#define DCS_TESTBED_TRAITS_HPP
 
 
-#include <dcs/testbed/base_virtual_machine.hpp>
-#include <dcs/testbed/libvirt/virtual_machine.hpp>
+namespace dcs { namespace testbed {
 
+template <typename RealT,
+		  typename UIntT>
+struct traits
+{
+	typedef RealT real_type;
+	typedef UIntT uint_type;
+}; // traits
 
-#endif // DCS_TESTBED_VIRTUAL_MACHINES_HPP
+}} // Namespace dcs::testbed
+#endif // DCS_TESTBED_TRAITS_HPP

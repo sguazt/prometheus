@@ -40,6 +40,7 @@
 #include <dcs/logging.hpp>
 #include <dcs/testbed/signal_generators.hpp>
 #include <dcs/testbed/system_identification.hpp>
+#include <dcs/testbed/traits.hpp>
 #include <dcs/testbed/virtual_machines.hpp>
 #include <dcs/testbed/workload_category.hpp>
 #include <dcs/testbed/workload_drivers.hpp>
@@ -209,12 +210,6 @@ template <typename CharT, typename CharTraitsT>
 void usage(char const* progname)
 {
 	::std::cerr << "Usage: " << progname << " [options]" << ::std::endl
-				<< " --db-uri <URI>" << ::std::endl
-				<< "   The URI used to connect to the libvirtd server where the OlioDB VM is running." << ::std::endl
-				<< "   [default: default URI of this machine]." << ::std::endl
-				<< " --db-name <name>" << ::std::endl
-				<< "   The name of the domain running the OlioDB VM." << ::std::endl
-				<< "   [default: OlioDB]." << ::std::endl
 				<< " --help" << ::std::endl
 				<< "   Show this message." << ::std::endl
 				<< " --out-dat-file <file path>" << ::std::endl
@@ -239,12 +234,8 @@ void usage(char const* progname)
 				<< " --verbose" << ::std::endl
 				<< "   Show verbose messages." << ::std::endl
 				<< "   [default: disabled]." << ::std::endl
-				<< " --web-uri <URI>" << ::std::endl
-				<< "   The URI used to connect to the libvirtd server where the OlioWeb VM is running." << ::std::endl
-				<< "   [default: default URI of this machine]." << ::std::endl
-				<< " --web-name <name>" << ::std::endl
-				<< "   The name of the domain running the OlioWeb VM." << ::std::endl
-				<< "   [default: OlioWeb]." << ::std::endl
+				<< " --vm-uri <URI>" << ::std::endl
+				<< "   The URI used to connect to a VM." << ::std::endl
 				<< " --wkl <name>" << ::std::endl
 				<< "   The workload to generate. Possible values are: 'olio', 'rubis'." << ::std::endl
 				<< "   [default: '" << default_workload << "']." << ::std::endl
@@ -266,6 +257,7 @@ int main(int argc, char *argv[])
 
 	typedef double real_type;
 	typedef unsigned int uint_type;
+	typedef testbed::traits<real_type,uint_type> traits_type;
 
 	bool help(false);
 	std::vector<std::string> vm_uris;
@@ -309,7 +301,6 @@ int main(int argc, char *argv[])
 	// Parse command line options
 	try
 	{
-		vm_uris = dcs::cli::simple::get_options<std::string>(argv, argv+argc, "--vm-uri", detail::default_oliodb_uri);
 		help = dcs::cli::simple::get_option(argv, argv+argc, "--help");
 		out_dat_file = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--out-dat-file", detail::default_out_dat_file);
 		sig = dcs::cli::simple::get_option<detail::signal_category>(argv, argv+argc, "--sig", detail::default_signal_category);
@@ -343,6 +334,7 @@ int main(int argc, char *argv[])
 		sig_gauss_sd = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-gaussian-sd", detail::default_signal_gaussian_sd);
 		ts = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--ts", detail::default_sampling_time);
 		verbose = dcs::cli::simple::get_option(argv, argv+argc, "--verbose");
+		vm_uris = dcs::cli::simple::get_options<std::string>(argv, argv+argc, "--vm-uri");
 		wkl = dcs::cli::simple::get_option<testbed::workload_category>(argv, argv+argc, "--wkl", detail::default_workload);
 		wkl_driver = dcs::cli::simple::get_option<testbed::workload_generator_category>(argv, argv+argc, "--wkl-driver", detail::default_workload_driver);
 		wkl_driver_rain_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-path", detail::default_workload_driver_rain_path);
@@ -490,7 +482,7 @@ int main(int argc, char *argv[])
 		oss.str("");
 	}
 
-	typedef boost::shared_ptr< testbed::base_virtual_machine<real_type> > vm_pointer;
+	typedef boost::shared_ptr< testbed::base_virtual_machine<traits_type> > vm_pointer;
 	//typedef boost::random::mt19937 random_generator_type;
 	typedef boost::random::mt19937 random_generator_type;
 
@@ -505,15 +497,17 @@ int main(int argc, char *argv[])
 			 it != uri_end_it;
 			 ++it)
 		{
-			vm_pointer p_vm(new testbed::libvirt_virtual_machine<real_type>(*it));
+			vm_pointer p_vm(new testbed::libvirt_virtual_machine<traits_type>(*it));
+
+			vms.push_back(p_vm);
 		}
 
-		boost::shared_ptr< testbed::base_workload_driver > p_driver;
+		boost::shared_ptr< testbed::base_workload_driver<traits_type> > p_driver;
 
 		switch (wkl_driver)
 		{
 			case testbed::rain_workload_generator:
-				p_driver = ::boost::make_shared<testbed::rain_workload_driver>(wkl, wkl_driver_rain_path);
+				p_driver = ::boost::make_shared< testbed::rain_workload_driver<traits_type> >(wkl, wkl_driver_rain_path);
 				break;
 		}
 
@@ -533,7 +527,7 @@ int main(int argc, char *argv[])
 				{
 					std::vector<real_type> mean(nt, sig_gauss_mean);
 					std::vector<real_type> sd(nt, sig_gauss_sd);
-					p_sig_gen = boost::shared_ptr< testbed::base_signal_generator<real_type> >(new testbed::gaussian_signal_generator<real_type, random_generator_type>(mean, sd, rng));
+					p_sig_gen = boost::make_shared< testbed::gaussian_signal_generator<real_type,random_generator_type> >(mean, sd, rng);
 				}
 				break;
 			case detail::half_sinusoidal_signal:
@@ -592,7 +586,7 @@ int main(int argc, char *argv[])
 					std::vector<real_type> min(nt, sig_unif_min);
 					std::vector<real_type> max(nt, sig_unif_max);
 					//p_sig_gen = boost::make_shared< testbed::uniform_signal_generator<real_type,random_generator_type> >(min, max, rng);
-					p_sig_gen = boost::shared_ptr< testbed::base_signal_generator<real_type> >(new testbed::uniform_signal_generator<real_type, random_generator_type>(min, max, rng));
+					p_sig_gen = boost::make_shared< testbed::uniform_signal_generator<real_type,random_generator_type> >(min, max, rng);
 				}
 				break;
 			default:
@@ -603,7 +597,7 @@ int main(int argc, char *argv[])
 		p_sig_gen->upper_bound(sig_common_up_bound);
 		p_sig_gen->lower_bound(sig_common_lo_bound);
 
-		testbed::system_identification<real_type> sysid(vms.begin(), vms.end(), p_driver, p_sig_gen);
+		testbed::system_identification<traits_type> sysid(vms.begin(), vms.end(), p_driver, p_sig_gen);
 		sysid.output_data_file(out_dat_file);
 		sysid.sampling_time(ts);
 		sysid.output_extended_format(true);

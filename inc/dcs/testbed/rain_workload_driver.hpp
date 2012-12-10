@@ -195,30 +195,39 @@ void atomic_set(::pthread_mutex_t& mutex, T& attr, T val)
 } // Namespace <unnamed>
 
 /// Monitors the RAIN ramp-up (transient) phase
+template <typename TraitsT>
 static void* thread_monitor_rain_rampup(void* arg);
 
 /**
  * \brief Monitors the RAIN steady-state phase and parses the RAIN metrics
  *  snapshot file.
  */
+template <typename TraitsT>
 static void* thread_monitor_rain_steady_state(void* arg);
 
 /// Redirects the RAIN steady-state standard output to a log file.
+template <typename TraitsT>
 static void* thread_log_rain_steady_state_out(void* arg);
 
 } // Namespace detail
 
 
-class rain_workload_driver: public base_workload_driver
+template <typename TraitsT>
+class rain_workload_driver: public base_workload_driver<TraitsT>
 {
-	private: typedef base_workload_driver base_type;
+	private: typedef base_workload_driver<TraitsT> base_type;
+	public: typedef typename base_type::traits_type traits_type;
 	private: typedef ::dcs::system::posix_process sys_process_type;
 	private: typedef ::boost::shared_ptr<sys_process_type> sys_process_pointer;
-	public: typedef base_type::observation_type observation_type;
+	public: typedef typename base_type::real_type real_type;
+	public: typedef typename base_type::observation_type observation_type;
 
 
+	template <typename T>
 	friend void* detail::thread_monitor_rain_rampup(void*);
+	template <typename T>
 	friend void* detail::thread_monitor_rain_steady_state(void*);
+	template <typename T>
 	friend void* detail::thread_log_rain_steady_state_out(void*);
 
 
@@ -491,7 +500,7 @@ class rain_workload_driver: public base_workload_driver
 		}
 
 		// Run a thread to monitor RAIN ramp-up (transient) phase
-		if (::pthread_create(&rampup_thread_, 0, &detail::thread_monitor_rain_rampup, this) != 0)
+		if (::pthread_create(&rampup_thread_, 0, &detail::thread_monitor_rain_rampup<traits_type>, this) != 0)
 		{
 			::std::ostringstream oss;
 			oss << "Unable to start ramp-up phase monitor thread for the RAIN workload driver: " << ::strerror(errno);
@@ -499,7 +508,7 @@ class rain_workload_driver: public base_workload_driver
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
 //		// Run a thread to monitor RAIN steady-state phase
-//		if (::pthread_create(&steady_thread_, 0, &detail::thread_monitor_rain_steady_state, this) != 0)
+//		if (::pthread_create(&steady_thread_, 0, &detail::thread_monitor_rain_steady_state<traits_type>, this) != 0)
 //		{
 //			::std::ostringstream oss;
 //			oss << "Unable to start steady-state monitor thread for the RAIN workload driver: " << ::strerror(errno);
@@ -507,7 +516,7 @@ class rain_workload_driver: public base_workload_driver
 //			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 //		}
 //		// Run a thread to log the RAIN standard output during the steady-state phase
-//		if (::pthread_create(&steady_thread_, 0, &detail::thread_log_rain_steady_state_out, this) != 0)
+//		if (::pthread_create(&steady_thread_, 0, &detail::thread_log_rain_steady_state_out<traits_type>, this) != 0)
 //		{
 //			::std::ostringstream oss;
 //			oss << "Unable to start steady-state output logger thread for the RAIN workload driver: " << ::strerror(errno);
@@ -661,17 +670,22 @@ class rain_workload_driver: public base_workload_driver
 //	private: mutable ::pthread_cond_t steady_state_cond_;
 }; // rain_workload_driver
 
-const ::pthread_mutex_t rain_workload_driver::mutex_init_val_ = PTHREAD_MUTEX_INITIALIZER;
+template <typename TraitsT>
+const ::pthread_mutex_t rain_workload_driver<TraitsT>::mutex_init_val_ = PTHREAD_MUTEX_INITIALIZER;
 
-//const ::pthread_cond_t rain_workload_driver::cond_init_val_ = PTHREAD_COND_INITIALIZER;
+//template <typename TraitsT>
+//const ::pthread_cond_t rain_workload_driver<TraitsT>::cond_init_val_ = PTHREAD_COND_INITIALIZER;
 
 
 namespace detail {
 
+template <typename TraitsT>
 void* thread_monitor_rain_rampup(void* arg)
 {
+	typedef TraitsT traits_type;
+
 DCS_DEBUG_TRACE("RAMP-UP THREAD -- Entering");
-	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
+	rain_workload_driver<TraitsT>* p_driver = static_cast<rain_workload_driver<TraitsT>*>(arg);
 
 	p_driver->rampup_thread_active(true);
 
@@ -696,7 +710,7 @@ DCS_DEBUG_TRACE("RAMP-UP THREAD -- Entering");
 	p_driver->rampup_thread_active(false);
 
 	// Run a thread to monitor RAIN steady-state phase
-	if (::pthread_create(&(p_driver->steady_thread_), 0, &detail::thread_monitor_rain_steady_state, p_driver) != 0)
+	if (::pthread_create(&(p_driver->steady_thread_), 0, &detail::thread_monitor_rain_steady_state<traits_type>, p_driver) != 0)
 	{
 		::std::ostringstream oss;
 		oss << "Unable to start steady-state monitor thread for the RAIN workload driver: " << ::strerror(errno);
@@ -704,7 +718,7 @@ DCS_DEBUG_TRACE("RAMP-UP THREAD -- Entering");
 		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 	// Run a thread to log the RAIN standard output during the steady-state phase
-	if (::pthread_create(&(p_driver->steady_thread_), 0, &detail::thread_log_rain_steady_state_out, p_driver) != 0)
+	if (::pthread_create(&(p_driver->steady_thread_), 0, &detail::thread_log_rain_steady_state_out<traits_type>, p_driver) != 0)
 	{
 		::std::ostringstream oss;
 		oss << "Unable to start steady-state output logger thread for the RAIN workload driver: " << ::strerror(errno);
@@ -721,8 +735,11 @@ DCS_DEBUG_TRACE("RAMP-UP THREAD -- Leaving");
 	return 0;
 }
 
+template <typename TraitsT>
 void* thread_monitor_rain_steady_state(void* arg)
 {
+	typedef TraitsT traits_type;
+
 	// Available fields in a row (each field is separated by one or more white-spaces):
 	// - '[' <generated-during> ']'
 	// - <timestamp>
@@ -740,7 +757,7 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Entering");
 	const unsigned int min_zzz_time(2);
 	const unsigned int max_zzz_time(10);
 
-	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
+	rain_workload_driver<TraitsT>* p_driver = static_cast<rain_workload_driver<TraitsT>*>(arg);
 
 	p_driver->steady_state_thread_active(true);
 
@@ -938,10 +955,13 @@ DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Leaving");
 	return 0;
 }
 
+template <typename TraitsT>
 void* thread_log_rain_steady_state_out(void* arg)
 {
+	typedef TraitsT traits_type;
+
 DCS_DEBUG_TRACE("LOGGER THREAD -- Entering");
-	rain_workload_driver* p_driver = static_cast<rain_workload_driver*>(arg);
+	rain_workload_driver<TraitsT>* p_driver = static_cast<rain_workload_driver<TraitsT>*>(arg);
 
 	p_driver->logger_thread_active(true);
 

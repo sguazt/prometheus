@@ -42,12 +42,14 @@
 
 namespace dcs { namespace testbed {
 
+template <typename TraitsT>
 class base_workload_driver
 {
 	public: class observation;
 
 
-	public: typedef double real_type;
+	public: typedef TraitsT traits_type;
+	public: typedef typename traits_type::real_type real_type;
 	public: typedef observation observation_type;
 
 

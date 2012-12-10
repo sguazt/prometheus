@@ -61,15 +61,16 @@
 
 namespace dcs { namespace testbed {
 
-template <typename RealT>
+template <typename TraitsT>
 class system_identification
 {
-	public: typedef RealT real_type;
-	public: typedef base_virtual_machine<real_type> vm_type;
+	public: typedef TraitsT traits_type;
+	public: typedef typename traits_type::real_type real_type;
+	public: typedef base_virtual_machine<traits_type> vm_type;
 	public: typedef ::boost::shared_ptr<vm_type> vm_pointer;
 	public: typedef base_signal_generator<real_type> signal_generator_type;
 	public: typedef ::boost::shared_ptr<signal_generator_type> signal_generator_pointer;
-	public: typedef base_workload_driver workload_driver_type;
+	public: typedef base_workload_driver<traits_type> workload_driver_type;
 	public: typedef ::boost::shared_ptr<workload_driver_type> workload_driver_pointer;
 	private: typedef ::std::vector<vm_pointer> vm_container;
 

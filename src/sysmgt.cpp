@@ -36,7 +36,12 @@
 #include <cstring>
 #include <dcs/cli.hpp>
 #include <dcs/logging.hpp>
+#include <dcs/testbed/registry.hpp>
 #include <dcs/testbed/system_management.hpp>
+#include <dcs/testbed/system_managers.hpp>
+#include <dcs/testbed/traits.hpp>
+#include <dcs/testbed/virtual_machine_managers.hpp>
+#include <dcs/testbed/virtual_machines.hpp>
 #include <dcs/testbed/workload_category.hpp>
 #include <dcs/testbed/workload_drivers.hpp>
 #include <dcs/testbed/workload_generator_category.hpp>
@@ -76,6 +81,9 @@ void usage(char const* progname)
 				<< " --verbose" << ::std::endl
 				<< "   Show verbose messages." << ::std::endl
 				<< "   [default: disabled]." << ::std::endl
+				<< " --vm-uri <URI>" << ::std::endl
+				<< "   The VM URI to connect." << ::std::endl
+				<< "   Repeat this option as many times as is the number of your VMs."
 				<< " --wkl <name>" << ::std::endl
 				<< "   The workload to generate. Possible values are: 'olio', 'rubis'." << ::std::endl
 				<< "   [default: '" << default_workload << "']." << ::std::endl
@@ -93,28 +101,29 @@ void usage(char const* progname)
 
 int main(int argc, char *argv[])
 {
+	namespace testbed = ::dcs::testbed;
+
 	typedef double real_type;
 	typedef unsigned int uint_type;
-
-	namespace testbed = ::dcs::testbed;
+	typedef testbed::traits<real_type,uint_type> traits_type;
 
 	bool help(false);
 	std::string out_dat_file;
-	real_type ewma_smooth_factor;
 	real_type ts;
 	bool verbose(false);
 	testbed::workload_category wkl;
 	testbed::workload_generator_category wkl_driver;
 	std::string wkl_driver_rain_path;
+	std::vector<std::string> vm_uris;
 
 	// Parse command line options
 	try
 	{
 		help = dcs::cli::simple::get_option(argv, argv+argc, "--help");
 		out_dat_file = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--out-dat-file", detail::default_out_dat_file);
-		ewma_smooth_factor = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--aggr-ewma-factor", detail::default_ewma_smooth_factor);
 		ts = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--ts", detail::default_sampling_time);
 		verbose = dcs::cli::simple::get_option(argv, argv+argc, "--verbose");
+		vm_uris = dcs::cli::simple::get_options<std::string>(argv, argv+argc, "--vm-uri");
 		wkl = dcs::cli::simple::get_option<testbed::workload_category>(argv, argv+argc, "--wkl", detail::default_workload);
 		wkl_driver = dcs::cli::simple::get_option<testbed::workload_generator_category>(argv, argv+argc, "--wkl-driver", detail::default_workload_driver);
 		wkl_driver_rain_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-rain-path", detail::default_workload_driver_rain_path);
@@ -142,11 +151,18 @@ int main(int argc, char *argv[])
 	{
 		std::ostringstream oss;
 
-		oss << "Output data file: " << out_dat_file;
+		for (std::size_t i = 0; i < vm_uris.size(); ++i)
+		{
+			if (i > 0)
+			{
+				oss << ", ";
+			}
+			oss << "VM URI: " << vm_uris[i];
+		}
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
-		oss << "EWMA smoothing factor: " << ewma_smooth_factor;
+		oss << "Output data file: " << out_dat_file;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
@@ -167,32 +183,59 @@ int main(int argc, char *argv[])
 		oss.str("");
 	}
 
-//	typedef boost::shared_ptr< testbed::base_virtual_machine<real_type> > vm_pointer;
+	typedef testbed::base_virtual_machine<traits_type> vm_type;
+	typedef boost::shared_ptr<vm_type> vm_pointer;
+	typedef vm_type::identifier_type vm_identifier_type;
+	typedef testbed::base_virtual_machine_manager<traits_type> vmm_type;
+	typedef boost::shared_ptr<vmm_type> vmm_pointer;
+	typedef vmm_type::identifier_type vmm_identifier_type;
 
 	try
 	{
-//		vm_pointer p_oliodb_vm(new testbed::libvirt_virtual_machine<real_type>(oliodb_uri, oliodb_name));
-//		vm_pointer p_olioweb_vm(new testbed::libvirt_virtual_machine<real_type>(olioweb_uri, olioweb_name));
+		const std::size_t nt(vm_uris.size()); // Number of tiers
 
-//		const std::size_t nt(2); // Number of tiers
+		testbed::registry<traits_type>& reg = testbed::registry<traits_type>::instance();
 
-//		std::vector<vm_pointer> vms(nt);
-//		vms[0] = p_olioweb_vm;
-//		vms[1] = p_oliodb_vm;
+		std::vector<vm_pointer> vms(nt);
 
-		boost::shared_ptr< testbed::base_workload_driver > p_driver;
+		std::vector<std::string>::const_iterator uri_end_it(vm_uris.end());
+		for (std::vector<std::string>::const_iterator it = vm_uris.begin();
+			 it != uri_end_it;
+			 ++it)
+		{
+			std::string const& uri(*it);
+
+			vmm_pointer p_vmm;
+			if (!reg.exists_vmm(uri))
+			{
+				p_vmm = boost::make_shared< testbed::libvirt::virtual_machine_manager<traits_type> >(uri);
+				reg.add_vmm(p_vmm);
+			}
+			else
+			{
+				p_vmm = reg.vmm(uri);
+			}
+
+			vm_pointer p_vm(p_vmm->vm(uri));
+			vms.push_back(p_vm);
+		}
+
+		boost::shared_ptr< testbed::base_workload_driver<traits_type> > p_driver;
 
 		switch (wkl_driver)
 		{
 			case testbed::rain_workload_generator:
-				p_driver = ::boost::make_shared<testbed::rain_workload_driver>(wkl, wkl_driver_rain_path);
+				p_driver = ::boost::make_shared< testbed::rain_workload_driver<traits_type> >(wkl, wkl_driver_rain_path);
 				break;
 		}
 
-		testbed::system_management<real_type> sysmgt(p_driver);
+		boost::shared_ptr< testbed::base_system_manager<traits_type> > p_mgr;
+
+		//TODO: set system manager
+
+		testbed::system_management<traits_type> sysmgt(vms.begin(), vms.end(), p_driver, p_mgr);
 		sysmgt.output_data_file(out_dat_file);
 		sysmgt.sampling_time(ts);
-		sysmgt.ewma_smoothing_factor(ewma_smooth_factor);
 
 		sysmgt.run();
 	}
