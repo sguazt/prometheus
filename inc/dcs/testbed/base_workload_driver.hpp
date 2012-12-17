@@ -117,6 +117,11 @@ class base_workload_driver
 		return do_category();
 	}
 
+	public: void reset()
+	{
+		do_reset();
+	}
+
 	public: void start()
 	{
 		do_start();
@@ -148,6 +153,8 @@ class base_workload_driver
 	}
 
 	private: virtual workload_generator_category do_category() const = 0;
+
+	private: virtual void do_reset() = 0;
 
 	private: virtual void do_start() = 0;
 

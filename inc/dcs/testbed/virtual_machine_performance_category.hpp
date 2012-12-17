@@ -1,7 +1,7 @@
 /**
- * \file dcs/testbed/base_system_manager.hpp
+ * \file dcs/testbed/virtual_machine_performance_category.hpp
  *
- * \brief Base class for system managers.
+ * \brief Categories for performance metrics.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
@@ -30,36 +30,19 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DCS_TESTBED_BASE_SYSTEM_MANAGER_HPP
-#define DCS_TESTBED_BASE_SYSTEM_MANAGER_HPP
-
-
-#include <boost/shared_ptr.hpp>
-#include <dcs/testbed/base_virtual_machine.hpp>
-#include <vector>
-
+#ifndef DCS_TESTBED_VIRTUAL_MACHINE_PERFORMANCE_CATEGORY_HPP
+#define DCS_TESTBED_VIRTUAL_MACHINE_PERFORMANCE_CATEGORY_HPP
 
 namespace dcs { namespace testbed {
 
-template <typename TraitsT>
-class base_system_manager
+enum virtual_machine_performance_category
 {
-	public: typedef TraitsT traits_type;
-	protected: typedef base_virtual_machine<traits_type> vm_type;
-	protected: typedef ::boost::shared_ptr<vm_type> vm_pointer;
-
-
-	public: template <typename IterT>
-			void manage(IterT first, IterT last)
-	{
-		::std::vector<vm_pointer> vms(first, last);
-
-		this->do_manage(vms);
-	}
-
-	private: virtual void do_manage(::std::vector<vm_pointer> const& vms) = 0;
+	//cpu_share_virtual_machine_performance,
+	cpu_util_virtual_machine_performance/*,
+	//ram_share_virtual_machine_performance,
+	ram_util_virtual_machine_performance*/
 };
 
 }} // Namespace dcs::testbed
 
-#endif // DCS_TESTBED_BASE_SYSTEM_MANAGER_HPP
+#endif // DCS_TESTBED_VIRTUAL_MACHINE_PERFORMANCE_CATEGORY_HPP

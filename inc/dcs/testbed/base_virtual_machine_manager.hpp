@@ -49,6 +49,7 @@ class base_virtual_machine_manager
 	public: typedef ::boost::shared_ptr<vm_type> vm_pointer;
 	public: typedef ::std::string identifier_type;
 	public: typedef typename vm_type::identifier_type vm_identifier_type;
+	public: typedef typename traits_type::uint_type uint_type;
 
 
 	public: base_virtual_machine_manager()
@@ -82,6 +83,11 @@ class base_virtual_machine_manager
 		return do_alive();
 	}
 
+	public: uint_type max_supported_num_vcpus() const
+	{
+		return do_max_supported_num_vcpus();
+	}
+
 	private: virtual identifier_type do_id() const = 0;
 
 	private: virtual vm_pointer do_vm(vm_identifier_type const& id) = 0;
@@ -89,6 +95,8 @@ class base_virtual_machine_manager
 	private: virtual vm_pointer do_vm(vm_identifier_type const& id) const = 0;
 
 	private: virtual bool do_alive() const = 0;
+
+	private: virtual uint_type do_max_supported_num_vcpus() const = 0;
 }; // base_virtual_machine_manager
 
 }} // Namespace dcs::testbed

@@ -1,7 +1,7 @@
 /**
- * \file rubis_mgmt.hpp
+ * \file sysexp.hpp
  *
- * \brief Driver for managing a RUBiS instance.
+ * \brief Driver for performing system experiments
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
@@ -36,9 +36,12 @@
 #include <cstring>
 #include <dcs/cli.hpp>
 #include <dcs/logging.hpp>
-#include <dcs/testbed/registry.hpp>
-#include <dcs/testbed/system_management.hpp>
-#include <dcs/testbed/system_managers.hpp>
+#include <dcs/testbed/application.hpp>
+#include <dcs/testbed/application_managers.hpp>
+#include <dcs/testbed/base_application.hpp>
+#include <dcs/testbed/system_experiment.hpp>
+#include <dcs/testbed/system_identification_strategies.hpp>
+//#include <dcs/testbed/system_managers.hpp>
 #include <dcs/testbed/traits.hpp>
 #include <dcs/testbed/virtual_machine_managers.hpp>
 #include <dcs/testbed/virtual_machines.hpp>
@@ -189,15 +192,25 @@ int main(int argc, char *argv[])
 	typedef testbed::base_virtual_machine_manager<traits_type> vmm_type;
 	typedef boost::shared_ptr<vmm_type> vmm_pointer;
 	typedef vmm_type::identifier_type vmm_identifier_type;
+	typedef testbed::base_application<traits_type> app_type;
+	typedef boost::shared_ptr<app_type> app_pointer;
+	typedef testbed::base_application_manager<traits_type> app_manager_type;
+	typedef boost::shared_ptr<app_manager_type> app_manager_pointer;
+	typedef testbed::base_workload_driver<traits_type> app_driver_type;
+	typedef boost::shared_ptr<app_driver_type> app_driver_pointer;
+	typedef testbed::base_arx_system_identification_strategy<traits_type> sysid_strategy_type;
+	typedef boost::shared_ptr<sysid_strategy_type> sysid_strategy_pointer;
 
 	try
 	{
 		const std::size_t nt(vm_uris.size()); // Number of tiers
 
-		testbed::registry<traits_type>& reg = testbed::registry<traits_type>::instance();
+		testbed::system_experiment<traits_type> sys_exp;
 
+		// Setup application experiment
+		// - Setup application (and VMs)
+		std::map<vmm_identifier_type,vmm_pointer> vmm_map;
 		std::vector<vm_pointer> vms(nt);
-
 		std::vector<std::string>::const_iterator uri_end_it(vm_uris.end());
 		for (std::vector<std::string>::const_iterator it = vm_uris.begin();
 			 it != uri_end_it;
@@ -206,38 +219,51 @@ int main(int argc, char *argv[])
 			std::string const& uri(*it);
 
 			vmm_pointer p_vmm;
-			if (!reg.exists_vmm(uri))
+			if (!vmm_map.count(uri) > 0)
 			{
 				p_vmm = boost::make_shared< testbed::libvirt::virtual_machine_manager<traits_type> >(uri);
-				reg.add_vmm(p_vmm);
+				vmm_map[uri] = p_vmm;
 			}
 			else
 			{
-				p_vmm = reg.vmm(uri);
+				p_vmm = vmm_map.at(uri);
 			}
 
 			vm_pointer p_vm(p_vmm->vm(uri));
 			vms.push_back(p_vm);
 		}
+		app_pointer p_app = boost::make_shared< testbed::application<traits_type> >(vms.begin(), vms.end());
 
-		boost::shared_ptr< testbed::base_workload_driver<traits_type> > p_driver;
-
+		// - Setup workload driver
+		app_driver_pointer p_drv;
 		switch (wkl_driver)
 		{
 			case testbed::rain_workload_generator:
-				p_driver = ::boost::make_shared< testbed::rain_workload_driver<traits_type> >(wkl, wkl_driver_rain_path);
+				p_drv = boost::make_shared< testbed::rain::workload_driver<traits_type> >(wkl, wkl_driver_rain_path);
 				break;
 		}
 
-		boost::shared_ptr< testbed::base_system_manager<traits_type> > p_mgr;
+		// - Setup application manager
+		app_manager_pointer p_mgr;
+		//p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >();
+		{
+			sysid_strategy_pointer p_sysid_alg = boost::make_shared< testbed::rls_ff_arx_miso_proxy<traits_type> >(2, 2, 1, 1, nt, 0.98);
+			testbed::lqry_application_manager<traits_type> lqry_mgr;
+			lqry_mgr.sysid_strategy(p_sysid_alg);
 
-		//TODO: set system manager
+			p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >(lqry_mgr);
+			p_mgr->sampling_time(static_cast<uint_type>(ts));
+			p_mgr->control_time(3*p_mgr->sampling_time());
+		}
 
-		testbed::system_management<traits_type> sysmgt(vms.begin(), vms.end(), p_driver, p_mgr);
-		sysmgt.output_data_file(out_dat_file);
-		sysmgt.sampling_time(ts);
+		// Add to main experiment
+		sys_exp.add_app(p_app, p_drv, p_mgr);
 
-		sysmgt.run();
+
+		//sys_exp.logger(...);
+		//sys_exp.output_data_file(out_dat_file);
+
+		sys_exp.run();
 	}
 	catch (std::exception const& e)
 	{

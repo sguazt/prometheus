@@ -1,7 +1,7 @@
 /**
- * \file dcs/testbed/base_system_manager.hpp
+ * \file dcs/testbed/sensor_observation.hpp
  *
- * \brief Base class for system managers.
+ * \brief Observation sampled from a sensor.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
@@ -30,36 +30,70 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DCS_TESTBED_BASE_SYSTEM_MANAGER_HPP
-#define DCS_TESTBED_BASE_SYSTEM_MANAGER_HPP
+#ifndef DCS_TESTBED_SENSOR_OBSERVATION_HPP
+#define DCS_TESTBED_SENSOR_OBSERVATION_HPP
 
 
-#include <boost/shared_ptr.hpp>
-#include <dcs/testbed/base_virtual_machine.hpp>
-#include <vector>
+#include <ctime>
+#include <string>
 
 
 namespace dcs { namespace testbed {
 
 template <typename TraitsT>
-class base_system_manager
+class sensor_observation
 {
 	public: typedef TraitsT traits_type;
-	protected: typedef base_virtual_machine<traits_type> vm_type;
-	protected: typedef ::boost::shared_ptr<vm_type> vm_pointer;
+	public: typedef typename traits_type::real_type real_type;
 
 
-	public: template <typename IterT>
-			void manage(IterT first, IterT last)
+	protected: sensor_observation()
 	{
-		::std::vector<vm_pointer> vms(first, last);
-
-		this->do_manage(vms);
 	}
 
-	private: virtual void do_manage(::std::vector<vm_pointer> const& vms) = 0;
-};
+	public: sensor_observation(::std::time_t ts, ::std::string const& lbl, real_type val)
+	: ts_(ts),
+	  lbl_(lbl),
+	  val_(val)
+	{
+	}
+
+	public: ::std::time_t timestamp() const
+	{
+		return ts_;
+	}
+
+	public: ::std::string label() const
+	{
+		return lbl_;
+	}
+
+	public: real_type value() const
+	{
+		return val_;
+	}
+
+	protected: void timestamp(::std::time_t val)
+	{
+		ts_ = val;
+	}
+
+	protected: void label(::std::string const& val)
+	{
+		lbl_ = val;
+	}
+
+	protected: void value(real_type val)
+	{
+		val_ = val;
+	}
+
+
+	private: ::std::time_t ts_;
+	private: ::std::string lbl_;
+	private: real_type val_;
+}; // observation
 
 }} // Namespace dcs::testbed
 
-#endif // DCS_TESTBED_BASE_SYSTEM_MANAGER_HPP
+#endif // DCS_TESTBED_SENSOR_OBSERVATION_HPP

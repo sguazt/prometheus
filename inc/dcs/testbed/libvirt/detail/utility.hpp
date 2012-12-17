@@ -522,6 +522,24 @@ int max_num_cpus(virConnectPtr conn)
 	return VIR_NODEINFO_MAXCPUS(info);
 }
 
+int max_supported_num_vcpus(virConnectPtr conn)
+{
+	DCS_DEBUG_ASSERT( conn );
+
+	int ret;
+
+	ret = virConnectGetMaxVcpus(conn, 0);
+	if (-1 == ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to get the max number of vCPUs: " << last_error(conn);
+
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+
+	return ret;
+}
+
 }}}} // Namespace dcs::testbed::libvirt::detail
 
 #endif // DCS_TESTBED_LIBVIRT_DETAIL_UTILITY_HPP

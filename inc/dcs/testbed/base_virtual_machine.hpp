@@ -94,6 +94,12 @@ class base_virtual_machine
 	}
 
 	// Get the total number of virtual CPUs
+	public: uint_type max_num_vcpus() const
+	{
+		return do_max_num_vcpus();
+	}
+
+	// Get the current number of virtual CPUs
 	public: uint_type num_vcpus() const
 	{
 		return do_num_vcpus();
@@ -110,6 +116,8 @@ class base_virtual_machine
 	private: virtual real_type do_cpu_share() const = 0;
 
 	private: virtual void do_cpu_share(real_type value) = 0;
+
+	private: virtual uint_type do_max_num_vcpus() const = 0;
 
 	private: virtual uint_type do_num_vcpus() const = 0;
 }; // base_virtual_machine

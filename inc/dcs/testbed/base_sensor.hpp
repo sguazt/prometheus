@@ -1,7 +1,7 @@
 /**
- * \file dcs/testbed/base_system_manager.hpp
+ * \file dcs/testbed/base_sensor.hpp
  *
- * \brief Base class for system managers.
+ * \brief Collect observations.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
@@ -30,36 +30,47 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DCS_TESTBED_BASE_SYSTEM_MANAGER_HPP
-#define DCS_TESTBED_BASE_SYSTEM_MANAGER_HPP
+#ifndef DCS_TESTBED_BASE_SENSOR_HPP
+#define DCS_TESTBED_BASE_SENSOR_HPP
 
 
-#include <boost/shared_ptr.hpp>
-#include <dcs/testbed/base_virtual_machine.hpp>
+#include <dcs/testbed/sensor_observation.hpp>
 #include <vector>
 
 
 namespace dcs { namespace testbed {
 
 template <typename TraitsT>
-class base_system_manager
+class base_sensor
 {
 	public: typedef TraitsT traits_type;
-	protected: typedef base_virtual_machine<traits_type> vm_type;
-	protected: typedef ::boost::shared_ptr<vm_type> vm_pointer;
+	public: typedef sensor_observation<traits_type> observation_type;
 
 
-	public: template <typename IterT>
-			void manage(IterT first, IterT last)
+	public: void sense()
 	{
-		::std::vector<vm_pointer> vms(first, last);
-
-		this->do_manage(vms);
+		do_sense();
 	}
 
-	private: virtual void do_manage(::std::vector<vm_pointer> const& vms) = 0;
-};
+	public: bool has_observations() const
+	{
+		return do_has_observations();
+	}
+
+	public: ::std::vector<observation_type> observations() const
+	{
+		return do_observations();
+	}
+
+	private: virtual void do_sense() = 0;
+
+	private: virtual void do_reset() = 0;
+
+	private: virtual bool do_has_observations() const = 0;
+
+	private: virtual ::std::vector<observation_type> do_observations() const = 0;
+}; // base_sensor
 
 }} // Namespace dcs::testbed
 
-#endif // DCS_TESTBED_BASE_SYSTEM_MANAGER_HPP
+#endif // DCS_TESTBED_BASE_SENSOR_HPP

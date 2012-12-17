@@ -1,7 +1,7 @@
 /**
- * \file dcs/testbed/base_system_manager.hpp
+ * \file dcs/testbed/detail/runnable.hpp
  *
- * \brief Base class for system managers.
+ * \brief Call the \c run method of the stored object.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
@@ -30,36 +30,33 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DCS_TESTBED_BASE_SYSTEM_MANAGER_HPP
-#define DCS_TESTBED_BASE_SYSTEM_MANAGER_HPP
+#ifndef DCS_TESTBED_DETAIL_RUNNABLE_HPP
+#define DCS_TESTBED_DETAIL_RUNNABLE_HPP
 
 
-#include <boost/shared_ptr.hpp>
-#include <dcs/testbed/base_virtual_machine.hpp>
-#include <vector>
+#include <boost/smart_ptr.hpp>
 
 
-namespace dcs { namespace testbed {
+namespace dcs { namespace testbed { namespace detail {
 
-template <typename TraitsT>
-class base_system_manager
+template <typename T>
+struct runnable
 {
-	public: typedef TraitsT traits_type;
-	protected: typedef base_virtual_machine<traits_type> vm_type;
-	protected: typedef ::boost::shared_ptr<vm_type> vm_pointer;
-
-
-	public: template <typename IterT>
-			void manage(IterT first, IterT last)
+	runnable(::boost::weak_ptr<T> const& ptr)
+	: wp_(ptr)
 	{
-		::std::vector<vm_pointer> vms(first, last);
-
-		this->do_manage(vms);
 	}
 
-	private: virtual void do_manage(::std::vector<vm_pointer> const& vms) = 0;
-};
+	void operator()()
+	{
+		::boost::shared_ptr<T> sp(wp_.lock());
 
-}} // Namespace dcs::testbed
+		sp->run();
+	}
 
-#endif // DCS_TESTBED_BASE_SYSTEM_MANAGER_HPP
+	::boost::weak_ptr<T> wp_;
+}; // runnable
+
+}}} // Namespace dcs::testbed::detail
+
+#endif // DCS_TESTBED_DETAIL_RUNNABLE_HPP

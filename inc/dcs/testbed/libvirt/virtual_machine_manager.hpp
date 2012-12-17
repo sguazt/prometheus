@@ -75,6 +75,7 @@ class virtual_machine_manager: public base_virtual_machine_manager<TraitsT>
 	public: typedef typename base_type::identifier_type identifier_type;
 	public: typedef typename base_type::vm_identifier_type vm_identifier_type;
 	public: typedef typename base_type::vm_pointer vm_pointer;
+	public: typedef typename base_type::uint_type uint_type;
 	private: typedef ::std::map<vm_identifier_type,vm_pointer> vm_container;
 
 
@@ -167,11 +168,22 @@ class virtual_machine_manager: public base_virtual_machine_manager<TraitsT>
 		return vm_map_.at(id);
 	}
 
+	private: uint_type do_max_supported_num_vcpus() const
+	{
+		DCS_ASSERT(p_conn_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected"));
+
+		int max_nvcpus = detail::max_supported_num_vcpus(p_conn_);
+
+		return static_cast<uint_type>(max_nvcpus);
+	}
+
 
 	private: ::std::string uri_;
 	private: ::virConnectPtr p_conn_;
 	private: vm_container vm_map_;
-}; // libvirt_virtual_machine_manager
+}; // virtual_machine_manager
 
 }}} // Namespace dcs::testbed::libvirt
 

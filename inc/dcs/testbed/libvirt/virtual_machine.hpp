@@ -39,6 +39,8 @@
 #include <dcs/logging.hpp>
 #include <dcs/testbed/base_virtual_machine.hpp>
 #include <dcs/testbed/libvirt/detail/utility.hpp>
+#include <dcs/testbed/libvirt/sensors.hpp>
+#include <dcs/testbed/virtual_machine_performance_category.hpp>
 #include <dcs/uri.hpp>
 #include <iostream>
 #include <libvirt/libvirt.h>
@@ -64,6 +66,8 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 	public: typedef typename base_type::identifier_type identifier_type;
 	public: typedef typename base_type::vmm_pointer vmm_pointer;
 	public: typedef virtual_machine_manager<traits_type>* vmm_impl_pointer;
+	public: typedef base_sensor<traits_type> sensor_type;
+	public: typedef ::boost::shared_ptr<sensor_type> sensor_pointer;
 
 
 	public: virtual_machine(::std::string const& name)
@@ -144,6 +148,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 
 		// Connect to libvirtd daemon
 		p_dom_ = detail::connect_domain(p_vmm_->connection(), name_);
+		p_cpu_sens_ = ::boost::make_shared< cpu_utilization_sensor<traits_type> >(p_vmm_->connection(), p_dom_);
 	}
 
 	private: ::std::string do_name() const
@@ -176,6 +181,22 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		return p_vmm_;
 	}
 
+	private: uint_type do_max_num_vcpus() const
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		int nvcpus = detail::num_vcpus(p_vmm_->connection(), p_dom_, VIR_DOMAIN_VCPU_MAXIMUM);
+
+		return static_cast<uint_type>(nvcpus);
+	}
+
 	private: uint_type do_num_vcpus() const
 	{
 		// pre: p_vmm_ != null
@@ -202,7 +223,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
-		int nvcpus(this->num_vcpus());
+		int nvcpus(this->max_num_vcpus());
 
 		//FIXME: This is a Xen-related stuff. What for other hypervisors?
 		//FIXME: Actually we assume that weight is 256 (its default value)
@@ -224,7 +245,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		int cap(0);
 		cap = detail::sched_param<int>(p_vmm_->connection(), p_dom_, "cap", VIR_DOMAIN_AFFECT_CURRENT);
 
-		int nvcpus(this->num_vcpus());
+		int nvcpus(this->max_num_vcpus());
 
 		//FIXME: This is a Xen-related stuff. What for other hypervisors?
 		//FIXME: Actually we assume that weight is 256 (its default value)
@@ -233,10 +254,35 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		return share > 0 ? share : 1; //Note: cap == 0 ==> No upper cap
 	}
 
+	private: sensor_pointer do_sensor(virtual_machine_performance_category cat)
+	{
+		switch (cat)
+		{
+			case cpu_util_virtual_machine_performance:
+				return p_cpu_sens_;
+				break;
+		}
+
+		DCS_EXCEPTION_THROW(::std::runtime_error, "Sensor not available");
+	}
+
+	private: sensor_pointer do_sensor(virtual_machine_performance_category cat) const
+	{
+		switch (cat)
+		{
+			case cpu_util_virtual_machine_performance:
+				return p_cpu_sens_;
+				break;
+		}
+
+		DCS_EXCEPTION_THROW(::std::runtime_error, "Sensor not available");
+	}
+
 
 	private: ::std::string name_;
 	private: vmm_impl_pointer p_vmm_;
 	private: ::virDomainPtr p_dom_;
+	private: sensor_pointer p_cpu_sens_;
 }; // virtual_machine
 
 }}} // Namespace dcs::testbed::libvirt
