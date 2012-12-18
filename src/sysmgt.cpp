@@ -99,6 +99,24 @@ void usage(char const* progname)
 				<< ::std::endl;
 }
 
+template <typename RealT>
+struct rt_slo_checker
+{
+	rt_slo_checker(RealT max_val, RealT rel_tol=0.05)
+	: max_val_(max_val),
+	  check_val_(max_val_*(1+rel_tol))
+	{
+	}
+
+	bool operator()(RealT val)
+	{
+		return ::dcs::math::float_traits<RealT>::approximately_less_equal(val, check_val_);
+	}
+
+	private: RealT max_val_;
+	private: RealT check_val_;
+};
+
 }} // Namespace detail::<unnamed>
 
 
@@ -233,6 +251,7 @@ int main(int argc, char *argv[])
 			vms.push_back(p_vm);
 		}
 		app_pointer p_app = boost::make_shared< testbed::application<traits_type> >(vms.begin(), vms.end());
+		p_app->slo(testbed::response_time_application_performance, detail::rt_slo_checker<real_type>(0.2870));
 
 		// - Setup workload driver
 		app_driver_pointer p_drv;
@@ -250,6 +269,7 @@ int main(int argc, char *argv[])
 			sysid_strategy_pointer p_sysid_alg = boost::make_shared< testbed::rls_ff_arx_miso_proxy<traits_type> >(2, 2, 1, 1, nt, 0.98);
 			testbed::lqry_application_manager<traits_type> lqry_mgr;
 			lqry_mgr.sysid_strategy(p_sysid_alg);
+			lqry_mgr.target_value(testbed::response_time_application_performance, 0.1034);
 
 			p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >(lqry_mgr);
 			p_mgr->sampling_time(static_cast<uint_type>(ts));
