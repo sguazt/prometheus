@@ -54,8 +54,11 @@ class application: public base_application<TraitsT>
 	public: typedef typename base_type::traits_type traits_type;
 	public: typedef typename base_type::vm_pointer vm_pointer;
 	public: typedef typename base_type::sensor_pointer sensor_pointer;
+	public: typedef typename base_type::slo_checker_type slo_checker_type;
+	public: typedef typename base_type::real_type real_type;
 	private: typedef ::std::vector<vm_pointer> vm_container;
 	private: typedef ::std::map<application_performance_category,sensor_pointer> sensor_map;
+	private: typedef ::std::map<application_performance_category,slo_checker_type> slo_checker_map;
 
 
 	public: application()
@@ -123,9 +126,24 @@ class application: public base_application<TraitsT>
 		return sensors_.at(cat);
 	}
 
+	private: void do_slo(application_performance_category cat, slo_checker_type const& checker)
+	{
+		slo_map_[cat] = checker;
+	}
+
+	private: bool do_slo(application_performance_category cat, real_type val) const
+	{
+		DCS_ASSERT(slo_map_.count(cat) > 0,
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Invalid category: SLO checker not found"));
+
+		return slo_map_.at(cat)(val);
+	}
+
 
 	private: vm_container vms_;
 	private: sensor_map sensors_;
+	private: slo_checker_map slo_map_;
 }; // application
 
 }} // Namespace dcs::testbed

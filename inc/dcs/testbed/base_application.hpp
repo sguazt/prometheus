@@ -34,6 +34,7 @@
 #define DCS_TESTBED_BASE_APPLICATION_HPP
 
 
+#include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 #include <cstddef>
 #include <dcs/testbed/application_performance_category.hpp>
@@ -51,6 +52,8 @@ class base_application
 	public: typedef ::boost::shared_ptr<vm_type> vm_pointer;
 	public: typedef base_sensor<traits_type> sensor_type;
 	public: typedef ::boost::shared_ptr<sensor_type> sensor_pointer;
+	public: typedef typename traits_type::real_type real_type;
+	public: typedef ::boost::function<bool (real_type x)> slo_checker_type;
 
 
 	public: virtual ~base_application()
@@ -87,6 +90,17 @@ class base_application
 		return do_sensor(cat);
 	}
 
+	public: template <typename FuncT>
+			void slo(application_performance_category cat, FuncT checker)
+	{
+		do_slo(cat, slo_checker_type(checker));
+	}
+
+	public: bool slo(application_performance_category cat, real_type val)
+	{
+		return do_slo(cat, val);
+	}
+
 	private: virtual ::std::size_t do_num_vms() const = 0;
 
 	private: virtual ::std::vector<vm_pointer> do_vms() const = 0;
@@ -98,6 +112,10 @@ class base_application
 	private: virtual sensor_pointer do_sensor(application_performance_category cat) = 0;
 
 	private: virtual sensor_pointer do_sensor(application_performance_category cat) const = 0;
+
+	private: virtual void do_slo(application_performance_category cat, slo_checker_type const& checker) = 0;
+
+	private: virtual bool do_slo(application_performance_category cat, real_type val) const = 0;
 }; // base_application
 
 }} // Namespace dcs::testbed
