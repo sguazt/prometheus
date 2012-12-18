@@ -575,8 +575,10 @@ class lq_application_manager: public base_application_manager<TraitsT>
 	protected: typedef ::boost::numeric::ublas::matrix<real_type> numeric_matrix_type;
 	private: typedef base_arx_system_identification_strategy<traits_type> sysid_strategy_type;
 	private: typedef ::boost::shared_ptr<sysid_strategy_type> sysid_strategy_pointer;
-	private: typedef ::std::vector<real_type> obs_container;
+	private: typedef ::std::vector<real_type> observation_container;
+	private: typedef ::std::map<application_performance_category,observation_container> observation_map;
 	private: typedef ::std::map<application_performance_category,real_type> target_map;
+	private: typedef ::std::map<application_performance_category,sensor_pointer> sensor_map;
 
 
 	private: static const uint_type default_sampling_time;
@@ -684,7 +686,15 @@ class lq_application_manager: public base_application_manager<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::runtime_error,
 									   "System identification strategy is not set"));
 
-		p_out_sens_ = p_app_->sensor(response_time_application_performance);
+		//[FIXME]
+		DCS_ASSERT(tgt_map_.size() == 1,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Currently, only one application performace category is handled"));
+		DCS_ASSERT(tgt_map_.size() == 1,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Currently, only one application performace category is handled"));
+		//[/FIXME]
+
 		p_sysid_alg_->init();
 #if defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_LQ_APP_MGR_USE_ALT_SS == 'X'
 		nx_ = p_sysid_alg_->num_outputs()*p_sysid_alg_->output_order()+p_sysid_alg_->num_inputs()*(p_sysid_alg_->input_order()-1);
@@ -708,7 +718,19 @@ class lq_application_manager: public base_application_manager<TraitsT>
 		x_ = numeric_vector_type(nx_, ::std::numeric_limits<real_type>::quiet_NaN());
 		u_ = numeric_vector_type(nu_, ::std::numeric_limits<real_type>::quiet_NaN());
 		y_ = numeric_vector_type(ny_, ::std::numeric_limits<real_type>::quiet_NaN());
-		yr_ = ::boost::numeric::ublas::scalar_vector<real_type>(ny_, tgt_map_.at(response_time_application_performance));
+		//yr_ = ::boost::numeric::ublas::scalar_vector<real_type>(ny_, tgt_map_.at(response_time_application_performance));
+		yr_ = numeric_vector_type(ny_, ::std::numeric_limits<real_type>::quiet_NaN());
+		typedef typename target_map::const_iterator target_iterator;
+		target_iterator tgt_end_it = tgt_map_.end();
+		for (target_iterator tgt_it = tgt_map_.begin();
+			 tgt_it != tgt_end_it;
+			 ++tgt_it)
+		{
+			application_performance_category cat(tgt_it->first);
+
+			yr_ = numeric_vector_type(ny_, tgt_it->second);
+			out_sens_map_[cat] = p_app_->sensor(cat);
+		}
 		ewma_s_ = numeric_vector_type(p_sysid_alg_->num_inputs(), ::std::numeric_limits<real_type>::quiet_NaN());
 		ewma_p_ = numeric_vector_type(p_sysid_alg_->num_outputs(), ::std::numeric_limits<real_type>::quiet_NaN());
 		ctl_count_ = ctl_fail_count_
@@ -718,20 +740,30 @@ class lq_application_manager: public base_application_manager<TraitsT>
 
 	private: void do_sample()
 	{
-		typedef typename sensor_type::observation_type observation_type;
-		typedef ::std::vector<observation_type> observation_container;
-		typedef typename observation_container::const_iterator observation_iterator;
+		typedef typename sensor_type::observation_type obs_type;
+		typedef ::std::vector<obs_type> obs_container;
+		typedef typename obs_container::const_iterator obs_iterator;
+		typedef typename sensor_map::const_iterator sensor_iterator;
 
-		p_out_sens_->sense();
-		if (p_out_sens_->has_observations())
+		sensor_iterator sens_end_it = out_sens_map_.end();
+		for (sensor_iterator sens_it = out_sens_map_.begin();
+			 sens_it != sens_end_it;
+			 ++sens_it)
 		{
-			observation_container obs = p_out_sens_->observations();
-			observation_iterator end_it = obs.end();
-			for (observation_iterator it = obs.begin();
-				 it != end_it;
-				 ++it)
+			application_performance_category cat(sens_it->first);
+			sensor_pointer p_sens(sens_it->second);
+
+			p_sens->sense();
+			if (p_sens->has_observations())
 			{
-				out_obs_.push_back(it->value());
+				obs_container obs = p_sens->observations();
+				obs_iterator end_it = obs.end();
+				for (obs_iterator it = obs.begin();
+					 it != end_it;
+					 ++it)
+				{
+					out_obs_map_[cat].push_back(it->value());
+				}
 			}
 		}
 	}
@@ -761,47 +793,64 @@ class lq_application_manager: public base_application_manager<TraitsT>
 		++ctl_count_;
 
 		// Update measures
-		if (out_obs_.size() > 0)
+		if (out_obs_map_.size() > 0)
 		{
-			typedef typename obs_container::const_iterator obs_iterator;
+			typedef typename observation_map::const_iterator obs_map_iterator;
+			typedef typename observation_container::const_iterator obs_iterator;
 
 #if defined(DCS_TESTBED_APP_MGR_APPLY_EWMA_TO_EACH_OBSERVATION)
 			//bool init_check = (ctl_count_ < 1) ? true : false;
-			obs_iterator end_it = out_obs_.end();
-			for (obs_iterator it = out_obs_.begin();
-				 it != end_it;
-				 ++it)
+			obs_map_iterator map_end_it = out_obs_map_.end();
+			for (obs_map_iterator map_it = out_obs_map_.begin();
+				 map_it != map_end_it;
+				 ++map_it)
 			{
-				real_type val(*it);
+				application_performance_category cat(map_it->first);
 
-				if (::std::isnan(ewma_p_(0)))
+				obs_iterator end_it = map_it->second.end();
+				for (obs_iterator it = map_it->second.begin();
+					 it != end_it;
+					 ++it)
 				{
-					ewma_p_(0) = val;
-				}
-				else
-				{
-					ewma_p_(0) = ewma_sf_*val+(1-ewma_sf_)*ewma_p_(0);
+					real_type val(*it);
+
+					if (::std::isnan(ewma_p_(0)))
+					{
+						ewma_p_(0) = val;
+					}
+					else
+					{
+						ewma_p_(0) = ewma_sf_*val+(1-ewma_sf_)*ewma_p_(0);
+					}
 				}
 			}
 #else // DCS_TESTBED_APP_MGR_APPLY_EWMA_TO_EACH_OBSERVATION
-			::boost::accumulators::accumulator_set< real_type, ::boost::accumulators::stats< ::boost::accumulators::tag::mean > > acc;
-			obs_iterator end_it = out_obs_.end();
-			for (obs_iterator it = out_obs_.begin();
-				 it != end_it;
-				 ++it)
+			obs_map_iterator map_end_it = out_obs_map_.end();
+			for (obs_map_iterator map_it = out_obs_map_.begin();
+				 map_it != map_end_it;
+				 ++map_it)
 			{
-				acc(*it);
-			}
+				application_performance_category cat(map_it->first);
 
-			real_type aggr_obs = ::boost::accumulators::mean(acc);
-			//if (ctl_count_ < 1)
-			if (::std::isnan(ewma_p_(0)))
-			{
-				ewma_p_(0) = aggr_obs;
-			}
-			else
-			{
-				ewma_p_(0) = ewma_sf_*aggr_obs+(1-ewma_sf_)*ewma_p_(0);
+				::boost::accumulators::accumulator_set< real_type, ::boost::accumulators::stats< ::boost::accumulators::tag::mean > > acc;
+				obs_iterator end_it = map_it->second.end();
+				for (obs_iterator it = map_it->second.begin();
+					 it != end_it;
+					 ++it)
+				{
+					acc(*it);
+				}
+
+				real_type aggr_obs = ::boost::accumulators::mean(acc);
+				//if (ctl_count_ < 1)
+				if (::std::isnan(ewma_p_(0)))
+				{
+					ewma_p_(0) = aggr_obs;
+				}
+				else
+				{
+					ewma_p_(0) = ewma_sf_*aggr_obs+(1-ewma_sf_)*ewma_p_(0);
+				}
 			}
 #endif // DCS_TESTBED_APP_MGR_APPLY_EWMA_TO_EACH_OBSERVATION
 		}
@@ -1066,7 +1115,7 @@ DCS_DEBUG_TRACE("Optimal control applied");
 		}
 
 		// Reset measures
-		out_obs_.clear();
+		out_obs_map_.clear();
 	}
 
 	private: virtual numeric_vector_type do_optimal_control(numeric_vector_type const& x,
@@ -1081,9 +1130,9 @@ DCS_DEBUG_TRACE("Optimal control applied");
 	private: uint_type ts_; ///< Sampling time (in ms)
 	private: uint_type tc_; ///< Control time (in ms)
 	private: app_pointer p_app_; ///< Pointer to the managed application
-	private: sensor_pointer p_out_sens_; ///< Sensor for the application output
+	private: sensor_map out_sens_map_; ///< Sensor map for the application outputs
 	private: sysid_strategy_pointer p_sysid_alg_;
-	private: obs_container out_obs_; ///< Application output observations collected in the last control interval
+	private: observation_map out_obs_map_; ///< Application output observations collected in the last control interval
 	private: ::std::size_t nx_; ///< Number of states
 	private: ::std::size_t nu_; ///< Number of inputs
 	private: ::std::size_t ny_; ///< Number of outputs
