@@ -36,6 +36,7 @@
 #include <cstring>
 #include <dcs/cli.hpp>
 #include <dcs/logging.hpp>
+#include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application.hpp>
 #include <dcs/testbed/application_managers.hpp>
 #include <dcs/testbed/base_application.hpp>
