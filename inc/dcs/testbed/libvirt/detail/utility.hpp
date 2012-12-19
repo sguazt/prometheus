@@ -63,6 +63,20 @@ inline
     return oss.str();
 }
 
+inline
+::std::string vm_name(::std::string const& uri)
+{
+    ::dcs::uri u(uri);
+
+	::std::string name(u.path_etc());
+
+	if (name[0] == '/')
+	{
+		return name.substr(1);
+	}
+	return name;
+}
+
 ::std::string to_string(virTypedParameter const& param)
 {
 	::std::ostringstream oss;

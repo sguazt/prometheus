@@ -70,15 +70,15 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 	public: typedef ::boost::shared_ptr<sensor_type> sensor_pointer;
 
 
-	public: virtual_machine(::std::string const& name)
-	: name_(name),
+	public: virtual_machine(::std::string const& uri)
+	: name_(detail::vm_name(uri)),
 	  p_vmm_(0),
 	  p_dom_(0)
 	{
 	}
 
 	public: virtual_machine(vmm_impl_pointer p_vmm, ::std::string const& name)
-	: name_(name),
+	: name_(detail::vm_name(name)),
 	  p_vmm_(p_vmm),
 	  p_dom_(0)
 	{
