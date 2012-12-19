@@ -282,6 +282,7 @@ int main(int argc, char *argv[])
 			p_mgr->sampling_time(static_cast<uint_type>(ts));
 			p_mgr->control_time(3*p_mgr->sampling_time());
 		}
+		p_mgr->app(p_app);
 
 		// Add to main experiment
 		sys_exp.add_app(p_app, p_drv, p_mgr);
