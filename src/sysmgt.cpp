@@ -267,6 +267,7 @@ int main(int argc, char *argv[])
 				}
 				break;
 		}
+		p_drv->app(p_app);
 
 		// - Setup application manager
 		app_manager_pointer p_mgr;
