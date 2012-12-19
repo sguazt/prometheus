@@ -162,7 +162,7 @@ class application_experiment
 
 		p_mgr_->app(p_app_);
 		p_mgr_->reset();
-		//p_drv_->app(p_app_); //TODO
+		p_drv_->app(p_app_);
 		p_drv_->reset();
 
 		p_drv_->start();
