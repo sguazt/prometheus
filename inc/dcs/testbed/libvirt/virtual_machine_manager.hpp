@@ -154,6 +154,9 @@ class virtual_machine_manager: public base_virtual_machine_manager<TraitsT>
 		if (vm_map_.count(id) == 0)
 		{
 			vm_map_[id] = ::boost::make_shared< virtual_machine<traits_type> >(this, id);
+
+			// check: vm_map.at(id) != null
+			DCS_DEBUG_ASSERT( vm_map_.at(id) );
 		}
 
 		return vm_map_.at(id);
