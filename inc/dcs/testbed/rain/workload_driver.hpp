@@ -220,6 +220,7 @@ class workload_driver: public base_workload_driver<TraitsT>
 	private: typedef ::boost::shared_ptr<sys_process_type> sys_process_pointer;
 	public: typedef typename base_type::real_type real_type;
 	public: typedef typename base_type::observation_type observation_type;
+	public: typedef typename base_type::app_pointer app_pointer;
 	public: typedef base_sensor<traits_type> sensor_type;
 	public: typedef ::boost::shared_ptr<sensor_type> sensor_pointer;
 	private: typedef ::boost::mutex mutex_type;
@@ -433,6 +434,21 @@ class workload_driver: public base_workload_driver<TraitsT>
 		return logger_thread_active_;
 	}
 
+	private: void do_app(app_pointer const& p_app)
+	{
+		p_app_ = p_app;
+	}
+
+	private: app_pointer do_app()
+	{
+		return p_app_;
+	}
+
+	private: app_pointer do_app() const
+	{
+		return p_app_;
+	}
+
 	private: workload_generator_category do_category() const
 	{
 		return rain_workload_generator;
@@ -596,6 +612,7 @@ class workload_driver: public base_workload_driver<TraitsT>
 	private: bool rampup_thread_active_;
 	private: bool steady_thread_active_;
 	private: bool logger_thread_active_;
+	private: app_pointer p_app_;
 	private: sys_process_type proc_;
 	private: mutable ::std::list<observation_type> obs_;
 	private: ::boost::thread rampup_thread_;

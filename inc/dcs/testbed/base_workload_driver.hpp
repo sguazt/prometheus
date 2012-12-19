@@ -34,7 +34,9 @@
 #define DCS_TESTBED_BASE_WORKLOAD_DRIVER_HPP
 
 
+#include <boost/smart_ptr.hpp>
 #include <ctime>
+#include <dcs/testbed/base_application.hpp>
 #include <dcs/testbed/workload_generator_category.hpp>
 #include <string>
 #include <vector>
@@ -51,6 +53,8 @@ class base_workload_driver
 	public: typedef TraitsT traits_type;
 	public: typedef typename traits_type::real_type real_type;
 	public: typedef observation observation_type;
+	public: typedef base_application<traits_type> app_type;
+	public: typedef ::boost::shared_ptr<app_type> app_pointer;
 
 
 	public: class observation
@@ -117,6 +121,21 @@ class base_workload_driver
 		return do_category();
 	}
 
+	public: void app(app_pointer const& p_app)
+	{
+		do_app(p_app);
+	}
+
+	public: app_pointer app()
+	{
+		return do_app();
+	}
+
+	public: app_pointer app() const
+	{
+		return do_app();
+	}
+
 	public: void reset()
 	{
 		do_reset();
@@ -153,6 +172,12 @@ class base_workload_driver
 	}
 
 	private: virtual workload_generator_category do_category() const = 0;
+
+	private: virtual void do_app(app_pointer const& p_app) = 0;
+
+	private: virtual app_pointer do_app() = 0;
+
+	private: virtual app_pointer do_app() const = 0;
 
 	private: virtual void do_reset() = 0;
 
