@@ -192,7 +192,7 @@ DCS_DEBUG_TRACE("Response Time (nsecs): " << obs_rtns);
 				}
 			}
 
-			obs_.push_back(observation_type(obs_ts, obs_op, obs_rtns/1000.0));
+			obs_.push_back(observation_type(obs_ts, obs_op, obs_rtns*1.0e-6));
 		}
 	}
 
