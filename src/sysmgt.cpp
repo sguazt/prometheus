@@ -259,7 +259,12 @@ int main(int argc, char *argv[])
 		switch (wkl_driver)
 		{
 			case testbed::rain_workload_generator:
-				p_drv = boost::make_shared< testbed::rain::workload_driver<traits_type> >(wkl, wkl_driver_rain_path);
+				{
+					boost::shared_ptr< testbed::rain::workload_driver<traits_type> > p_drv_impl = boost::make_shared< testbed::rain::workload_driver<traits_type> >(wkl, wkl_driver_rain_path);
+					p_app->register_sensor(testbed::response_time_application_performance, p_drv_impl->sensor(testbed::response_time_application_performance));
+					//p_drv = boost::make_shared< testbed::rain::workload_driver<traits_type> >(drv_impl);
+					p_drv = p_drv_impl;
+				}
 				break;
 		}
 
