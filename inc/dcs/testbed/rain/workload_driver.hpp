@@ -45,7 +45,10 @@
 #include <dcs/logging.hpp>
 #include <dcs/system/posix_process.hpp>
 #include <dcs/system/process_status_category.hpp>
+#include <dcs/testbed/application_performance_category.hpp>
+#include <dcs/testbed/base_sensor.hpp>
 #include <dcs/testbed/base_workload_driver.hpp>
+#include <dcs/testbed/rain/sensors.hpp>
 #include <dcs/testbed/workload_category.hpp>
 #include <dcs/testbed/workload_generator_category.hpp>
 #include <exception>
@@ -217,6 +220,8 @@ class workload_driver: public base_workload_driver<TraitsT>
 	private: typedef ::boost::shared_ptr<sys_process_type> sys_process_pointer;
 	public: typedef typename base_type::real_type real_type;
 	public: typedef typename base_type::observation_type observation_type;
+	public: typedef base_sensor<traits_type> sensor_type;
+	public: typedef ::boost::shared_ptr<sensor_type> sensor_pointer;
 	private: typedef ::boost::mutex mutex_type;
 
 
@@ -312,6 +317,17 @@ class workload_driver: public base_workload_driver<TraitsT>
 	public: ::std::string metrics_file_path() const
 	{
 		return metrics_path_;
+	}
+
+	public: sensor_pointer sensor(application_performance_category cat) const
+	{
+		switch (cat)
+		{
+			case response_time_application_performance:
+				return ::boost::make_shared< response_time_sensor<traits_type> >(metrics_path_);
+		}
+
+		DCS_EXCEPTION_THROW(::std::runtime_error, "Unknown sensor category");
 	}
 
 	private: void ready(bool val)
