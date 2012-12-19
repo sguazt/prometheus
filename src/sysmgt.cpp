@@ -35,6 +35,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <dcs/cli.hpp>
+#include <dcs/debug.hpp>
 #include <dcs/logging.hpp>
 #include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application.hpp>
@@ -229,7 +230,7 @@ int main(int argc, char *argv[])
 		// Setup application experiment
 		// - Setup application (and VMs)
 		std::map<vmm_identifier_type,vmm_pointer> vmm_map;
-		std::vector<vm_pointer> vms(nt);
+		std::vector<vm_pointer> vms;
 		std::vector<std::string>::const_iterator uri_end_it(vm_uris.end());
 		for (std::vector<std::string>::const_iterator it = vm_uris.begin();
 			 it != uri_end_it;
@@ -249,6 +250,8 @@ int main(int argc, char *argv[])
 			}
 
 			vm_pointer p_vm(p_vmm->vm(uri));
+			// check: p_vm != null
+			DCS_DEBUG_ASSERT( p_vm );
 			vms.push_back(p_vm);
 		}
 		app_pointer p_app = boost::make_shared< testbed::application<traits_type> >(vms.begin(), vms.end());
