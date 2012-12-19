@@ -56,8 +56,7 @@ class response_time_sensor: public base_sensor<TraitsT>
 
 
 	public: response_time_sensor(::std::string const& metrics_file_path)
-	: metrics_file_(metrics_file_path)
-	  ifs_(metrics_file_path),
+	: metrics_file_(metrics_file_path),
 	  fpos_(0),
 	  new_data_(false)
 	{
@@ -77,7 +76,7 @@ class response_time_sensor: public base_sensor<TraitsT>
 		const ::std::size_t timestamp_field(2);
 		const ::std::size_t operation_field(3);
 		const ::std::size_t response_time_field(4);
-		const ::std::size_t max_open_trials(50);
+		//const ::std::size_t max_open_trials(50);
 
 		// reset last sensing
 		new_data_ = false;
@@ -91,11 +90,11 @@ class response_time_sensor: public base_sensor<TraitsT>
 			// Investigate...
 
 			ifs_.close();
-			ifs_.open(metrics_file_, ::std::ios_base::ate);
+			ifs_.open(metrics_file_.c_str(), ::std::ios_base::ate);
 			if (ifs_.good())
 			{
 				ifs_.sync();
-				::std::ifstream::pos_type new_fpos(ifs.tellg());
+				::std::ifstream::pos_type new_fpos(ifs_.tellg());
 DCS_DEBUG_TRACE("REOPENED (good) -- OLD POS: " << fpos_ << " - NEW POS: " << new_fpos << " - GOOD: " << ifs_.good() << " - EOF: " << ifs_.eof() << " - FAIL: " << ifs_.fail() << " - BAD: " << ifs_.bad() << " - !(): " << !static_cast<bool>(ifs_) << " - IN_AVAIL: " << ifs_.rdbuf()->in_avail());
 				if (fpos_ != new_fpos)
 				{
@@ -208,12 +207,12 @@ DCS_DEBUG_TRACE("Response Time: " << obs_rtms);
 		obs_.clear();
 	}
 
-	private: void do_has_observations() const
+	private: bool do_has_observations() const
 	{
 		return obs_.size() > 0;
 	}
 
-	private: ::std::vector<observation_type> observations() const
+	private: ::std::vector<observation_type> do_observations() const
 	{
 		return obs_;
 	}
@@ -222,7 +221,7 @@ DCS_DEBUG_TRACE("Response Time: " << obs_rtms);
 	private: ::std::string metrics_file_;
 	private: ::std::ifstream ifs_;
 	private: ::std::ifstream::pos_type fpos_;
-	private: bool new_data_(false);
+	private: bool new_data_;
 	private: ::std::vector<observation_type> obs_;
 }; // response_time_sensor
 
