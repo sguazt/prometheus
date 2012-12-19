@@ -128,7 +128,7 @@ DCS_DEBUG_TRACE("IFS STREAM -- LINE: " << line << " - POS: " << fpos_ << " - GOO
 
 			::std::time_t obs_ts(0); // timestamp (in secs from Epoch)
 			::std::string obs_op; // Operation label
-			long obs_rtms(0); // response time (in ms)
+			long obs_rtns(0); // response time (in ns)
 			::std::size_t field(0);
 			for (::std::size_t pos = 0; pos < n; ++pos)
 			{
@@ -176,8 +176,8 @@ DCS_DEBUG_TRACE("Operation: " << obs_op);
 								;
 							}
 							::std::istringstream iss(line.substr(pos, pos2-pos));
-							iss >> obs_rtms;
-DCS_DEBUG_TRACE("Response Time: " << obs_rtms);
+							iss >> obs_rtns;
+DCS_DEBUG_TRACE("Response Time (nsecs): " << obs_rtns);
 							pos = pos2;
 							break;
 						}
@@ -192,7 +192,7 @@ DCS_DEBUG_TRACE("Response Time: " << obs_rtms);
 				}
 			}
 
-			obs_.push_back(observation_type(obs_ts, obs_op, obs_rtms));
+			obs_.push_back(observation_type(obs_ts, obs_op, obs_rtns/1000.0));
 		}
 	}
 
