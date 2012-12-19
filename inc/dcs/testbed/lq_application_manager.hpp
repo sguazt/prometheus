@@ -1088,6 +1088,7 @@ DCS_DEBUG_TRACE("Applying optimal control");
 							ok = false;
 						}
 
+DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << p_vm->cpu_share() << " - new-share: " << new_share);
 						p_vm->cpu_share(new_share);
 
 						++v;
