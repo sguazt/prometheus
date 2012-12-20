@@ -950,10 +950,12 @@ DCS_DEBUG_TRACE("Prep y=" << y_);
 			if (nx_ > 0)
 			{
 				//FIXME: fix the assignment below
-				for (::std::size_t v = 0; v < np; ++v)
-				{
-					x_(x_offset_+v) = p(v) = ewma_p_(v);
-				}
+				//       Should we normalize/deviate/...?
+//				for (::std::size_t v = 0; v < np; ++v)
+//				{
+//					x_(x_offset_+v) = p(v) = ewma_p_(v)/yr_(v);
+//				}
+				ublas::subrange(x_, x_offset_, nx_) = ublas::element_div(ewma_p_, yr_);
 			}
 			if (nu_ > 0)
 			{
