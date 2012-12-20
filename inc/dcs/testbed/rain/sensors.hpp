@@ -57,8 +57,8 @@ class response_time_sensor: public base_sensor<TraitsT>
 
 	public: response_time_sensor(::std::string const& metrics_file_path)
 	: metrics_file_(metrics_file_path),
-	  fpos_(0),
-	  new_data_(false)
+	  fpos_(0)
+//	  new_data_(false)
 	{
 	}
 
@@ -81,17 +81,19 @@ class response_time_sensor: public base_sensor<TraitsT>
 		//const ::std::size_t max_open_trials(50);
 
 		// reset last sensing
-		new_data_ = false;
 		obs_.clear();
 
-		if (!ifs_.good())
+		if (!ifs_.good() || !ifs_.is_open())
 		{
 			// Found EOF. Two possible reasons:
 			// 1. There is no data to read
 			// 2. There is new data but we need to refresh input buffers
 			// Investigate...
 
-			ifs_.close();
+			if (ifs_.is_open())
+			{
+				ifs_.close();
+			}
 			ifs_.open(metrics_file_.c_str(), ::std::ios_base::ate);
 			if (ifs_.good())
 			{
@@ -104,14 +106,18 @@ DCS_DEBUG_TRACE("REOPENED (good) -- OLD POS: " << fpos_ << " - NEW POS: " << new
 
 					// Restart to read file from the old position
 					ifs_.seekg(fpos_);
-					new_data_ = true;
+//					new_data_ = true;
 DCS_DEBUG_TRACE("SOUGHT IFS STREAM -- OLD POS: " << fpos_ << " - NEW POS: " << new_fpos << " - GOOD: " << ifs_.good() << " - EOF: " << ifs_.eof() << " - FAIL: " << ifs_.fail() << " - BAD: " << ifs_.bad() << " - !(): " << !static_cast<bool>(ifs_));
+				}
+				else
+				{
+					ifs_.close();
 				}
 			}
 		}
 
 		// Collect all available metrics entries
-		while (ifs_.good() && new_data_)
+		while (ifs_.good())
 		{
 			fpos_ = ifs_.tellg();
 
@@ -207,7 +213,7 @@ DCS_DEBUG_TRACE("Response Time (nsecs): " << obs_rtns);
 			ifs_.close();
 		}
 		fpos_ = 0;
-		new_data_ = false;
+		//new_data_ = false;
 		obs_.clear();
 	}
 
@@ -225,7 +231,7 @@ DCS_DEBUG_TRACE("Response Time (nsecs): " << obs_rtns);
 	private: ::std::string metrics_file_;
 	private: ::std::ifstream ifs_;
 	private: ::std::ifstream::pos_type fpos_;
-	private: bool new_data_;
+//	private: bool new_data_;
 	private: ::std::vector<observation_type> obs_;
 }; // response_time_sensor
 
