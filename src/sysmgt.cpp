@@ -278,6 +278,7 @@ int main(int argc, char *argv[])
 		app_manager_pointer p_mgr;
 		//p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >();
 		{
+#if defined(DCS_TESTBED_USE_LQRY_APP_MGR)
 			const std::size_t na(2);
 			const std::size_t nb(2);
 			const std::size_t nk(1);
@@ -293,6 +294,25 @@ int main(int argc, char *argv[])
 			lqry_mgr.target_value(testbed::response_time_application_performance, 0.1034*1.e+3);
 
 			p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >(lqry_mgr);
+#elif defined(DCS_TESTBED_USE_PADALA2009_APP_MGR)
+			const std::size_t na(2);
+			const std::size_t nb(2);
+			const std::size_t nk(0);
+			const std::size_t ny(1);
+			const std::size_t nu(nt);
+			const real_type ff(0.98);
+
+			sysid_strategy_pointer p_sysid_alg = boost::make_shared< testbed::rls_ff_arx_miso_proxy<traits_type> >(na, nb, nk, ny, nu, ff);
+			ublas::diagonal_matrix<real_type> Q(ny);
+			ublas::diagonal_matrix<real_type> R(nu*nb);
+			testbed::padala2009_application_manager<traits_type> padala2009_mgr;
+			padala2009_mgr.sysid_strategy(p_sysid_alg);
+			padala2009_mgr.target_value(testbed::response_time_application_performance, 0.1034*1.e+3);
+
+			p_mgr = boost::make_shared< testbed::padala2009_application_manager<traits_type> >(padala2009_mgr);
+#else
+# error Application Manager not recognized
+#endif
 			p_mgr->sampling_time(static_cast<uint_type>(ts));
 			p_mgr->control_time(3*p_mgr->sampling_time());
 		}
