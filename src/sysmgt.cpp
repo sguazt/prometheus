@@ -257,7 +257,7 @@ int main(int argc, char *argv[])
 			vms.push_back(p_vm);
 		}
 		app_pointer p_app = boost::make_shared< testbed::application<traits_type> >(vms.begin(), vms.end());
-		p_app->slo(testbed::response_time_application_performance, detail::rt_slo_checker<real_type>(0.2870));
+		p_app->slo(testbed::response_time_application_performance, detail::rt_slo_checker<real_type>(0.2870*1.e+3));
 
 		// - Setup workload driver
 		app_driver_pointer p_drv;
@@ -290,7 +290,7 @@ int main(int argc, char *argv[])
 			ublas::diagonal_matrix<real_type> R(nu*nb);
 			testbed::lqry_application_manager<traits_type> lqry_mgr(Q, R);
 			lqry_mgr.sysid_strategy(p_sysid_alg);
-			lqry_mgr.target_value(testbed::response_time_application_performance, 0.1034);
+			lqry_mgr.target_value(testbed::response_time_application_performance, 0.1034*1.e+3);
 
 			p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >(lqry_mgr);
 			p_mgr->sampling_time(static_cast<uint_type>(ts));
