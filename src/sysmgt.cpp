@@ -30,6 +30,7 @@
  * along with dcsxx-testbed.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <boost/numeric/ublas/banded.hpp>
 #include <boost/smart_ptr.hpp>
 #include <cstddef>
 #include <cstdlib>
@@ -125,6 +126,7 @@ struct rt_slo_checker
 int main(int argc, char *argv[])
 {
 	namespace testbed = ::dcs::testbed;
+	namespace ublas = ::boost::numeric::ublas;
 
 	typedef double real_type;
 	typedef unsigned int uint_type;
@@ -276,8 +278,17 @@ int main(int argc, char *argv[])
 		app_manager_pointer p_mgr;
 		//p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >();
 		{
-			sysid_strategy_pointer p_sysid_alg = boost::make_shared< testbed::rls_ff_arx_miso_proxy<traits_type> >(2, 2, 1, 1, nt, 0.98);
-			testbed::lqry_application_manager<traits_type> lqry_mgr;
+			const std::size_t na(2);
+			const std::size_t nb(2);
+			const std::size_t nk(1);
+			const std::size_t ny(1);
+			const std::size_t nu(nt);
+			const real_type ff(0.98);
+
+			sysid_strategy_pointer p_sysid_alg = boost::make_shared< testbed::rls_ff_arx_miso_proxy<traits_type> >(na, nb, nk, ny, nu, ff);
+			ublas::diagonal_matrix<real_type> Q(ny);
+			ublas::diagonal_matrix<real_type> R(nu);
+			testbed::lqry_application_manager<traits_type> lqry_mgr(Q, R);
 			lqry_mgr.sysid_strategy(p_sysid_alg);
 			lqry_mgr.target_value(testbed::response_time_application_performance, 0.1034);
 

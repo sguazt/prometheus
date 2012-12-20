@@ -1202,6 +1202,13 @@ class lqry_application_manager: public lq_application_manager<TraitsT>
 	{
 	}
 
+	public: template <typename QMatrixExprT, typename RMatrixExprT>
+			lqry_application_manager(::boost::numeric::ublas::matrix_expression<QMatrixExprT> const& Q,
+									 ::boost::numeric::ublas::matrix_expression<RMatrixExprT> const& R)
+	: ctlr_(Q,R)
+	{
+	}
+
 	private: numeric_vector_type do_optimal_control(numeric_vector_type const& x,
 													numeric_vector_type const& u,
 													numeric_vector_type const& y,
