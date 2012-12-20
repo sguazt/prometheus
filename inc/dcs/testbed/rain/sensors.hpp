@@ -99,7 +99,7 @@ class response_time_sensor: public base_sensor<TraitsT>
 			{
 				ifs_.sync();
 				::std::ifstream::pos_type new_fpos(ifs_.tellg());
-DCS_DEBUG_TRACE("REOPENED (good) -- OLD POS: " << fpos_ << " - NEW POS: " << new_fpos << " - GOOD: " << ifs_.good() << " - EOF: " << ifs_.eof() << " - FAIL: " << ifs_.fail() << " - BAD: " << ifs_.bad() << " - !(): " << !static_cast<bool>(ifs_) << " - IN_AVAIL: " << ifs_.rdbuf()->in_avail());
+//DCS_DEBUG_TRACE("REOPENED (good) -- OLD POS: " << fpos_ << " - NEW POS: " << new_fpos << " - GOOD: " << ifs_.good() << " - EOF: " << ifs_.eof() << " - FAIL: " << ifs_.fail() << " - BAD: " << ifs_.bad() << " - !(): " << !static_cast<bool>(ifs_) << " - IN_AVAIL: " << ifs_.rdbuf()->in_avail());
 				if (fpos_ != new_fpos)
 				{
 					// The file has changed, we are in case #2
@@ -107,7 +107,7 @@ DCS_DEBUG_TRACE("REOPENED (good) -- OLD POS: " << fpos_ << " - NEW POS: " << new
 					// Restart to read file from the old position
 					ifs_.seekg(fpos_);
 //					new_data_ = true;
-DCS_DEBUG_TRACE("SOUGHT IFS STREAM -- OLD POS: " << fpos_ << " - NEW POS: " << new_fpos << " - GOOD: " << ifs_.good() << " - EOF: " << ifs_.eof() << " - FAIL: " << ifs_.fail() << " - BAD: " << ifs_.bad() << " - !(): " << !static_cast<bool>(ifs_));
+//DCS_DEBUG_TRACE("SOUGHT IFS STREAM -- OLD POS: " << fpos_ << " - NEW POS: " << new_fpos << " - GOOD: " << ifs_.good() << " - EOF: " << ifs_.eof() << " - FAIL: " << ifs_.fail() << " - BAD: " << ifs_.bad() << " - !(): " << !static_cast<bool>(ifs_));
 				}
 				else
 				{
@@ -125,7 +125,7 @@ DCS_DEBUG_TRACE("SOUGHT IFS STREAM -- OLD POS: " << fpos_ << " - NEW POS: " << n
 
 			::std::getline(ifs_, line);
 
-DCS_DEBUG_TRACE("IFS STREAM -- LINE: " << line << " - POS: " << fpos_ << " - GOOD: " << ifs_.good() << " - EOF: " << ifs_.eof() << " - FAIL: " << ifs_.fail() << " - BAD: " << ifs_.bad() << " - !(): " << !static_cast<bool>(ifs_));
+//DCS_DEBUG_TRACE("IFS STREAM -- LINE: " << line << " - POS: " << fpos_ << " - GOOD: " << ifs_.good() << " - EOF: " << ifs_.eof() << " - FAIL: " << ifs_.fail() << " - BAD: " << ifs_.bad() << " - !(): " << !static_cast<bool>(ifs_));
 
 			const ::std::size_t n(line.size());
 
@@ -160,7 +160,7 @@ DCS_DEBUG_TRACE("IFS STREAM -- LINE: " << line << " - POS: " << fpos_ << " - GOO
 							}
 							::std::istringstream iss(line.substr(pos, pos2-pos));
 							iss >> obs_ts;
-DCS_DEBUG_TRACE("Timestamp: " << obs_ts);
+//DCS_DEBUG_TRACE("Timestamp: " << obs_ts);
 							pos = pos2;
 							break;
 						}
@@ -172,7 +172,7 @@ DCS_DEBUG_TRACE("Timestamp: " << obs_ts);
 								;
 							}
 							obs_op = line.substr(pos, pos2-pos);
-DCS_DEBUG_TRACE("Operation: " << obs_op);
+//DCS_DEBUG_TRACE("Operation: " << obs_op);
 							pos = pos2;
 							break;
 						}
@@ -185,7 +185,7 @@ DCS_DEBUG_TRACE("Operation: " << obs_op);
 							}
 							::std::istringstream iss(line.substr(pos, pos2-pos));
 							iss >> obs_rtns;
-DCS_DEBUG_TRACE("Response Time (nsecs): " << obs_rtns);
+//DCS_DEBUG_TRACE("Response Time (nsecs): " << obs_rtns);
 							pos = pos2;
 							break;
 						}
