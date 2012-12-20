@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
 
 			sysid_strategy_pointer p_sysid_alg = boost::make_shared< testbed::rls_ff_arx_miso_proxy<traits_type> >(na, nb, nk, ny, nu, ff);
 			ublas::diagonal_matrix<real_type> Q(ny);
-			ublas::diagonal_matrix<real_type> R(nu);
+			ublas::diagonal_matrix<real_type> R(nu*nb);
 			testbed::lqry_application_manager<traits_type> lqry_mgr(Q, R);
 			lqry_mgr.sysid_strategy(p_sysid_alg);
 			lqry_mgr.target_value(testbed::response_time_application_performance, 0.1034);
