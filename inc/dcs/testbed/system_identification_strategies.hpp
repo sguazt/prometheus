@@ -178,6 +178,33 @@ class base_arx_system_identification_strategy
 		return do_B(k);
 	}
 
+	public: vector_type y(size_type k) const
+	{
+		return do_y(k);
+	}
+
+	public: vector_type u(size_type k) const
+	{
+		return do_u(k);
+	}
+
+	public: vector_type y_hat() const
+	{
+		namespace ublas = ::boost::numeric::ublas;
+		namespace ublasx = ::boost::numeric::ublasx;
+
+		vector_type phi(this->phi());
+		size_type np(ublasx::size(phi));
+		size_type nyna(this->num_outputs()*this->output_order());
+		size_type nd((this->input_delay()-1)*this->num_inputs());
+
+		vector_type delayed_phi(np-nd);
+		ublas::subrange(delayed_phi, 0, nyna) = ublas::subrange(phi, 0, nyna);
+		ublas::subrange(delayed_phi, nyna, np-nd) = ublas::subrange(phi, nyna+nd, np);
+
+		return ublas::prod(delayed_phi, this->Theta_hat());
+	}
+
 	public: size_type count() const
 	{
 		return count_;
@@ -207,6 +234,10 @@ class base_arx_system_identification_strategy
 	private: virtual matrix_type do_A(size_type k) const = 0;
 
 	private: virtual matrix_type do_B(size_type k) const = 0;
+
+	private: virtual vector_type do_y(size_type k) const = 0;
+
+	private: virtual vector_type do_u(size_type k) const = 0;
 
 
 	/// The memory for the control output.
@@ -512,6 +543,75 @@ class rls_ff_arx_mimo_proxy: public rls_arx_system_identification_strategy<Trait
 		return B_k;
 	}
 
+	private: vector_type do_y(size_type k) const
+	{
+		namespace ublas = ::boost::numeric::ublas;
+
+		DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
+
+		// Remeber:
+		// \phi = [ -y_{1}(t-1);
+		//          -y_{1}(t-2);
+		//           ...
+		//          -y_{1}(t-n_a);
+		//          -y_{2}(t-1);
+		//           ...
+		//          -y_{2}(t-n_a);
+		//           ...
+		//          -y_{n_y}(t-1);
+		//           ...
+		//          -y_{n_y}(t-n_a);
+		//           u_{1}(t-1);
+		//          ...
+		//           u_{1}(t-n_b-d);
+		//           ...
+		//           u_{n_u}(t-1);
+		//           ...
+		//           u_{n_u}(t-n_b-d)]
+		// So in \phi the vector y_k=y(t-k) stays at:
+		//   y_k <- -[\phi((k-1):n_a:n_y*n_a]
+		vector_type y_k;
+		y_k = -ublas::subslice(phi_, k-1, this->output_order(), this->num_outputs()*this->output_order());
+
+		return y_k;
+	}
+
+
+	private: vector_type do_u(size_type k) const
+	{
+		namespace ublas = ::boost::numeric::ublas;
+
+		DCS_DEBUG_ASSERT( k >= 1 && k <= (this->input_order()+this->input_delay()) );
+
+		// Remeber:
+		// \phi = [ -y_{1}(t-1);
+		//          -y_{1}(t-2);
+		//           ...
+		//          -y_{1}(t-n_a);
+		//          -y_{2}(t-1);
+		//           ...
+		//          -y_{2}(t-n_a);
+		//           ...
+		//          -y_{n_y}(t-1);
+		//           ...
+		//          -y_{n_y}(t-n_a);
+		//           u_{1}(t-1);
+		//          ...
+		//           u_{1}(t-n_b-d);
+		//           ...
+		//           u_{n_u}(t-1);
+		//           ...
+		//           u_{n_u}(t-n_b-d)]
+		// So in \phi the vector u_k=u(t-k) stays at:
+		//   u_k <- [\phi((n_y*n_a+k-1):(n_b+d):(n_y*n_a+n_u*(n_b+d))]
+		vector_type u_k;
+		size_type offs(this->num_outputs()*this->output_order());
+		size_type nbd(this->input_order()+this->input_delay());
+		u_k = ublas::subslice(phi_, offs+k-1, nbd, offs+nbd*this->input_order());
+
+		return u_k;
+	}
+
 
 	/// Forgetting factor.
 	private: real_type ff_;
@@ -808,6 +908,65 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 		}
 
 		return B_k;
+	}
+
+	private: vector_type do_y(size_type k) const
+	{
+		namespace ublas = ::boost::numeric::ublas;
+
+		DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
+
+		// Remeber:
+		// \phi = [ -y(t-1);
+		//          -y(t-2);
+		//           ...
+		//          -y(t-n_a);
+		//           u_{1}(t-1);
+		//          ...
+		//           u_{1}(t-n_b-d);
+		//           ...
+		//           u_{n_u}(t-1);
+		//           ...
+		//           u_{n_u}(t-n_b-d)]
+		// So in \phi the vector y_k=y(t-k) stays at:
+		//   y_k <- -[\phi(k-1)]
+
+		size_type ny(this->num_outputs());
+		vector_type yk(ny);
+
+		for (size_type i = 0; i < ny; ++i)
+		{
+			yk(i) = -phis_[i](k-1);
+		}
+
+		return yk;
+	}
+
+
+	private: vector_type do_u(size_type k) const
+	{
+		namespace ublas = ::boost::numeric::ublas;
+
+		DCS_DEBUG_ASSERT( k >= 1 && k <= (this->input_order()+this->input_delay()) );
+
+		// Remeber:
+		// \phi = [ -y(t-1);
+		//          -y(t-2);
+		//           ...
+		//          -y(t-n_a);
+		//           u_{1}(t-1);
+		//          ...
+		//           u_{1}(t-n_b-d);
+		//           ...
+		//           u_{n_u}(t-1);
+		//           ...
+		//           u_{n_u}(t-n_b-d)]
+		// So in \phi the vector u_k=u(t-k) stays at:
+		//   u_k <- [\phi(n_a+k-1):(n_b+d):(n_a+n_u*(n_b+d))]
+		vector_type u_k;
+		u_k = ublas::subslice(phis_[0], this->output_order()+k-1, this->input_order()+this->input_delay(), this->num_inputs());
+
+		return u_k;
 	}
 
 
@@ -1134,6 +1293,63 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 		return B_k;
 	}
 
+    private: vector_type do_y(size_type k) const
+    {
+        namespace ublas = ::boost::numeric::ublas;
+
+        DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
+
+        // Remeber:
+        // \phi = [ -y(t-1);
+        //          -y(t-2);
+        //           ...
+        //          -y(t-n_a);
+        //           u_{1}(t-1);
+        //          ...
+        //           u_{1}(t-n_b-d);
+        //           ...
+        //           u_{n_u}(t-1);
+        //           ...
+        //           u_{n_u}(t-n_b-d)]
+        // So in \phi the vector y_k=y(t-k) stays at:
+        //   y_k <- -[\phi(k-1)]
+        size_type ny(this->num_outputs());
+        vector_type yk(ny);
+
+        for (size_type i = 0; i < ny; ++i)
+        {
+            yk(i) = -phis_[i](k-1);
+        }
+
+        return yk;
+    }
+
+
+    private: vector_type do_u(size_type k) const
+    {
+        namespace ublas = ::boost::numeric::ublas;
+
+        DCS_DEBUG_ASSERT( k >= 1 && k <= (this->input_order()+this->input_delay()) );
+
+        // Remeber:
+        // \phi = [ -y(t-1);
+        //          -y(t-2);
+        //           ...
+        //          -y(t-n_a);
+        //           u_{1}(t-1);
+        //          ...
+        //           u_{1}(t-n_b-d);
+        //           ...
+        //           u_{n_u}(t-1);
+        //           ...
+        //           u_{n_u}(t-n_b-d)]
+        // So in \phi the vector u_k=u(t-k) stays at:
+        //   u_k <- [\phi(n_a+k-1):(n_b+d):(n_a+n_u*(n_b+d))]
+        vector_type u_k;
+        u_k = ublas::subslice(phis_[0], this->output_order()+k-1, this->input_order()+this->input_delay(), this->num_inputs());
+        
+        return u_k;
+    }
 
 	/// Forgetting factor.
 	private: real_type ff_;
@@ -1421,6 +1637,64 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 		return B_k;
 	}
 
+    private: vector_type do_y(size_type k) const
+    {
+        namespace ublas = ::boost::numeric::ublas;
+
+        DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
+
+        // Remeber:
+        // \phi = [ -y(t-1);
+        //          -y(t-2);
+        //           ...
+        //          -y(t-n_a);
+        //           u_{1}(t-1);
+        //          ...
+        //           u_{1}(t-n_b-d);
+        //           ...
+        //           u_{n_u}(t-1);
+        //           ...
+        //           u_{n_u}(t-n_b-d)]
+        // So in \phi the vector y_k=y(t-k) stays at:
+        //   y_k <- -[\phi(k-1)]
+
+        size_type ny(this->num_outputs());
+        vector_type yk(ny);
+
+        for (size_type i = 0; i < ny; ++i)
+        {
+            yk(i) = -phis_[i](k-1);
+        }
+
+        return yk;
+    }
+
+
+	private: vector_type do_u(size_type k) const
+	{
+		namespace ublas = ::boost::numeric::ublas;
+
+		DCS_DEBUG_ASSERT( k >= 1 && k <= (this->input_order()+this->input_delay()) );
+
+		// Remeber:
+		// \phi = [ -y(t-1);
+		//          -y(t-2);
+		//           ...
+		//          -y(t-n_a);
+		//           u_{1}(t-1);
+		//          ...
+		//           u_{1}(t-n_b-d);
+		//           ...
+		//           u_{n_u}(t-1);
+		//           ...
+		//           u_{n_u}(t-n_b-d)]
+		// So in \phi the vector u_k=u(t-k) stays at:
+		//   u_k <- [\phi(n_a+k-1):(n_b+d):(n_a+n_u*(n_b+d))]
+		vector_type u_k;
+		u_k = ublas::subslice(phis_[0], this->output_order()+k-1, this->input_order()+this->input_delay(), this->num_inputs());
+		
+		return u_k;
+	}
 
 	/// Forgetting factor.
 	private: real_type ff_;
@@ -1715,6 +1989,64 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 		return B_k;
 	}
 
+	private: vector_type do_y(size_type k) const
+	{
+		namespace ublas = ::boost::numeric::ublas;
+
+		DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
+
+		// Remeber:
+		// \phi = [ -y(t-1);
+		//          -y(t-2);
+		//           ...
+		//          -y(t-n_a);
+		//           u_{1}(t-1);
+		//          ...
+		//           u_{1}(t-n_b-d);
+		//           ...
+		//           u_{n_u}(t-1);
+		//           ...
+		//           u_{n_u}(t-n_b-d)]
+		// So in \phi the vector y_k=y(t-k) stays at:
+		//   y_k <- -[\phi(k-1)]
+		
+		size_type ny(this->num_outputs());
+		vector_type yk(ny);
+
+		for (size_type i = 0; i < ny; ++i)
+		{
+			yk(i) = -phis_[i](k-1);
+		}
+
+		return yk;
+	}
+
+
+	private: vector_type do_u(size_type k) const
+	{
+		namespace ublas = ::boost::numeric::ublas;
+
+		DCS_DEBUG_ASSERT( k >= 1 && k <= (this->input_order()+this->input_delay()) );
+
+		// Remeber:
+		// \phi = [ -y(t-1);
+		//          -y(t-2);
+		//           ...
+		//          -y(t-n_a);
+		//           u_{1}(t-1);
+		//          ...
+		//           u_{1}(t-n_b-d);
+		//           ...
+		//           u_{n_u}(t-1);
+		//           ...
+		//           u_{n_u}(t-n_b-d)]
+		// So in \phi the vector u_k=u(t-k) stays at:
+		//   u_k <- [\phi(n_a+k-1):(n_b+d):(n_a+n_u*(n_b+d))]
+		vector_type u_k;
+		u_k = ublas::subslice(phis_[0], this->output_order()+k-1, this->input_order()+this->input_delay(), this->num_inputs());
+
+		return u_k;
+	}
 
 	/// Forgetting factor.
 	private: real_type ff_;
