@@ -956,6 +956,7 @@ DCS_DEBUG_TRACE("Prep y=" << y_);
 //					x_(x_offset_+v) = p(v) = ewma_p_(v)/yr_(v);
 //				}
 				ublas::subrange(x_, x_offset_, nx_) = ublas::element_div(ewma_p_, yr_);
+				//ublas::subrange(x_, x_offset_, nx_) = ublas::element_div(ewma_p_, yr_) - ublas::scalar_vector<real_type>(ny_, 1);
 			}
 			if (nu_ > 0)
 			{
@@ -981,7 +982,7 @@ DCS_DEBUG_TRACE("Prep y=" << y_);
 			}
 			if (ny_ > 0)
 			{
-				y_ = ublas::element_div(p, yr_)-ublas::scalar_vector<real_type>(ny_, 1);
+				y_ = p;
 			}
 DCS_DEBUG_TRACE("New x=" << x_);
 DCS_DEBUG_TRACE("New u=" << u_);
