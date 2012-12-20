@@ -1035,6 +1035,10 @@ DCS_DEBUG_TRACE("phi=" << p_sysid_alg_->phi());//XXX
 				numeric_vector_type opt_u;
 				try
 				{
+DCS_DEBUG_TRACE("State-space System - Matrix A: " << A);
+DCS_DEBUG_TRACE("State-space System - Matrix B: " << B);
+DCS_DEBUG_TRACE("State-space System - Matrix C: " << C);
+DCS_DEBUG_TRACE("State-space System - Matrix D: " << D);
 					opt_u = this->optimal_control(x_, u_, y_, A, B, C, D);
 				}
 				catch (::std::exception const& e)
