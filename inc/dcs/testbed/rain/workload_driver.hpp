@@ -196,12 +196,12 @@ inline
 template <typename DriverT>
 struct rampup_monitor_runnable;
 
-/**
- * \brief Monitors the RAIN steady-state phase and parses the RAIN metrics
- *  snapshot file.
- */
-template <typename DriverT>
-struct steady_state_monitor_runnable;
+///**
+// * \brief Monitors the RAIN steady-state phase and parses the RAIN metrics
+// *  snapshot file.
+// */
+//template <typename DriverT>
+//struct steady_state_monitor_runnable;
 
 /// Redirects the RAIN steady-state standard output to a log file.
 template <typename DriverT>
@@ -228,8 +228,8 @@ class workload_driver: public base_workload_driver<TraitsT>
 
 	template <typename T>
 	friend struct detail::rampup_monitor_runnable;
-	template <typename T>
-	friend struct detail::steady_state_monitor_runnable;
+//	template <typename T>
+//	friend struct detail::steady_state_monitor_runnable;
 	template <typename T>
 	friend struct detail::steady_state_logger_runnable;
 
@@ -240,7 +240,7 @@ class workload_driver: public base_workload_driver<TraitsT>
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
 	  rampup_thread_active_(false),
-	  steady_thread_active_(false),
+//	  steady_thread_active_(false),
 	  logger_thread_active_(false)
 	{
 	}
@@ -252,7 +252,7 @@ class workload_driver: public base_workload_driver<TraitsT>
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
 	  rampup_thread_active_(false),
-	  steady_thread_active_(false),
+//	  steady_thread_active_(false),
 	  logger_thread_active_(false)
 	{
 	}
@@ -265,7 +265,7 @@ class workload_driver: public base_workload_driver<TraitsT>
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
 	  rampup_thread_active_(false),
-	  steady_thread_active_(false),
+//	  steady_thread_active_(false),
 	  logger_thread_active_(false)
 	{
 	}
@@ -281,7 +281,7 @@ class workload_driver: public base_workload_driver<TraitsT>
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
 	  rampup_thread_active_(false),
-	  steady_thread_active_(false),
+//	  steady_thread_active_(false),
 	  logger_thread_active_(false)
 	{
 	}
@@ -303,11 +303,11 @@ class workload_driver: public base_workload_driver<TraitsT>
 			rampup_thread_.interrupt();
 			rampup_thread_.join();
 		}
-		if (this->steady_state_thread_active())
-		{
-			steady_thread_.interrupt();
-			steady_thread_.join();
-		}
+//		if (this->steady_state_thread_active())
+//		{
+//			steady_thread_.interrupt();
+//			steady_thread_.join();
+//		}
 		if (this->logger_thread_active())
 		{
 			logger_thread_.interrupt();
@@ -386,29 +386,29 @@ class workload_driver: public base_workload_driver<TraitsT>
 		return rampup_thread_active_;
 	}
 
-	private: ::boost::thread& steady_state_thread()
-	{
-		return steady_thread_;
-	}
+//	private: ::boost::thread& steady_state_thread()
+//	{
+//		return steady_thread_;
+//	}
 
-	private: ::boost::thread const& steady_state_thread() const
-	{
-		return steady_thread_;
-	}
+//	private: ::boost::thread const& steady_state_thread() const
+//	{
+//		return steady_thread_;
+//	}
 
-	private: void steady_state_thread_active(bool val)
-	{
-		::boost::lock_guard<mutex_type> lock(steady_thread_mutex_);
+//	private: void steady_state_thread_active(bool val)
+//	{
+//		::boost::lock_guard<mutex_type> lock(steady_thread_mutex_);
+//
+//		steady_thread_active_ = val;
+//	}
 
-		steady_thread_active_ = val;
-	}
-
-	private: bool steady_state_thread_active() const
-	{
-		::boost::lock_guard<mutex_type> lock(steady_thread_mutex_);
-
-		return steady_thread_active_;
-	}
+//	private: bool steady_state_thread_active() const
+//	{
+//		::boost::lock_guard<mutex_type> lock(steady_thread_mutex_);
+//
+//		return steady_thread_active_;
+//	}
 
 	private: ::boost::thread& logger_thread()
 	{
@@ -467,12 +467,12 @@ class workload_driver: public base_workload_driver<TraitsT>
 			rampup_thread_.join();
 			this->rampup_thread_active(false);
 		}
-		if (this->steady_state_thread_active())
-		{
-			steady_thread_.interrupt();
-			steady_thread_.join();
-			this->steady_state_thread_active(false);
-		}
+//		if (this->steady_state_thread_active())
+//		{
+//			steady_thread_.interrupt();
+//			steady_thread_.join();
+//			this->steady_state_thread_active(false);
+//		}
 		if (this->logger_thread_active())
 		{
 			logger_thread_.interrupt();
@@ -535,22 +535,22 @@ class workload_driver: public base_workload_driver<TraitsT>
 			this->rampup_thread_active(false);
 		}
 
-		if (this->steady_state_thread_active())
-		{
-			try
-			{
-				steady_thread_.interrupt();
-				steady_thread_.join();
-			}
-			catch (::std::exception const& e)
-			{
-				::std::ostringstream oss;
-				oss << "Unable to join steady-state phase monitor thread for the RAIN workload driver: " << e.what();
-
-				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
-			}
-			this->steady_state_thread_active(false);
-		}
+//		if (this->steady_state_thread_active())
+//		{
+//			try
+//			{
+//				steady_thread_.interrupt();
+//				steady_thread_.join();
+//			}
+//			catch (::std::exception const& e)
+//			{
+//				::std::ostringstream oss;
+//				oss << "Unable to join steady-state phase monitor thread for the RAIN workload driver: " << e.what();
+//
+//				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+//			}
+//			this->steady_state_thread_active(false);
+//		}
 
 		if (this->logger_thread_active())
 		{
@@ -610,18 +610,18 @@ class workload_driver: public base_workload_driver<TraitsT>
 	private: ::std::string metrics_path_;
 	private: bool ready_;
 	private: bool rampup_thread_active_;
-	private: bool steady_thread_active_;
+//	private: bool steady_thread_active_;
 	private: bool logger_thread_active_;
 	private: app_pointer p_app_;
 	private: sys_process_type proc_;
 	private: mutable ::std::list<observation_type> obs_;
 	private: ::boost::thread rampup_thread_;
-	private: ::boost::thread steady_thread_;
+//	private: ::boost::thread steady_thread_;
 	private: ::boost::thread logger_thread_;
 	private: mutable mutex_type ready_mutex_;
 	private: mutable mutex_type obs_mutex_;
 	private: mutable mutex_type rampup_thread_mutex_;
-	private: mutable mutex_type steady_thread_mutex_;
+//	private: mutable mutex_type steady_thread_mutex_;
 	private: mutable mutex_type logger_thread_mutex_;
 }; // workload_driver
 
@@ -660,18 +660,18 @@ struct rampup_monitor_runnable
 
 		p_drv_->rampup_thread_active(false);
 
-		// Run a thread to monitor RAIN steady-state phase
-		try
-		{
-			p_drv_->steady_thread_ = ::boost::thread(steady_state_monitor_runnable<DriverT>(p_drv_));
-		}
-		catch (::std::exception const& e)
-		{
-			::std::ostringstream oss;
-			oss << "Unable to start steady-state monitor thread for the RAIN workload driver: " << e.what();
-
-			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
-		}
+//		// Run a thread to monitor RAIN steady-state phase
+//		try
+//		{
+//			p_drv_->steady_thread_ = ::boost::thread(steady_state_monitor_runnable<DriverT>(p_drv_));
+//		}
+//		catch (::std::exception const& e)
+//		{
+//			::std::ostringstream oss;
+//			oss << "Unable to start steady-state monitor thread for the RAIN workload driver: " << e.what();
+//
+//			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+//		}
 		// Run a thread to log the RAIN standard output during the steady-state phase
 		try
 		{
@@ -692,6 +692,7 @@ struct rampup_monitor_runnable
 	DriverT* p_drv_;
 }; // rampup_monitor_runnable
 
+/*
 template <typename DriverT>
 struct steady_state_monitor_runnable
 {
@@ -891,6 +892,7 @@ struct steady_state_monitor_runnable
 
 	DriverT* p_drv_;
 }; // steady_state_monitor_runnable
+*/
 
 template <typename DriverT>
 struct steady_state_logger_runnable
