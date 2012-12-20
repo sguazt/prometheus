@@ -58,10 +58,13 @@ struct sampler_runnable
 
 	void operator()()
 	{
+		DCS_DEBUG_TRACE("SAMPLER THREAD: Entering...");
+
 		::boost::shared_ptr<T> sp(wp_.lock());
 
 		typename T::traits_type::uint_type ts = sp->sampling_time();
  
+		// Loop forever until we get interrupted
 		while (true)
 		{
 			{
@@ -72,6 +75,8 @@ struct sampler_runnable
 
 			::boost::this_thread::sleep_for(::boost::chrono::seconds(ts));
 		}
+
+		DCS_DEBUG_TRACE("SAMPLER THREAD: Leaving...");
 	}
 
 	::boost::weak_ptr<T> wp_;
@@ -89,10 +94,13 @@ struct controller_runnable
 
 	void operator()()
 	{
+		DCS_DEBUG_TRACE("CONTROLLER THREAD: Entering...");
+
 		::boost::shared_ptr<T> sp(wp_.lock());
 
 		typename T::traits_type::uint_type ts = sp->control_time();
  
+		// Loop forever until we get interrupted
 		while (true)
 		{
 			{
@@ -103,6 +111,8 @@ struct controller_runnable
 
 			::boost::this_thread::sleep_for(::boost::chrono::seconds(ts));
 		}
+
+		DCS_DEBUG_TRACE("CONTROLLER THREAD: Leaving...");
 	}
 
 	::boost::weak_ptr<T> wp_;

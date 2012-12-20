@@ -711,7 +711,8 @@ struct steady_state_monitor_runnable
 		// - <total response time>
 		// - <number of observations>
 
-	DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Entering");
+		DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Entering");
+
 		const ::std::size_t timestamp_field(2);
 		const ::std::size_t operation_field(3);
 		const ::std::size_t response_time_field(4);
@@ -728,7 +729,7 @@ struct steady_state_monitor_runnable
 		{
 			++trial;
 
-	DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Waiting... (Trial: " << trial << "/" << max_open_trials << ", Zzz: " << zzz_time << ")");
+//DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Waiting... (Trial: " << trial << "/" << max_open_trials << ", Zzz: " << zzz_time << ")");
 			::sleep(zzz_time);
 			++zzz_time;
 
@@ -758,7 +759,7 @@ struct steady_state_monitor_runnable
 
 				::std::getline(ifs, line);
 
-	DCS_DEBUG_TRACE("STEADY-STATE THREAD -- IFS STREAM -- LINE: " << line << " - POS: " << fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
+//DCS_DEBUG_TRACE("STEADY-STATE THREAD -- IFS STREAM -- LINE: " << line << " - POS: " << fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
 
 				const ::std::size_t n(line.size());
 
@@ -793,7 +794,7 @@ struct steady_state_monitor_runnable
 								}
 								::std::istringstream iss(line.substr(pos, pos2-pos));
 								iss >> obs_ts;
-	DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Timestamp: " << obs_ts);
+//DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Timestamp: " << obs_ts);
 								pos = pos2;
 								break;
 							}
@@ -805,7 +806,7 @@ struct steady_state_monitor_runnable
 									;
 								}
 								obs_op = line.substr(pos, pos2-pos);
-	DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Operation: " << obs_op);
+//DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Operation: " << obs_op);
 								pos = pos2;
 								break;
 							}
@@ -818,7 +819,7 @@ struct steady_state_monitor_runnable
 								}
 								::std::istringstream iss(line.substr(pos, pos2-pos));
 								iss >> obs_rtms;
-	DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << obs_rtms);
+//DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Response Time: " << obs_rtms);
 								pos = pos2;
 								break;
 							}
@@ -845,11 +846,11 @@ struct steady_state_monitor_runnable
 			new_data = false;
 			do
 			{
-	DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Zzz... (" << zzz_time << ")");
+//DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Zzz... (" << zzz_time << ")");
 				// Sleep for a while, just to let new data arrive
 				::sleep(zzz_time);
 				zzz_time = ::std::max((zzz_time+1) % max_zzz_time, min_zzz_time);
-	DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Cheking for new data");
+//DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Cheking for new data");
 
 				// Close to stream in order to avoid possible failures during the following call to open
 				ifs.close();
@@ -859,7 +860,7 @@ struct steady_state_monitor_runnable
 				{
 					ifs.sync();
 					::std::ifstream::pos_type new_fpos(ifs.tellg());
-	DCS_DEBUG_TRACE("STEADY-STATE THREAD -- REOPENED (good) -- OLD POS: " << fpos << " - NEW POS: " << new_fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs) << " - IN_AVAIL: " << ifs.rdbuf()->in_avail());
+//DCS_DEBUG_TRACE("STEADY-STATE THREAD -- REOPENED (good) -- OLD POS: " << fpos << " - NEW POS: " << new_fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs) << " - IN_AVAIL: " << ifs.rdbuf()->in_avail());
 					if (fpos != new_fpos)
 					{
 						// The file has changed, we are in case #2
@@ -867,39 +868,24 @@ struct steady_state_monitor_runnable
 						// Restart to read file from the old position
 						ifs.seekg(fpos);
 						new_data = true;
-	DCS_DEBUG_TRACE("STEADY-STATE THREAD -- SOUGHT IFS STREAM -- OLD POS: " << fpos << " - NEW POS: " << new_fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
+//DCS_DEBUG_TRACE("STEADY-STATE THREAD -- SOUGHT IFS STREAM -- OLD POS: " << fpos << " - NEW POS: " << new_fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
 					}
-	//				else
-	//				{
-	//					// We are here because
-	//					// - new_fpos==-1 -> Failed to get new position.
-	//					//   This may be due to a temporary situation.
-	//					//   So, instead of stop reading, try to reopen the file later.
-	//					// - fpos==new_fpos -> The file has not changed, maybe we are in case #1 (or simply we have to wait for other few secs)
-	//					new_data = false;
-	//				}
 				}
-	//			else
-	//			{
-	//DCS_DEBUG_TRACE("STEADY-STATE THREAD -- REOPENED (failed) -- OLD POS: " << fpos << " - GOOD: " << ifs.good() << " - EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
-	//				new_data = false;
-	//			}
-	DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Cheking for new data --> " << new_data);
+//DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Cheking for new data --> " << new_data);
 			}
-			//while (!p_drv_->done() && !new_data);
 			while (!new_data);
 		}
-		//while (!p_drv_->done() && new_data);
 		while (new_data);
 
-	DCS_DEBUG_TRACE("STEADY-STATE THREAD -- OUT-OF-LOOP IFS STREAM -- EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
+//DCS_DEBUG_TRACE("STEADY-STATE THREAD -- OUT-OF-LOOP IFS STREAM -- EOF: " << ifs.eof() << " - FAIL: " << ifs.fail() << " - BAD: " << ifs.bad() << " - !(): " << !static_cast<bool>(ifs));
 		if (ifs.is_open())
 		{
 			ifs.close();
 		}
-	DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Leaving");
 
 		p_drv_->steady_state_thread_active(false);
+
+		DCS_DEBUG_TRACE("STEADY-STATE THREAD -- Leaving");
 	}
 
 
