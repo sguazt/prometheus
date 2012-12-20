@@ -50,7 +50,6 @@
 #include <boost/numeric/ublasx/operation/isfinite.hpp>
 #include <boost/numeric/ublasx/operation/num_columns.hpp>
 #include <boost/numeric/ublasx/operation/num_rows.hpp>
-#include <boost/numeric/ublasx/operation/size.hpp>
 #include <boost/smart_ptr.hpp>
 #include <cstddef>
 #include <dcs/assert.hpp>
@@ -684,7 +683,7 @@ class lq_application_manager: public base_application_manager<TraitsT>
 		DCS_ASSERT(p_app_,
 				   DCS_EXCEPTION_THROW(::std::runtime_error,
 									   "Application is not set"));
-		// pre: p_app != null
+		// pre: p_sysid_alg_ != null
 		DCS_ASSERT(p_sysid_alg_,
 				   DCS_EXCEPTION_THROW(::std::runtime_error,
 									   "System identification strategy is not set"));
