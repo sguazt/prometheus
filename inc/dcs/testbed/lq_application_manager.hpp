@@ -597,6 +597,9 @@ class lq_application_manager: public base_application_manager<TraitsT>
 	  x_offset_(0),
 	  u_offset_(0),
 	  ctl_count_(0),
+	  ctl_skip_count_(0),
+	  ctl_fail_count_(0),
+	  sysid_fail_count_(0),
 	  ewma_sf_(default_ewma_smoothing_factor)
 	{
 	}
@@ -733,7 +736,8 @@ class lq_application_manager: public base_application_manager<TraitsT>
 		}
 		ewma_s_ = numeric_vector_type(p_sysid_alg_->num_inputs(), ::std::numeric_limits<real_type>::quiet_NaN());
 		ewma_p_ = numeric_vector_type(p_sysid_alg_->num_outputs(), ::std::numeric_limits<real_type>::quiet_NaN());
-		ctl_count_ = ctl_fail_count_
+		ctl_count_ = ctl_skip_count_
+				   = ctl_fail_count_
 				   = sysid_fail_count_
 				   = 0;
 	}
@@ -744,6 +748,8 @@ class lq_application_manager: public base_application_manager<TraitsT>
 		typedef ::std::vector<obs_type> obs_container;
 		typedef typename obs_container::const_iterator obs_iterator;
 		typedef typename sensor_map::const_iterator sensor_iterator;
+
+		DCS_DEBUG_TRACE("(" << this << ") BEGIN Do SAMPLE - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << sysid_fail_count_ << "/" << ctl_fail_count_);
 
 		sensor_iterator sens_end_it = out_sens_map_.end();
 		for (sensor_iterator sens_it = out_sens_map_.begin();
@@ -766,6 +772,8 @@ class lq_application_manager: public base_application_manager<TraitsT>
 				}
 			}
 		}
+
+		DCS_DEBUG_TRACE("(" << this << ") END Do SAMPLE - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << sysid_fail_count_ << "/" << ctl_fail_count_);
 	}
 
 	private: void do_control()
@@ -777,6 +785,8 @@ class lq_application_manager: public base_application_manager<TraitsT>
 		typedef ::std::vector<vm_pointer> vm_container;
 		typedef typename vm_container::iterator vm_iterator;
 		typedef typename vm_container::const_iterator vm_citerator;
+
+		DCS_DEBUG_TRACE("(" << this << ") BEGIN Do CONTROL - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << sysid_fail_count_ << "/" << ctl_fail_count_);
 
 		const ::std::size_t np = p_sysid_alg_->num_outputs();
 		const ::std::size_t ns = p_sysid_alg_->num_inputs();
@@ -860,10 +870,7 @@ class lq_application_manager: public base_application_manager<TraitsT>
 			//TODO: what can we do?
 			// - Skip control?
 			// - Use the last EWMA value (if ctl_count_ > 1)?
-			if (ctl_count_ < 1)
-			{
-				skip_ctl = true;
-			}
+			skip_ctl = true;
 		}
 		if (ns > 0)
 		{
@@ -1114,9 +1121,15 @@ DCS_DEBUG_TRACE("Optimal control applied");
 				::dcs::log_warn(DCS_LOGGING_AT, oss.str());
 			}
 		}
+		else
+		{
+			++ctl_skip_count_;
+		}
 
 		// Reset measures
 		out_obs_map_.clear();
+
+		DCS_DEBUG_TRACE("(" << this << ") END Do CONTROL - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << sysid_fail_count_ << "/" << ctl_fail_count_);
 	}
 
 	private: virtual numeric_vector_type do_optimal_control(numeric_vector_type const& x,
@@ -1144,6 +1157,7 @@ DCS_DEBUG_TRACE("Optimal control applied");
 	private: numeric_vector_type y_; ///< The output vector for the state-space representation
 	private: numeric_vector_type yr_; ///< The output vector to be tracked 
 	private: ::std::size_t ctl_count_; ///< Number of times control function has been invoked
+	private: ::std::size_t ctl_skip_count_; ///< Number of times control has been skipped
 	private: ::std::size_t ctl_fail_count_; ///< Number of times control has failed
 	private: ::std::size_t sysid_fail_count_; ///< Number of times system identification has failed
 	private: real_type ewma_sf_; ///< EWMA smoothing factor
