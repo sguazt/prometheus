@@ -64,6 +64,8 @@ class response_time_sensor: public base_sensor<TraitsT>
 
 	private: void do_sense()
 	{
+		DCS_DEBUG_TRACE("BEGIN Do Sense");
+
 		// Available fields in a row (each field is separated by one or more white-spaces):
 		// - '[' <generated-during> ']'
 		// - <timestamp>
@@ -194,6 +196,8 @@ DCS_DEBUG_TRACE("Response Time (nsecs): " << obs_rtns);
 
 			obs_.push_back(observation_type(obs_ts, obs_op, obs_rtns*1.0e-6));
 		}
+
+		DCS_DEBUG_TRACE("END Do Sense");
 	}
 
 	private: void do_reset()
