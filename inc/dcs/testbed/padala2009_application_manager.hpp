@@ -518,7 +518,7 @@ DCS_DEBUG_TRACE("phi=" << p_sysid_alg_->phi());//XXX
 //					}
 #endif // DCS_TESTBED_EXP_PADALA2009_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
 
-					real_type r(yr_(0)); //FIXME: only one reference target is handled
+					real_type r(1); //FIXME: only one reference target is handled
 ::std::cerr << "HERE.1 - r=" << r << ::std::endl;//XXX
 
 					numeric_vector_type b0(ublas::row(p_sysid_alg_->B(1), 0));
