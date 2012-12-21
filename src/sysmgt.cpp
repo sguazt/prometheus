@@ -226,6 +226,8 @@ int main(int argc, char *argv[])
 	try
 	{
 		const std::size_t nt(vm_uris.size()); // Number of tiers
+		const real_type rt_q99(0.2870*1.e+3);
+		const real_type rt_mean(0.1034*1.e+3);
 
 		testbed::system_experiment<traits_type> sys_exp;
 
@@ -257,7 +259,7 @@ int main(int argc, char *argv[])
 			vms.push_back(p_vm);
 		}
 		app_pointer p_app = boost::make_shared< testbed::application<traits_type> >(vms.begin(), vms.end());
-		p_app->slo(testbed::response_time_application_performance, detail::rt_slo_checker<real_type>(0.2870*1.e+3));
+		p_app->slo(testbed::response_time_application_performance, detail::rt_slo_checker<real_type>(rt_q99));
 
 		// - Setup workload driver
 		app_driver_pointer p_drv;
@@ -291,13 +293,13 @@ int main(int argc, char *argv[])
 			ublas::diagonal_matrix<real_type> R(nu*nb);
 			testbed::lqry_application_manager<traits_type> lqry_mgr(Q, R);
 			lqry_mgr.sysid_strategy(p_sysid_alg);
-			lqry_mgr.target_value(testbed::response_time_application_performance, 0.1034*1.e+3);
+			lqry_mgr.target_value(testbed::response_time_application_performance, rt_mean);
 
 			p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >(lqry_mgr);
 #elif defined(DCS_TESTBED_USE_PADALA2009_APP_MGR)
 			const std::size_t na(2);
 			const std::size_t nb(2);
-			const std::size_t nk(0);
+			const std::size_t nk(1);
 			const std::size_t ny(1);
 			const std::size_t nu(nt);
 			const real_type ff(0.98);
@@ -307,7 +309,8 @@ int main(int argc, char *argv[])
 			ublas::diagonal_matrix<real_type> R(nu*nb);
 			testbed::padala2009_application_manager<traits_type> padala2009_mgr;
 			padala2009_mgr.sysid_strategy(p_sysid_alg);
-			padala2009_mgr.target_value(testbed::response_time_application_performance, 0.1034*1.e+3);
+			//padala2009_mgr.target_value(testbed::response_time_application_performance, rt_mean);
+			padala2009_mgr.target_value(testbed::response_time_application_performance, rt_q99*(1-0.20));
 
 			p_mgr = boost::make_shared< testbed::padala2009_application_manager<traits_type> >(padala2009_mgr);
 #else
