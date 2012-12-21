@@ -363,6 +363,7 @@ class padala2009_application_manager: public base_application_manager<TraitsT>
                 }
             }
 #endif // DCS_TESTBED_APP_MGR_APPLY_EWMA_TO_EACH_OBSERVATION
+DCS_DEBUG_TRACE("Observed Smoothed Output: " << ewma_p_);//XXX
 		}
 		else if (np > 0)
 		{
@@ -397,6 +398,7 @@ class padala2009_application_manager: public base_application_manager<TraitsT>
 					ewma_s_(v) = ewma_sf_*val+(1-ewma_sf_)*ewma_s_(v);
 				}
 			}
+DCS_DEBUG_TRACE("Observed Smoothed Input: " << ewma_s_);//XXX
 		}
 
 		if (!skip_ctl)
