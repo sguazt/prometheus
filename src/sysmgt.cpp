@@ -293,7 +293,8 @@ int main(int argc, char *argv[])
 			ublas::diagonal_matrix<real_type> R(nu*nb);
 			testbed::lqry_application_manager<traits_type> lqry_mgr(Q, R);
 			lqry_mgr.sysid_strategy(p_sysid_alg);
-			lqry_mgr.target_value(testbed::response_time_application_performance, rt_mean);
+			//lqry_mgr.target_value(testbed::response_time_application_performance, rt_mean);
+			lqry_mgr.target_value(testbed::response_time_application_performance, rt_q99*(1-0.20));
 
 			p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >(lqry_mgr);
 #elif defined(DCS_TESTBED_USE_PADALA2009_APP_MGR)
