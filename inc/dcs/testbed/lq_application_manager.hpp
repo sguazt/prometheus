@@ -46,6 +46,9 @@
 #include <boost/numeric/ublas/vector_proxy.hpp>
 #include <boost/numeric/ublas/traits.hpp>
 #include <boost/numeric/ublasx/operation/all.hpp>
+#ifdef DCS_TESTBED_EXP_LQ_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
+# include <boost/numeric/ublasx/operation/any.hpp>
+#endif // DCS_TESTBED_EXP_LQ_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
 #include <boost/numeric/ublasx/operation/inv.hpp>
 #include <boost/numeric/ublasx/operation/isfinite.hpp>
 #include <boost/numeric/ublasx/operation/num_columns.hpp>
@@ -66,6 +69,9 @@
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
 #include <dcs/testbed/system_identification_strategies.hpp>
+#ifdef DCS_TESTBED_EXP_LQ_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
+# include <functional>
+#endif // DCS_TESTBED_EXP_LQ_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
 #include <limits>
 #include <map>
 #include <stdexcept>
@@ -75,11 +81,320 @@ namespace dcs { namespace testbed {
 
 namespace detail { namespace /*<unnamed>*/ {
 
+/**
+ * \brief Convert a discrete model from ARX structure to a state-space model in
+ *  the canonical controllable form.
+ *
+ * Given the following input-output system:
+ * \f[
+ *  y(k)+\sum_{i=1}^{n_a}y(k-i)=\sum_{i=1}^{n_b}u(k-d-i)
+ * \f]
+ * create the following state-space system:
+ * \f{align}{
+ *  x(k+1) &= Ax(k)+Bu(k),\\
+ *  y(k)   &= Cx(k)+Du(k)
+ * \f}
+ * such that:
+ * \f{align}{
+ *  x(k) &=\begin{pmatrix}
+ *          u(k-d-n_b) \\
+ *          .          \\
+ *          .          \\
+ *          .          \\
+ *          u(k-d-2)   \\
+ *          y(k-n_a)   \\
+ *          .          \\
+ *          .          \\
+ *          .          \\
+ *          y(k-1)
+ *      \end{pmatrix},\\
+ *  u(k) &=\begin{pmatrix}
+ *          u(k-d)
+ *      \end{pmatrix},\\
+ *  A &=\begin{pmatrix}
+         0        & I         & 0         & \ldots & 0  \\
+         0        & 0         & I         & \ldots & 0  \\
+         .        & .         & 0         & \ldots & .  \\
+         .        & .         & .         & \ldots & .  \\
+         .        & .         & .         & \ldots & .  \\
+         0        & 0         & 0         & \ldots & I  \\
+         -A_{n_a} &-A_{n_a-1} &-A_{n_a-2} & \ldots &-A_1
+ *      \end{pmatrix},\\
+ *  B &=\begin{pmatrix}
+ *       0  \\
+ *       .	\\
+ *       .	\\
+ *       .	\\
+ *       0  \\
+ *       I
+ *      \end{pmatrix},\\
+ *  C &=\begin{pmatrix}
+	     B_n-B_0*A_n & \ldots & B_0-B_0*A_0
+ *      \end{pmatrix},\\
+ *  D &=\begin{pmatrix}
+ *       B_0
+ *      \end{pmatrix}
+ * \f}
+ * NOTE: in our case \f$B_0=0\f$, so
+ * \f{align}
+ *  D &=\begin{pmatrix}
+ *       B_n & \ldots & B_1 & 0
+ *      \end{pmatrix},\\
+ *  D &=\begin{pmatrix}
+ *       0
+ *      \end{pmatrix}
+ * \f}.
+ */
+template <
+	typename SysIdentStrategyT,
+	typename AMatrixExprT,
+	typename BMatrixExprT,
+	typename CMatrixExprT,
+	typename DMatrixExprT
+>
+void make_controllable_ss(SysIdentStrategyT const& sys_ident_strategy,
+						  ::boost::numeric::ublas::matrix_container<AMatrixExprT>& A,
+						  ::boost::numeric::ublas::matrix_container<BMatrixExprT>& B,
+						  ::boost::numeric::ublas::matrix_container<CMatrixExprT>& C,
+						  ::boost::numeric::ublas::matrix_container<DMatrixExprT>& D)
+{
+//DCS_DEBUG_TRACE("BEGIN make_ss");//XXX
+	namespace ublas = ::boost::numeric::ublas;
+
+	typedef typename ublas::promote_traits<
+				typename ublas::promote_traits<
+					typename ublas::promote_traits<
+						typename ublas::matrix_traits<AMatrixExprT>::value_type,
+						typename ublas::matrix_traits<BMatrixExprT>::value_type
+					>::promote_type,
+					typename ublas::matrix_traits<CMatrixExprT>::value_type
+				>::promote_type,
+				typename ublas::matrix_traits<DMatrixExprT>::value_type
+			>::promote_type value_type;
+	typedef ::std::size_t size_type; //FIXME: use type-promotion?
+
+	const size_type rls_n_a(sys_ident_strategy.output_order());
+	const size_type rls_n_b(sys_ident_strategy.input_order());
+//	const size_type rls_d(sys_ident_strategy.input_delay());
+	const size_type rls_n_y(sys_ident_strategy.num_outputs());
+	const size_type rls_n_u(sys_ident_strategy.num_inputs());
+	const size_type n_x(rls_n_a*rls_n_y);
+	const size_type n_u(rls_n_b*rls_n_u);
+//	const size_type n(::std::max(n_x,n_u));
+	const size_type n_y(1);
+
+	DCS_ASSERT(
+			rls_n_y <= 1 && rls_n_u <= 1,
+			DCS_EXCEPTION_THROW(
+				::std::runtime_error,
+				"Actually, only SISO cases are hanlded"
+			)
+		);
+	DCS_ASSERT(
+			rls_n_y == rls_n_u,
+			DCS_EXCEPTION_THROW(
+				::std::runtime_error,
+				"Actually, only the same number of channel are treated"
+			)
+		);
+
+	// Create the state matrix A
+	// A=[ 0        I          0         ...  0  ;
+	//     0        0          I         ...  0  ;
+	//     .        .          .         ...  .
+	//     .        .          .         ...  .
+	//     .        .          .         ...  .
+	// 	   0        0          0         ...  I  ;
+	// 	  -A_{n_a} -A_{n_a-1} -A_{n_a-2} ... -A_1]
+	if (n_x > 0)
+	{
+		size_type broffs(n_x-rls_n_y); // The bottom row offset
+
+		A().resize(n_x, n_x, false);
+
+		// The upper part of A is set to [0_{k,rls_n_y} I_{k,k}],
+		// where: k=n_x-rls_n_y.
+		ublas::subrange(A(), 0, broffs, 0, rls_n_y) = ublas::zero_matrix<value_type>(broffs,rls_n_y);
+		ublas::subrange(A(), 0, broffs, rls_n_y, n_x) = ublas::identity_matrix<value_type>(broffs,broffs);
+
+		if (rls_n_a > 0)
+		{
+			// Fill A with A_1, ..., A_{n_a}
+			for (size_type i = 0; i < rls_n_a; ++i)
+			{
+				// Copy matrix -A_i from \hat{\Theta} into A.
+				// In A the matrix A_i has to go in (rls_n_a-i)-th position:
+				//   A(k:(k+n),((rls_n_a-i-1)*rls_n_y):((rls_n_a-i)*rls_n_y)) <- -A_i
+
+				size_type c2((rls_n_a-i)*rls_n_y);
+				size_type c1(c2-rls_n_y);
+
+				////ublas::subrange(A(), broffs, n_x, c1, c2) = sys_ident_strategy.A(i+1);
+				ublas::subrange(A(), broffs, n_x, c1, c2) = -sys_ident_strategy.A(i+1);
+				//ublas::subrange(A(), broffs, n_x, c1, c2) = sys_ident_strategy.A(i+1);
+			}
+		}
+		else
+		{
+			ublas::subrange(A(), broffs, n_x, 0, n_x) = ublas::zero_matrix<value_type>(rls_n_y,n_x);
+		}
+	}
+	else
+	{
+		A().resize(0, 0, false);
+	}
+//DCS_DEBUG_TRACE("A="<<A);//XXX
+
+	// Create the input matrix B
+	// B=[0;
+	//    .;
+	//    .;
+	//    .;
+	//    0;
+	//    I]
+	if (n_x > 0 && rls_n_b > 0)
+	{
+		size_type broffs(n_x-rls_n_u); // The bottom row offset
+
+		B().resize(n_x, n_u, false);
+
+		// The upper part of B is set to 0_{k,n_u}
+		// where: k=n_x-rls_n_u.
+		ublas::subrange(B(), 0, broffs, 0, n_u) = ublas::zero_matrix<value_type>(broffs, n_u);
+		// The lower part of B is set to I_{n_u,n_u}
+		ublas::subrange(B(), broffs, n_x, 0, n_u) = ublas::identity_matrix<value_type>(n_u, n_u);
+	}
+	else
+	{
+		B().resize(0, 0, false);
+	}
+//DCS_DEBUG_TRACE("B="<<B);//XXX
+
+	// Create the output matrix C
+	// C=[M_n ... M_0]
+	// where M_i=B_i-B_0*A_i
+	// NOTE: in our case B_0=0, so M_i=B_i
+	if (n_x > 0)
+	{
+		C().resize(n_y, n_x, false);
+
+		for (size_type i = 0; i < rls_n_b; ++i)
+		{
+			size_type c2((rls_n_b-i)*rls_n_u);
+			size_type c1(c2-rls_n_u);
+
+			ublas::subrange(C(), 0, n_y, c1, c2) = sys_ident_strategy.B(i+1);
+		}
+	}
+	else
+	{
+		C().resize(0, 0, false);
+	}
+//DCS_DEBUG_TRACE("C="<<C);//XXX
+
+	// Create the transmission matrix D
+	// D=[B0]
+	// NOTE: in our case B_0=0, so D=[0]
+	{
+		D().resize(n_y, n_u, false);
+
+		D() = ublas::zero_matrix<value_type>(n_y, n_u);
+	}
+//DCS_DEBUG_TRACE("D="<<D);//XXX
+
+//DCS_DEBUG_TRACE("END make_ss");//XXX
+}
+
+/// Convert an ARX structure to a state-space model in the canonical observable form.
+template <
+    typename SysIdentStrategyT,
+    typename AMatrixExprT,
+    typename BMatrixExprT,
+    typename CMatrixExprT,
+    typename DMatrixExprT
+>
+inline
+void make_observable_ss(SysIdentStrategyT const& sys_ident_strategy,
+						::boost::numeric::ublas::matrix_container<AMatrixExprT>& A,
+						::boost::numeric::ublas::matrix_container<BMatrixExprT>& B,
+						::boost::numeric::ublas::matrix_container<CMatrixExprT>& C,
+						::boost::numeric::ublas::matrix_container<DMatrixExprT>& D)
+{
+	make_controllable_ss(sys_ident_strategy, A, B, C, D);
+	A() = ::boost::numeric::ublas::trans(A);
+	B() = ::boost::numeric::ublas::trans(C);
+	C() = ::boost::numeric::ublas::trans(B);
+}
+
 
 #if defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS == 'X'
 
+/**
+ * \brief Convert a discrete model from ARX structure to a state-space model.
+ *
+ * Given the following input-output system:
+ * \f[
+ *  y(k)+\sum_{i=1}^{n_a}y(k-i)=\sum_{i=1}^{n_b}u(k-d-i)
+ * \f]
+ * create the following state-space system:
+ * \f{align}{
+ *  x(k+1) &= Ax(k)+Bu(k),\\
+ *  y(k)   &= Cx(k)+Du(k)
+ * \f}
+ * such that:
+ * \f{align}{
+ *  x(k) &=\begin{pmatrix}
+ *          u(k-d-n_b) \\
+ *          .          \\
+ *          .          \\
+ *          .          \\
+ *          u(k-d-2)   \\
+ *          y(k-n_a)   \\
+ *          .          \\
+ *          .          \\
+ *          .          \\
+ *          y(k-1)
+ *      \end{pmatrix},\\
+ *  u(k) &=\begin{pmatrix}
+ *          u(k-d)
+ *      \end{pmatrix},\\
+ *  A &=\begin{pmatrix}
+ *       0       & I         & 0         & \ldots & 0   & 0       & I         & 0         & \ldots & 0  \\
+ *       0       & 0         & I         & \ldots & 0   & 0       & 0         & I         & \ldots & 0  \\
+ *       .       & .         & .         & \ldots & .   & .       & .         & 0         & \ldots & .  \\
+ *       .       & .         & .         & \ldots & .   & .       & .         & 0         & \ldots & .  \\
+ *       .       & .         & .         & \ldots & .   & .       & .         & 0         & \ldots & .  \\
+ *       0       & 0         & 0         & \ldots & I   & 0       & 0         & 0         & \ldots & I  \\
+ *       B_{n_b} & B_{n_b-1} & B_{n_b-2} & \ldost & B_2 &-A_{n_a} &-A_{n_a-1} &-A_{n_a-2} & \ldots &-A_1
+ *      \end{pmatrix},\\
+ *  B &=\begin{pmatrix}
+ *       I  \\
+ *       0  \\
+ *       .	\\
+ *       .	\\
+ *       .	\\
+ *       0  \\
+ *       B_1
+ *      \end{pmatrix},\\
+ *  C &=\begin{pmatrix}
+ *       0 & \ldots & 0 & 1 & \ldots & 1 \\
+ *       0 & \ldots & 0 & 1 & \ldots & 1 \\
+ *       . & \ldots & . & . & \ldots & . \\
+ *       . & \ldots & . & . & \ldots & . \\
+ *       . & \ldots & . & . & \ldots & . \\
+ *       0 & \ldots & 0 & 1 & \ldots & 1
+ *      \end{pmatrix},\\
+ *  D &=\begin{pmatrix}
+ *       0 & \ldots & 0 \\
+ *       0 & \ldots & 0 \\
+ *       . & \ldots & . \\
+ *       . & \ldots & . \\
+ *       . & \ldots & . \\
+ *       0 & \ldots & 0
+ *      \end{pmatrix}
+ * \f}
+ */
 template <
-//	typename TraitsT,
 	typename SysIdentStrategyT,
 	typename AMatrixExprT,
 	typename BMatrixExprT,
@@ -216,6 +531,7 @@ void make_ss(SysIdentStrategyT const& sys_ident_strategy,
 //DCS_DEBUG_TRACE("B="<<B);//XXX
 
 	// Create the output matrix C
+	// C=[0 0 ... 1 ... 1]
 	if (n_x > 0)
 	{
 		size_type rcoffs(n_x-rls_n_y); // The right most column offset
@@ -242,175 +558,49 @@ void make_ss(SysIdentStrategyT const& sys_ident_strategy,
 //DCS_DEBUG_TRACE("END make_ss");//XXX
 }
 
-#elif defined(DCS_DES_TESTBED_EXP_LQ_APP_MGR_ALT_SS) && DCS_DES_TESTBED_EXP_LQ_APP_MGR_ALT_SS == 'C'
+#elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS == 'C'
 
 /// Convert an ARX structure to a state-space model in the canonical controllable form.
 template <
-//	typename TraitsT,
 	typename SysIdentStrategyT,
 	typename AMatrixExprT,
 	typename BMatrixExprT,
 	typename CMatrixExprT,
 	typename DMatrixExprT
 >
-//void make_ss(rls_ff_mimo_proxy<TraitsT> const& sys_ident_strategy,
+inline
 void make_ss(SysIdentStrategyT const& sys_ident_strategy,
 			 ::boost::numeric::ublas::matrix_container<AMatrixExprT>& A,
 			 ::boost::numeric::ublas::matrix_container<BMatrixExprT>& B,
 			 ::boost::numeric::ublas::matrix_container<CMatrixExprT>& C,
 			 ::boost::numeric::ublas::matrix_container<DMatrixExprT>& D)
 {
-//DCS_DEBUG_TRACE("BEGIN make_ss");//XXX
-	namespace ublas = ::boost::numeric::ublas;
+	make_controllable_ss(sys_ident_strategy, A, B, C, D);
+}
 
-	typedef typename ublas::promote_traits<
-				typename ublas::promote_traits<
-					typename ublas::promote_traits<
-						typename ublas::matrix_traits<AMatrixExprT>::value_type,
-						typename ublas::matrix_traits<BMatrixExprT>::value_type
-					>::promote_type,
-					typename ublas::matrix_traits<CMatrixExprT>::value_type
-				>::promote_type,
-				typename ublas::matrix_traits<DMatrixExprT>::value_type
-			>::promote_type value_type;
-	typedef ::std::size_t size_type; //FIXME: use type-promotion?
+#elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS == 'O'
 
-	const size_type rls_n_a(sys_ident_strategy.output_order());
-	const size_type rls_n_b(sys_ident_strategy.input_order());
-//	const size_type rls_d(sys_ident_strategy.input_delay());
-	const size_type rls_n_y(sys_ident_strategy.num_outputs());
-	const size_type rls_n_u(sys_ident_strategy.num_inputs());
-	const size_type n_x(rls_n_a*rls_n_y);
-	const size_type n_u(rls_n_b*rls_n_u);
-//	const size_type n(::std::max(n_x,n_u));
-	const size_type n_y(1);
-
-	DCS_ASSERT(
-			rls_n_y <= 1 && rls_n_u <= 1,
-			DCS_EXCEPTION_THROW(
-				::std::runtime_error,
-				"Actually, only SISO cases are hanlded"
-			)
-		);
-	DCS_ASSERT(
-			rls_n_y == rls_n_u,
-			DCS_EXCEPTION_THROW(
-				::std::runtime_error,
-				"Actually, only the same number of channel are treated"
-			)
-		);
-
-	// Create the state matrix A
-	// A=[ 0        I          0         ...  0  ;
-	//     0        0          I         ...  0  ;
-	//     .        .          .         ...  .
-	//     .        .          .         ...  .
-	//     .        .          .         ...  .
-	// 	   0        0          0         ...  I  ;
-	// 	  -A_{n_a} -A_{n_a-1} -A_{n_a-2} ... -A_1]
-	if (n_x > 0)
-	{
-		size_type broffs(n_x-rls_n_y); // The bottom row offset
-
-		A().resize(n_x, n_x, false);
-
-		// The upper part of A is set to [0_{k,rls_n_y} I_{k,k}],
-		// where: k=n_x-rls_n_y.
-		ublas::subrange(A(), 0, broffs, 0, rls_n_y) = ublas::zero_matrix<value_type>(broffs,rls_n_y);
-		ublas::subrange(A(), 0, broffs, rls_n_y, n_x) = ublas::identity_matrix<value_type>(broffs,broffs);
-
-		if (rls_n_a > 0)
-		{
-			// Fill A with A_1, ..., A_{n_a}
-			for (size_type i = 0; i < rls_n_a; ++i)
-			{
-				// Copy matrix -A_i from \hat{\Theta} into A.
-				// In A the matrix A_i has to go in (rls_n_a-i)-th position:
-				//   A(k:(k+n),((rls_n_a-i-1)*rls_n_y):((rls_n_a-i)*rls_n_y)) <- -A_i
-
-				size_type c2((rls_n_a-i)*rls_n_y);
-				size_type c1(c2-rls_n_y);
-
-				////ublas::subrange(A(), broffs, n_x, c1, c2) = sys_ident_strategy.A(i+1);
-				ublas::subrange(A(), broffs, n_x, c1, c2) = -sys_ident_strategy.A(i+1);
-				//ublas::subrange(A(), broffs, n_x, c1, c2) = sys_ident_strategy.A(i+1);
-			}
-		}
-		else
-		{
-			ublas::subrange(A(), broffs, n_x, 0, n_x) = ublas::zero_matrix<value_type>(rls_n_y,n_x);
-		}
-	}
-	else
-	{
-		A().resize(0, 0, false);
-	}
-//DCS_DEBUG_TRACE("A="<<A);//XXX
-
-	// Create the input matrix B
-	// B=[0;
-	//    .;
-	//    .;
-	//    .;
-	//    0;
-	//    I]
-	if (n_x > 0 && rls_n_b > 0)
-	{
-		size_type broffs(n_x-rls_n_u); // The bottom row offset
-
-		B().resize(n_x, n_u, false);
-
-		// The upper part of B is set to 0_{k,n_u}
-		// where: k=n_x-rls_n_u.
-		ublas::subrange(B(), 0, broffs, 0, n_u) = ublas::zero_matrix<value_type>(broffs, n_u);
-		// The lower part of B is set to I_{n_u,n_u}
-		ublas::subrange(B(), broffs, n_x, 0, n_u) = ublas::identity_matrix<value_type(n_u, n_u);
-	}
-	else
-	{
-		B().resize(0, 0, false);
-	}
-//DCS_DEBUG_TRACE("B="<<B);//XXX
-
-	// Create the output matrix C
-	// C=[M_n ... M_0]
-	// where M_i=B_i-B_0*A_i
-	// NOTE: in our case B_0=0, so M_i=B_i
-	if (n_x > 0)
-	{
-		C().resize(n_y, n_x, false);
-
-		for (size_type i = 0; i < rls_n_b; ++i)
-		{
-			size_type c2((rls_n_b-i)*rls_n_u);
-			size_type c1(c2-rls_n_u);
-
-			ublas::subrange(C(), 0, n_y, c1, c2) = sys_ident_strategy.B(i+1);
-		}
-	}
-	else
-	{
-		C().resize(0, 0, false);
-	}
-//DCS_DEBUG_TRACE("C="<<C);//XXX
-
-	// Create the transmission matrix D
-	// D=[B0]
-	// NOTE: in our case B_0=0, so D=[0]
-	{
-		D().resize(n_y, n_u, false);
-
-		D() = ublas::zero_matrix<value_type>(n_y, n_u);
-	}
-//DCS_DEBUG_TRACE("D="<<D);//XXX
-
-//DCS_DEBUG_TRACE("END make_ss");//XXX
+/// Convert an ARX structure to a state-space model in the canonical observable form.
+template <
+	typename SysIdentStrategyT,
+	typename AMatrixExprT,
+	typename BMatrixExprT,
+	typename CMatrixExprT,
+	typename DMatrixExprT
+>
+inline
+void make_ss(SysIdentStrategyT const& sys_ident_strategy,
+			 ::boost::numeric::ublas::matrix_container<AMatrixExprT>& A,
+			 ::boost::numeric::ublas::matrix_container<BMatrixExprT>& B,
+			 ::boost::numeric::ublas::matrix_container<CMatrixExprT>& C,
+			 ::boost::numeric::ublas::matrix_container<DMatrixExprT>& D)
+{
+	make_observable_ss(sys_ident_strategy, A, B, C, D);
 }
 
 #else // DCS_DES_TESTBED_EXP_LQ_APP_MGR_ALT_SS
 
 template <
-//	typename TraitsT,
 	typename SysIdentStrategyT,
 	typename AMatrixExprT,
 	typename BMatrixExprT,
@@ -623,15 +813,42 @@ class lq_application_manager: public base_application_manager<TraitsT>
 		tgt_map_[cat] = val;
 	}
 
-	protected: numeric_vector_type optimal_control(numeric_vector_type const& x,
-												   numeric_vector_type const& u,
-												   numeric_vector_type const& y,
-												   numeric_matrix_type const& A,
-												   numeric_matrix_type const& B,
-												   numeric_matrix_type const& C,
-												   numeric_matrix_type const& D)
+	protected: numeric_vector_type const& state_vector() const
 	{
-		return do_optimal_control(x, u, y, A, B, C, D);
+		return x_;
+	}
+
+	protected: numeric_vector_type& state_vector()
+	{
+		return x_;
+	}
+
+	protected: numeric_vector_type const& input_vector() const
+	{
+		return u_;
+	}
+
+	protected: numeric_vector_type& input_vector()
+	{
+		return u_;
+	}
+
+	protected: numeric_vector_type const& output_vector() const
+	{
+		return y_;
+	}
+
+	protected: numeric_vector_type& output_vector()
+	{
+		return y_;
+	}
+
+	private: numeric_vector_type lq_control(numeric_matrix_type const& A,
+											numeric_matrix_type const& B,
+											numeric_matrix_type const& C,
+											numeric_matrix_type const& D)
+	{
+		return do_lq_control(A, B, C, D);
 	}
 
 	private: void do_sampling_time(uint_type val)
@@ -698,24 +915,36 @@ class lq_application_manager: public base_application_manager<TraitsT>
 		//[/FIXME]
 
 		p_sysid_alg_->init();
+
+		const ::std::size_t np(p_sysid_alg_->num_outputs());
+		const ::std::size_t ns(p_sysid_alg_->num_inputs());
+		const ::std::size_t na(p_sysid_alg_->output_order());
+		const ::std::size_t nb(p_sysid_alg_->input_order());
+
 #if defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_LQ_APP_MGR_USE_ALT_SS == 'X'
-		nx_ = p_sysid_alg_->num_outputs()*p_sysid_alg_->output_order()+p_sysid_alg_->num_inputs()*(p_sysid_alg_->input_order()-1);
-		nu_ = p_sysid_alg_->num_inputs();
-		ny_ = p_sysid_alg_->num_outputs();
-		x_offset_ = (nx_ > 0) ? (nx_-p_sysid_alg_->num_outputs()) : 0;
+		nx_ = np*na+ns*(nb-1);
+		nu_ = ns;
+		ny_ = 1;
+		x_offset_ = (nx_ > 0) ? (nx_-np) : 0;
 		u_offset_ = 0;
 #elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_LQ_APP_MGR_USE_ALT_SS == 'C'
-		nx_ = p_sysid_alg_->num_outputs()*p_sysid_alg_->output_order();
-		nu_ = p_sysid_alg_->num_inputs();
-		ny_ = p_sysid_alg_->num_outputs();
-		x_offset_ = (nx_ > 0) ? (nx_-p_sysid_alg_->num_outputs()) : 0;
+		nx_ = np*na;
+		nu_ = ns;
+		ny_ = 1;
+		x_offset_ = (nx_ > 0) ? (nx_-np) : 0;
+		u_offset_ = 0;
+#elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_LQ_APP_MGR_USE_ALT_SS == 'O'
+		nx_ = np*na;
+		nu_ = ns;
+		ny_ = 1;
+		x_offset_ = (nx_ > 0) ? (nx_-np) : 0;
 		u_offset_ = 0;
 #else // DCS_TESTBED_EXP_LQ_APP_MGR_ALT_SS
-		nx_ = p_sysid_alg_->num_outputs()*p_sysid_alg_->output_order();
-		nu_ = p_sysid_alg_->num_inputs()*p_sysid_alg_->input_order();
-		ny_ = p_sysid_alg_->num_outputs();
-		x_offset_ = (nx_ > 0) ? (nx_-p_sysid_alg_->num_outputs()) : 0;
-		u_offset_ = (nu_ > 0) ? (nu_-p_sysid_alg_->num_inputs()) : 0;
+		nx_ = np*na;
+		nu_ = ns*nb;
+		ny_ = 1;
+		x_offset_ = (nx_ > 0) ? (nx_-np) : 0;
+		u_offset_ = (nu_ > 0) ? (nu_-ns) : 0;
 #endif // DCS_TESTBED_EXP_LQ_APP_MGR_ALT_SS
 		x_ = numeric_vector_type(nx_, ::std::numeric_limits<real_type>::quiet_NaN());
 		u_ = numeric_vector_type(nu_, ::std::numeric_limits<real_type>::quiet_NaN());
@@ -733,8 +962,8 @@ class lq_application_manager: public base_application_manager<TraitsT>
 			yr_ = numeric_vector_type(ny_, tgt_it->second);
 			out_sens_map_[cat] = p_app_->sensor(cat);
 		}
-		ewma_s_ = numeric_vector_type(p_sysid_alg_->num_inputs(), ::std::numeric_limits<real_type>::quiet_NaN());
-		ewma_p_ = numeric_vector_type(p_sysid_alg_->num_outputs(), ::std::numeric_limits<real_type>::quiet_NaN());
+		ewma_s_ = numeric_vector_type(ns, ::std::numeric_limits<real_type>::quiet_NaN());
+		ewma_p_ = numeric_vector_type(np, ::std::numeric_limits<real_type>::quiet_NaN());
 		ctl_count_ = ctl_skip_count_
 				   = ctl_fail_count_
 				   = sysid_fail_count_
@@ -914,7 +1143,7 @@ DCS_DEBUG_TRACE("Old y=" << y_);
 				// throw away old observations from the state vector and make room for new ones
 				if (nx_ > 0)
 				{
-#if defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS)
+#if defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS == 'X'
 					if (nb > 1)
 					{
 						if (nb > 2)
@@ -925,6 +1154,17 @@ DCS_DEBUG_TRACE("Old y=" << y_);
 					}
 					ublas::subrange(x_, ns*(nb-1), nx_-np) = ublas::subrange(x_, (nb-1)*ns+np, nx_);
 					ublas::subrange(x_, nx_-np, nx_) = ublas::scalar_vector<real_type>(np, ::std::numeric_limits<real_type>::quiet_NaN());
+#elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS == 'C'
+# error State-space representation in canonical controllable form has not fully implemented yet
+#elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS == 'O'
+					for (uint_type i = 0; i < na; ++i)
+					{
+						ublas::subrange(x_, np*i, np*(i+1)) = - ublas::prod(p_sysid_alg_->A(na-i), ublas::subrange(x_, nx_-np, nx_)) + ublas::prod(p_sysid_alg_->B(nb-i), u_);
+						if (i > 0)
+						{
+							ublas::subrange(x_, np*i, np*(i+1)) = ublas::subrange(x_, np*i, (np+1)*i) + ublas::subrange(x_, np*(i-1), np*i);
+						}
+					}
 #else // DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS
 					ublas::subrange(x_, 0, nx_-np) = ublas::subrange(x_, np, nx_);
 					ublas::subrange(x_, nx_-np, nx_) = ublas::scalar_vector<real_type>(np, ::std::numeric_limits<real_type>::quiet_NaN());
@@ -1022,7 +1262,7 @@ DCS_DEBUG_TRACE("phi=" << p_sysid_alg_->phi());//XXX
 				ok = false;
 			}
 
-			if (ok && p_sysid_alg_->count() > (na+nb+nk-1))
+			if (ok && p_sysid_alg_->count() >= (na+nb+nk))
 			{
 				// Create the state-space representation of the system model:
 				// x(k+1) = Ax(k)+Bu(k)
@@ -1034,15 +1274,26 @@ DCS_DEBUG_TRACE("phi=" << p_sysid_alg_->phi());//XXX
 				numeric_matrix_type D;
 
 				detail::make_ss(*p_sysid_alg_, A, B, C, D);
-
-				numeric_vector_type opt_u;
-				try
-				{
 DCS_DEBUG_TRACE("State-space System - Matrix A: " << A);
 DCS_DEBUG_TRACE("State-space System - Matrix B: " << B);
 DCS_DEBUG_TRACE("State-space System - Matrix C: " << C);
 DCS_DEBUG_TRACE("State-space System - Matrix D: " << D);
-					opt_u = this->optimal_control(x_, u_, y_, A, B, C, D);
+
+				numeric_vector_type opt_u;
+				try
+				{
+#ifdef DCS_TESTBED_EXP_LQ_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
+                    // Check on B(1) suggested by Karlsson et al "Dynamic Black-Box Performance Model Estimation for Self-Tuning Regulators", 2005
+                    // This essentially consider the model as a linear model where u(k) is the free variabile.
+                    // They compute the first partial derivative wrt to u(k) which gives the matrix B(1).
+                    // In order to preverse reverse proportionality ==> diag(B(1)) < 0
+					if (ublasx::any(p_sysid_alg_->B(1), ::std::bind2nd(::std::greater_equal<real_type>(), 0)))
+					{
+						DCS_EXCEPTION_THROW( ::std::runtime_error, "Cannot compute optimal control input: First partial derivative of input-output model has positive elements on the main diagonal" );
+					}
+#endif // DCS_TESTBED_EXP_LQ_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
+
+					opt_u = this->lq_control(A, B, C, D);
 				}
 				catch (::std::exception const& e)
 				{
@@ -1139,13 +1390,10 @@ DCS_DEBUG_TRACE("Optimal control applied");
 		DCS_DEBUG_TRACE("(" << this << ") END Do CONTROL - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << sysid_fail_count_ << "/" << ctl_fail_count_);
 	}
 
-	private: virtual numeric_vector_type do_optimal_control(numeric_vector_type const& x,
-															numeric_vector_type const& u,
-															numeric_vector_type const& y,
-															numeric_matrix_type const& A,
-															numeric_matrix_type const& B,
-															numeric_matrix_type const& C,
-															numeric_matrix_type const& D) = 0;
+	private: virtual numeric_vector_type do_lq_control(numeric_matrix_type const& A,
+													   numeric_matrix_type const& B,
+													   numeric_matrix_type const& C,
+													   numeric_matrix_type const& D) = 0;
 
 
 	private: uint_type ts_; ///< Sampling time (in ms)
@@ -1196,7 +1444,7 @@ class lqry_application_manager: public lq_application_manager<TraitsT>
 	public: typedef typename base_type::traits_type traits_type;
 	private: typedef typename traits_type::real_type real_type;
 	private: typedef typename traits_type::uint_type uint_type;
-	private: typedef ::dcs::control::dlqry_controller<real_type> controller_type;
+	private: typedef ::dcs::control::dlqry_controller<real_type> lq_controller_type;
 	private: typedef typename base_type::numeric_vector_type numeric_vector_type;
 	private: typedef typename base_type::numeric_matrix_type numeric_matrix_type;
 
@@ -1212,17 +1460,11 @@ class lqry_application_manager: public lq_application_manager<TraitsT>
 	{
 	}
 
-	private: numeric_vector_type do_optimal_control(numeric_vector_type const& x,
-													numeric_vector_type const& u,
-													numeric_vector_type const& y,
-													numeric_matrix_type const& A,
-													numeric_matrix_type const& B,
-													numeric_matrix_type const& C,
-													numeric_matrix_type const& D)
+	private: numeric_vector_type do_lq_control(numeric_matrix_type const& A,
+											   numeric_matrix_type const& B,
+											   numeric_matrix_type const& C,
+											   numeric_matrix_type const& D)
 	{
-		DCS_MACRO_SUPPRESS_UNUSED_VARIABLE_WARNING( u );
-		DCS_MACRO_SUPPRESS_UNUSED_VARIABLE_WARNING( y );
-
 		namespace ublas = ::boost::numeric::ublas;
 		namespace ublasx = ::boost::numeric::ublasx;
 
@@ -1262,7 +1504,7 @@ class lqry_application_manager: public lq_application_manager<TraitsT>
 		numeric_vector_type opt_u;
 
 		ctlr_.solve(A, B, C, D);
-		opt_u = ublas::real(ctlr_.control(x));
+		opt_u = ublas::real(ctlr_.control(this->state_vector()));
 
 		uint_type ncp(nx+nu);
 		uint_type nrp(nx+ny);
@@ -1294,8 +1536,8 @@ class lqry_application_manager: public lq_application_manager<TraitsT>
 	}
 
 
-	private: controller_type ctlr_;
-};
+	private: lq_controller_type ctlr_;
+}; // lqry_application_manager
 
 }} // Namespace dcs::testbed
 
