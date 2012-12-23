@@ -558,6 +558,252 @@ void make_ss(SysIdentStrategyT const& sys_ident_strategy,
 //DCS_DEBUG_TRACE("END make_ss");//XXX
 }
 
+#elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS == 'Y'
+
+/**
+ * \brief Convert a discrete model from ARX structure to a state-space model.
+ *
+ * Given the following input-output system:
+ * \f[
+ *  y(k)+\sum_{i=1}^{n_a}y(k-i)=\sum_{i=1}^{n_b}u(k-d-i)
+ * \f]
+ * create the following state-space system:
+ * \f{align}{
+ *  x(k+1) &= Ax(k)+Bu(k),\\
+ *  y(k)   &= Cx(k)+Du(k)
+ * \f}
+ * such that:
+ * \f{align}{
+ *  x(k) &=\begin{pmatrix}
+ *          u(k-d-n_b+1) \\
+ *          .            \\
+ *          .            \\
+ *          .            \\
+ *          u(k-d-1)     \\
+ *          y(k-n_a+1)   \\
+ *          .            \\
+ *          .            \\
+ *          .            \\
+ *          y(k)
+ *      \end{pmatrix},\\
+ *  u(k) &=\begin{pmatrix}
+ *          u(k-d)
+ *      \end{pmatrix},\\
+ *  A &=\begin{pmatrix}
+ *       0       & I         & 0         & \ldots & 0   & 0       & I         & 0         & \ldots & 0  \\
+ *       0       & 0         & I         & \ldots & 0   & 0       & 0         & I         & \ldots & 0  \\
+ *       .       & .         & .         & \ldots & .   & .       & .         & 0         & \ldots & .  \\
+ *       .       & .         & .         & \ldots & .   & .       & .         & 0         & \ldots & .  \\
+ *       .       & .         & .         & \ldots & .   & .       & .         & 0         & \ldots & .  \\
+ *       0       & 0         & 0         & \ldots & I   & 0       & 0         & 0         & \ldots & I  \\
+ *       B_{n_b} & B_{n_b-1} & B_{n_b-2} & \ldost & B_2 &-A_{n_a} &-A_{n_a-1} &-A_{n_a-2} & \ldots &-A_1
+ *      \end{pmatrix},\\
+ *  B &=\begin{pmatrix}
+ *       0  \\
+ *       .  \\
+ *       .	\\
+ *       .	\\
+ *       0	\\
+ *       I	\\
+ *       0	\\
+ *       .	\\
+ *       .	\\
+ *       .	\\
+ *       0  \\
+ *       B_1
+ *      \end{pmatrix},\\
+ *  C &=\begin{pmatrix}
+ *       0 & \ldots & 0 & I
+ *      \end{pmatrix},\\
+ *  D &=\begin{pmatrix}
+ *       0
+ *      \end{pmatrix}
+ * \f}
+ */
+template <
+	typename SysIdentStrategyT,
+	typename AMatrixExprT,
+	typename BMatrixExprT,
+	typename CMatrixExprT,
+	typename DMatrixExprT
+>
+void make_ss(SysIdentStrategyT const& sys_ident_strategy,
+			 ::boost::numeric::ublas::matrix_container<AMatrixExprT>& A,
+			 ::boost::numeric::ublas::matrix_container<BMatrixExprT>& B,
+			 ::boost::numeric::ublas::matrix_container<CMatrixExprT>& C,
+			 ::boost::numeric::ublas::matrix_container<DMatrixExprT>& D)
+{
+//DCS_DEBUG_TRACE("BEGIN make_ss");//XXX
+	namespace ublas = ::boost::numeric::ublas;
+
+	typedef typename ublas::promote_traits<
+				typename ublas::promote_traits<
+					typename ublas::promote_traits<
+						typename ublas::matrix_traits<AMatrixExprT>::value_type,
+						typename ublas::matrix_traits<BMatrixExprT>::value_type
+					>::promote_type,
+					typename ublas::matrix_traits<CMatrixExprT>::value_type
+				>::promote_type,
+				typename ublas::matrix_traits<DMatrixExprT>::value_type
+			>::promote_type value_type;
+	typedef ::std::size_t size_type; //FIXME: use type-promotion?
+
+	const size_type rls_n_a(sys_ident_strategy.output_order());
+	const size_type rls_n_b(sys_ident_strategy.input_order());
+//	const size_type rls_d(sys_ident_strategy.input_delay());
+	const size_type rls_n_y(sys_ident_strategy.num_outputs());
+	const size_type rls_n_u(sys_ident_strategy.num_inputs());
+	const size_type n_x(rls_n_a*rls_n_y+(rls_n_b-1)*rls_n_u);
+	const size_type n_u(rls_n_u);
+//	const size_type n(::std::max(n_x,n_u));
+	const size_type n_y(1);
+
+	// Create the state matrix A
+	// A=[ 0        I          0         ...  0    0        I          0         ...  0  ;
+	//     0        0          I         ...  0    0        0          I         ...  0  ;
+	//     .        .          .         ...  .    .        .          0         ...  .
+	//     .        .          .         ...  .    .        .          0         ...  .
+	//     .        .          .         ...  .    .        .          0         ...  .
+	// 	   0        0          0         ...  I    0        0          0         ...  I  ;
+	// 	   B_{n_b}  B_{n_b-1}  B_{n_b-2} ...  B_2 -A_{n_a} -A_{n_a-1} -A_{n_a-2} ... -A_1]
+	if (n_x > 0)
+	{
+		const size_type broffs(n_x-rls_n_y); // The bottom row offset
+		const size_type cboffs0(rls_n_b > 1 ? rls_n_u : 0); // The column offset where to write the second B_i matrix (i.e., B_{n_b}-1 matrix)
+		const size_type cboffs1(cboffs0+((rls_n_b > 2) ? (rls_n_b-2)*rls_n_u : 0)); // The column offset where to write the last B_i matrix (i.e., B_2 matrix)
+		const size_type caoffs0(cboffs1+rls_n_y); // The column offset where to write the first A_i matrix (i.e., A_{n_a} matrix)
+		const size_type caoffs1(caoffs0+((rls_n_a > 1) ? (rls_n_a-1)*rls_n_y : 0)); // The column offset where to write the last A_i matrix (i.e., A_1 matrix)
+
+		A().resize(n_x, n_x, false);
+
+		// The upper part of A is set to [0_{k,rls_n_u} I_{k,kb} 0_{k,rls_n_y} I_{k,ka}],
+		// where: k=n_x-rls_n_y, kb=(rls_n_b-2)*rls_n_u, ka=(rls_n_a-1)*rls_n_y.
+		if (cboffs0 > 0)
+		{
+			ublas::subrange(A(), 0, broffs, 0, cboffs0) = ublas::zero_matrix<value_type>(broffs,rls_n_u);
+		}
+		if (cboffs1 > cboffs0)
+		{
+			ublas::subrange(A(), 0, broffs, cboffs0, cboffs1) = ublas::identity_matrix<value_type>(broffs,cboffs1-cboffs0);
+		}
+		if (caoffs0 > cboffs1)
+		{
+			ublas::subrange(A(), 0, broffs, cboffs1, caoffs0) = ublas::zero_matrix<value_type>(broffs,caoffs0-cboffs1);
+		}
+		if (caoffs1 > caoffs0)
+		{
+			ublas::subrange(A(), 0, broffs, caoffs0, caoffs1) = ublas::identity_matrix<value_type>(broffs,caoffs1-caoffs0);
+		}
+
+		// Fill A with B_2, ..., B_{n_b}
+		for (size_type i = 1; i < rls_n_b; ++i)
+		{
+			// Copy matrix B_i from \hat{\Theta} into A.
+			// In A the matrix B_i has to go in (rls_n_b-i)-th position:
+			//   A(k:(k+n),((rls_n_b-i-1)*rls_n_u):((rls_n_b-i)*rls_n_u)) <- B_i
+
+			size_type c2((rls_n_b-i)*rls_n_u);
+			size_type c1(c2-rls_n_u);
+
+			ublas::subrange(A(), broffs, n_x, c1, c2) = sys_ident_strategy.B(i+1);
+		}
+
+		// Fill A with A_1, ..., A_{n_a}
+		for (size_type i = 0; i < rls_n_a; ++i)
+		{
+			// Copy matrix -A_i from \hat{\Theta} into A.
+			// In A the matrix A_i has to go in ((rls_n_b-1)*rls_n_u+rls_n_a-i)-th position:
+			//   A(k:(k+n),((rls_n_b-1)*rls_n_u+(rls_n_a-i-1)*rls_n_y):((rls_n_b-1)*rls_n_u+(rls_n_a-i)*rls_n_y)) <- -A_i
+
+			size_type c2(cboffs1+(rls_n_a-i)*rls_n_y);
+			size_type c1(c2-rls_n_y);
+
+			////ublas::subrange(A(), broffs, n_x, c1, c2) = sys_ident_strategy.A(i+1);
+			ublas::subrange(A(), broffs, n_x, c1, c2) = -sys_ident_strategy.A(i+1);
+			//ublas::subrange(A(), broffs, n_x, c1, c2) = sys_ident_strategy.A(i+1);
+		}
+	}
+	else
+	{
+		A().resize(0, 0, false);
+	}
+//DCS_DEBUG_TRACE("A="<<A);//XXX
+
+	// Create the input matrix B
+	// B=[0  ;
+	//    0  ;
+	//    .	 ;
+	//    .	 ;
+	//    .	 ;
+	//    0  ;
+	//    I  ;
+	//    0  ;
+	//    .	 ;
+	//    .	 ;
+	//    .	 ;
+	//    0  ;
+	//    B_1]
+	if (n_x > 0 && n_u > 0)
+	{
+		const size_type iroffs((rls_n_b > 2) ? rls_n_u*(rls_n_b-2) : 0); // The row offset where to write the identity matrix
+		const size_type zroffs(iroffs+rls_n_u); // The row offset where to write the second zero matrix
+		const size_type broffs(n_x-rls_n_u); // The bottom row offset
+
+		B().resize(n_x, n_u, false);
+
+		// The upper part of B is set to [0_{h,n_u} I_{n_u,n_u} 0_{k,n_u}]
+		// where: h=rls_n_u*(rls_n_b-2) and k=rls_n_y*(rls_n_a-1)
+		if (iroffs > 0)
+		{
+			ublas::subrange(B(), 0, iroffs, 0, n_u) = ublas::zero_matrix<value_type>(iroffs,n_u);
+		}
+		ublas::subrange(B(), iroffs, zroffs, 0, n_u) = ublas::identity_matrix<value_type>(n_u,n_u);
+		if (broffs > zroffs)
+		{
+			ublas::subrange(B(), zroffs, broffs, 0, n_u) = ublas::zero_matrix<value_type>(broffs-zroffs,n_u);
+		}
+		// The bottom part of B with B_1
+		ublas::subrange(B(), broffs, n_x, 0, n_u) = sys_ident_strategy.B(1);
+	}
+	else
+	{
+		B().resize(0, 0, false);
+	}
+//DCS_DEBUG_TRACE("B="<<B);//XXX
+
+	// Create the output matrix C
+	// C=[0 0 ... I]
+	if (n_x > 0)
+	{
+		size_type rcoffs(n_x-rls_n_y); // The right most column offset
+
+		C().resize(n_y, n_x, false);
+
+		ublas::subrange(C(), 0, n_y, 0, rcoffs) = ublas::zero_matrix<value_type>(n_y,rcoffs);
+		ublas::subrange(C(), 0, n_y, rcoffs, n_x) = ublas::identity_matrix<value_type>(rls_n_y,rls_n_y);
+	}
+	else
+	{
+		C().resize(0, 0, false);
+	}
+//DCS_DEBUG_TRACE("C="<<C);//XXX
+
+	// Create the transmission matrix D
+	if (n_u > 0)
+	{
+		D().resize(n_y, n_u, false);
+
+		D() = ublas::zero_matrix<value_type>(n_y, n_u);
+	}
+	else
+	{
+		D().resize(0, 0, false);
+	}
+//DCS_DEBUG_TRACE("D="<<D);//XXX
+
+//DCS_DEBUG_TRACE("END make_ss");//XXX
+}
+
 #elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS == 'C'
 
 /// Convert an ARX structure to a state-space model in the canonical controllable form.
@@ -924,19 +1170,25 @@ class lq_application_manager: public base_application_manager<TraitsT>
 #if defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_LQ_APP_MGR_USE_ALT_SS == 'X'
 		nx_ = np*na+ns*(nb-1);
 		nu_ = ns;
-		ny_ = 1;
+		ny_ = np;
+		x_offset_ = (nx_ > 0) ? (nx_-np) : 0;
+		u_offset_ = 0;
+#elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_LQ_APP_MGR_USE_ALT_SS == 'Y'
+		nx_ = np*na+ns*(nb-1);
+		nu_ = ns;
+		ny_ = np;
 		x_offset_ = (nx_ > 0) ? (nx_-np) : 0;
 		u_offset_ = 0;
 #elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_LQ_APP_MGR_USE_ALT_SS == 'C'
 		nx_ = np*na;
 		nu_ = ns;
-		ny_ = 1;
+		ny_ = np;
 		x_offset_ = (nx_ > 0) ? (nx_-np) : 0;
 		u_offset_ = 0;
 #elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_LQ_APP_MGR_USE_ALT_SS == 'O'
 		nx_ = np*na;
 		nu_ = ns;
-		ny_ = 1;
+		ny_ = np;
 		x_offset_ = (nx_ > 0) ? (nx_-np) : 0;
 		u_offset_ = 0;
 #else // DCS_TESTBED_EXP_LQ_APP_MGR_ALT_SS
