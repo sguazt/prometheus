@@ -287,10 +287,15 @@ int main(int argc, char *argv[])
 			const std::size_t ny(1);
 			const std::size_t nu(nt);
 			const real_type ff(0.98);
+			const real_type rho(1);
 
 			sysid_strategy_pointer p_sysid_alg = boost::make_shared< testbed::rls_ff_arx_miso_proxy<traits_type> >(na, nb, nk, ny, nu, ff);
-			ublas::diagonal_matrix<real_type> Q(ny);
-			ublas::diagonal_matrix<real_type> R(nu*nb);
+			ublas::matrix<real_type> Q = ublas::identity_matrix<real_type>(ny);
+#if defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS == 'Y'
+			ublas::matrix<real_type> R = rho*ublas::identity_matrix<real_type>(nu,nu);
+#else // DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS
+# error TODO: Set matrix R with proper size
+#endif // DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS
 			testbed::lqry_application_manager<traits_type> lqry_mgr(Q, R);
 			lqry_mgr.sysid_strategy(p_sysid_alg);
 			//lqry_mgr.target_value(testbed::response_time_application_performance, rt_mean);
@@ -304,10 +309,9 @@ int main(int argc, char *argv[])
 			const std::size_t ny(1);
 			const std::size_t nu(nt);
 			const real_type ff(0.98);
+			const real_type q(2);
 
 			sysid_strategy_pointer p_sysid_alg = boost::make_shared< testbed::rls_ff_arx_miso_proxy<traits_type> >(na, nb, nk, ny, nu, ff);
-			ublas::diagonal_matrix<real_type> Q(ny);
-			ublas::diagonal_matrix<real_type> R(nu*nb);
 			testbed::padala2009_application_manager<traits_type> padala2009_mgr;
 			padala2009_mgr.sysid_strategy(p_sysid_alg);
 			//padala2009_mgr.target_value(testbed::response_time_application_performance, rt_mean);
