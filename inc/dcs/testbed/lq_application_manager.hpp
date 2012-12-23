@@ -1167,25 +1167,25 @@ class lq_application_manager: public base_application_manager<TraitsT>
 		const ::std::size_t na(p_sysid_alg_->output_order());
 		const ::std::size_t nb(p_sysid_alg_->input_order());
 
-#if defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_LQ_APP_MGR_USE_ALT_SS == 'X'
+#if defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS == 'X'
 		nx_ = np*na+ns*(nb-1);
 		nu_ = ns;
 		ny_ = np;
 		x_offset_ = (nx_ > 0) ? (nx_-np) : 0;
 		u_offset_ = 0;
-#elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_LQ_APP_MGR_USE_ALT_SS == 'Y'
+#elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS == 'Y'
 		nx_ = np*na+ns*(nb-1);
 		nu_ = ns;
 		ny_ = np;
 		x_offset_ = (nx_ > 0) ? (nx_-np) : 0;
 		u_offset_ = 0;
-#elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_LQ_APP_MGR_USE_ALT_SS == 'C'
+#elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS == 'C'
 		nx_ = np*na;
 		nu_ = ns;
 		ny_ = np;
 		x_offset_ = (nx_ > 0) ? (nx_-np) : 0;
 		u_offset_ = 0;
-#elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_LQ_APP_MGR_USE_ALT_SS == 'O'
+#elif defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS == 'O'
 		nx_ = np*na;
 		nu_ = ns;
 		ny_ = np;
@@ -1194,7 +1194,7 @@ class lq_application_manager: public base_application_manager<TraitsT>
 #else // DCS_TESTBED_EXP_LQ_APP_MGR_ALT_SS
 		nx_ = np*na;
 		nu_ = ns*nb;
-		ny_ = 1;
+		ny_ = np;
 		x_offset_ = (nx_ > 0) ? (nx_-np) : 0;
 		u_offset_ = (nu_ > 0) ? (nu_-ns) : 0;
 #endif // DCS_TESTBED_EXP_LQ_APP_MGR_ALT_SS
