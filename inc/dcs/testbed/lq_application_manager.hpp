@@ -46,9 +46,7 @@
 #include <boost/numeric/ublas/vector_proxy.hpp>
 #include <boost/numeric/ublas/traits.hpp>
 #include <boost/numeric/ublasx/operation/all.hpp>
-#ifdef DCS_TESTBED_EXP_LQ_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
-# include <boost/numeric/ublasx/operation/any.hpp>
-#endif // DCS_TESTBED_EXP_LQ_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
+#include <boost/numeric/ublasx/operation/any.hpp>
 #include <boost/numeric/ublasx/operation/inv.hpp>
 #include <boost/numeric/ublasx/operation/isfinite.hpp>
 #include <boost/numeric/ublasx/operation/num_columns.hpp>
@@ -1534,16 +1532,18 @@ DCS_DEBUG_TRACE("State-space System - Matrix D: " << D);
 				numeric_vector_type opt_u;
 				try
 				{
-#ifdef DCS_TESTBED_EXP_LQ_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
                     // Check on B(1) suggested by Karlsson et al "Dynamic Black-Box Performance Model Estimation for Self-Tuning Regulators", 2005
                     // This essentially consider the model as a linear model where u(k) is the free variabile.
                     // They compute the first partial derivative wrt to u(k) which gives the matrix B(1).
                     // In order to preverse reverse proportionality ==> diag(B(1)) < 0
 					if (ublasx::any(p_sysid_alg_->B(1), ::std::bind2nd(::std::greater_equal<real_type>(), 0)))
 					{
+#ifdef DCS_TESTBED_EXP_LQ_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
 						DCS_EXCEPTION_THROW( ::std::runtime_error, "Cannot compute optimal control input: First partial derivative of input-output model has positive elements on the main diagonal" );
-					}
+#else // DCS_TESTBED_EXP_LQ_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
+						dcs::log_warn(DCS_LOGGING_AT, "First partial derivative of input-output model has positive elements on the main diagonal");
 #endif // DCS_TESTBED_EXP_LQ_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
+					}
 
 					opt_u = this->lq_control(A, B, C, D);
 				}
@@ -1564,21 +1564,21 @@ DCS_DEBUG_TRACE("Applying optimal control");
 					//FIXME: new share should be scaled according to the capacity of the "real" machine
 					//FIXME: implement the Physical Machine Manager
 
-					::std::size_t v(0);
-					vm_iterator vm_end_it = vms.end();
-					for (vm_iterator vm_it = vms.begin();
-						 vm_it != vm_end_it;
-						 ++vm_it)
+					if (ublasx::all(ublas::subrange(opt_u, u_offset_, vms.size()), ::std::bind2nd(::std::greater_equal<real_type>(), 0)))
 					{
-						vm_pointer p_vm(*vm_it);
-
-						// check: p_vm != null
-						DCS_DEBUG_ASSERT( p_vm );
-
-						real_type new_share = opt_u(u_offset_+v);
-
-						if (new_share >= 0)
+						::std::size_t v(0);
+						vm_iterator vm_end_it = vms.end();
+						for (vm_iterator vm_it = vms.begin();
+							 vm_it != vm_end_it;
+							 ++vm_it)
 						{
+							vm_pointer p_vm(*vm_it);
+
+							// check: p_vm != null
+							DCS_DEBUG_ASSERT( p_vm );
+
+							real_type new_share = opt_u(u_offset_+v);
+
 							if (::dcs::math::float_traits<real_type>::definitely_less(new_share, default_min_share))
 							{
 								::std::ostringstream oss;
@@ -1593,22 +1593,22 @@ DCS_DEBUG_TRACE("Applying optimal control");
 							}
 
 							new_share = ::std::min(::std::max(new_share, default_min_share), default_max_share);
-						}
-						else
-						{
-							++ctl_fail_count_;
-
-							::std::ostringstream oss;
-							oss << "Control not applied: computed negative share (" << new_share << ") for VM '" << p_vm->id() << "'";
-							::dcs::log_warn(DCS_LOGGING_AT, oss.str());
-
-							ok = false;
-						}
 
 DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << p_vm->cpu_share() << " - new-share: " << new_share);
-						p_vm->cpu_share(new_share);
+							p_vm->cpu_share(new_share);
 
-						++v;
+							++v;
+						}
+					}
+					else
+					{
+						++ctl_fail_count_;
+
+						::std::ostringstream oss;
+						oss << "Control not applied: computed negative share for at least one VM";
+						::dcs::log_warn(DCS_LOGGING_AT, oss.str());
+
+						ok = false;
 					}
 DCS_DEBUG_TRACE("Optimal control applied");
 				}
@@ -1758,6 +1758,7 @@ class lqry_application_manager: public lq_application_manager<TraitsT>
 		ctlr_.solve(A, B, C, D);
 		opt_u = ublas::real(ctlr_.control(this->state_vector()));
 
+#ifdef DCS_TESTBED_EXP_LQ_APP_MGR_USE_COMPENSATION
 		uint_type ncp(nx+nu);
 		uint_type nrp(nx+ny);
 
@@ -1783,6 +1784,7 @@ class lqry_application_manager: public lq_application_manager<TraitsT>
 		{
 			DCS_EXCEPTION_THROW( ::std::runtime_error, "Cannot compute equilibrium control input: Rosenbrock's system matrix is not invertible" );
 		}
+#endif // DCS_TESTBED_EXP_LQ_APP_MGR_USE_COMPENSATION
 
 		return opt_u;
 	}
