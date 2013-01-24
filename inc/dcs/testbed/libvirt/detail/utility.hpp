@@ -325,7 +325,7 @@ struct sched_param_value<char>
 template <>
 struct sched_param_value<char*>
 {
-	char*& void operator()(virTypedParameter& param)
+	char const* operator()(virTypedParameter& param)
 	{
 		return param.value.s;
 	}
