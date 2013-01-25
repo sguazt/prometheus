@@ -167,7 +167,8 @@ class response_time_sensor: public base_sensor<TraitsT>
 						case operation_field:
 						{
 							::std::size_t pos2(pos);
-							for (; pos2 < n && ::std::isalpha(line[pos2]); ++pos2)
+							//for (; pos2 < n && ::std::isalpha(line[pos2]); ++pos2)
+							for (; pos2 < n && ::std::isspace(line[pos2]); ++pos2)
 							{
 								;
 							}
