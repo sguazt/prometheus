@@ -245,8 +245,8 @@ void usage(char const* progname)
 				<< " --wkl-driver <name>" << ::std::endl
 				<< "   The workload driver to use. Possible values are: 'rain'." << ::std::endl
 				<< "   [default: '" << default_workload_driver << "']." << ::std::endl
-				<< " --wkl-driver-path <name>" << ::std::endl
-				<< "   The full path to the workload driver for Olio." << ::std::endl
+				<< " --wkl-driver-rain-path <name>" << ::std::endl
+				<< "   The full path to the RAIN workload driver." << ::std::endl
 				<< "   [default: '" << default_workload_driver_rain_path << "']." << ::std::endl
 				<< ::std::endl;
 }
@@ -340,7 +340,7 @@ int main(int argc, char *argv[])
 		vm_uris = dcs::cli::simple::get_options<std::string>(argv, argv+argc, "--vm-uri");
 		wkl = dcs::cli::simple::get_option<testbed::workload_category>(argv, argv+argc, "--wkl", detail::default_workload);
 		wkl_driver = dcs::cli::simple::get_option<testbed::workload_generator_category>(argv, argv+argc, "--wkl-driver", detail::default_workload_driver);
-		wkl_driver_rain_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-path", detail::default_workload_driver_rain_path);
+		wkl_driver_rain_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-rain-path", detail::default_workload_driver_rain_path);
 	}
 	catch (std::exception const& e)
 	{
