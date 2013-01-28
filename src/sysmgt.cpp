@@ -160,7 +160,6 @@ int main(int argc, char *argv[])
 		dcs::log_error(DCS_LOGGING_AT, oss.str());
 
 		detail::usage(argv[0]);
-		std::abort();
 		return EXIT_FAILURE;
 	}
 
