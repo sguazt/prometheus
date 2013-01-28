@@ -38,9 +38,12 @@
 #include <cstring>
 #include <dcs/cli.hpp>
 #include <dcs/logging.hpp>
+#include <dcs/testbed/application.hpp>
+#include <dcs/testbed/base_application.hpp>
 #include <dcs/testbed/signal_generators.hpp>
 #include <dcs/testbed/system_identification.hpp>
 #include <dcs/testbed/traits.hpp>
+#include <dcs/testbed/virtual_machine_managers.hpp>
 #include <dcs/testbed/virtual_machines.hpp>
 #include <dcs/testbed/workload_category.hpp>
 #include <dcs/testbed/workload_drivers.hpp>
@@ -482,7 +485,16 @@ int main(int argc, char *argv[])
 		oss.str("");
 	}
 
-	typedef boost::shared_ptr< testbed::base_virtual_machine<traits_type> > vm_pointer;
+	typedef testbed::base_virtual_machine<traits_type> vm_type;
+	typedef boost::shared_ptr<vm_type> vm_pointer;
+	typedef vm_type::identifier_type vm_identifier_type;
+	typedef testbed::base_virtual_machine_manager<traits_type> vmm_type;
+	typedef boost::shared_ptr<vmm_type> vmm_pointer;
+	typedef vmm_type::identifier_type vmm_identifier_type;
+    typedef testbed::base_application<traits_type> app_type;
+    typedef boost::shared_ptr<app_type> app_pointer;
+	typedef testbed::base_workload_driver<traits_type> app_driver_type;
+	typedef boost::shared_ptr<app_driver_type> app_driver_pointer;
 	//typedef boost::random::mt19937 random_generator_type;
 	typedef boost::random::mt19937 random_generator_type;
 
@@ -490,28 +502,52 @@ int main(int argc, char *argv[])
 	{
 		const std::size_t nt(vm_uris.size()); // Number of tiers
 
-		std::vector<vm_pointer> vms(nt);
-
+		// Setup application experiment
+		//  - Setup application (and VMs)
+		std::map<vmm_identifier_type,vmm_pointer> vmm_map;
+		std::vector<vm_pointer> vms;
 		std::vector<std::string>::const_iterator uri_end_it(vm_uris.end());
 		for (std::vector<std::string>::const_iterator it = vm_uris.begin();
 			 it != uri_end_it;
 			 ++it)
 		{
-			vm_pointer p_vm(new testbed::libvirt_virtual_machine<traits_type>(*it));
+			std::string const& uri(*it);
+
+			vmm_pointer p_vmm;
+			if (!vmm_map.count(uri) > 0)
+			{
+				p_vmm = boost::make_shared< testbed::libvirt::virtual_machine_manager<traits_type> >(uri);
+				vmm_map[uri] = p_vmm;
+			}
+			else
+			{
+				p_vmm = vmm_map.at(uri);
+			}
+
+			vm_pointer p_vm(p_vmm->vm(uri));
+
+			// check: p_vm != null
+			DCS_DEBUG_ASSERT( p_vm );
 
 			vms.push_back(p_vm);
 		}
+		app_pointer p_app = boost::make_shared< testbed::application<traits_type> >(vms.begin(), vms.end());
 
-		boost::shared_ptr< testbed::base_workload_driver<traits_type> > p_driver;
-
+		// - Setup workload driver
+		app_driver_pointer p_drv;
 		switch (wkl_driver)
 		{
 			case testbed::rain_workload_generator:
-				p_driver = ::boost::make_shared< testbed::rain_workload_driver<traits_type> >(wkl, wkl_driver_rain_path);
+				{
+					boost::shared_ptr< testbed::rain::workload_driver<traits_type> > p_drv_impl = boost::make_shared< testbed::rain::workload_driver<traits_type> >(wkl, wkl_driver_rain_path);
+					p_app->register_sensor(testbed::response_time_application_performance, p_drv_impl->sensor(testbed::response_time_application_performance));
+					p_drv = p_drv_impl;
+				}
 				break;
 		}
+		p_drv->app(p_app);
 
-		// Create the signal generator
+		// - Setup signal generator
 		random_generator_type rng(rng_seed);
 		boost::shared_ptr< testbed::base_signal_generator<real_type> > p_sig_gen;
 		// Specialized params
@@ -527,7 +563,8 @@ int main(int argc, char *argv[])
 				{
 					std::vector<real_type> mean(nt, sig_gauss_mean);
 					std::vector<real_type> sd(nt, sig_gauss_sd);
-					p_sig_gen = boost::make_shared< testbed::gaussian_signal_generator<real_type,random_generator_type> >(mean, sd, rng);
+					//p_sig_gen = boost::make_shared< testbed::gaussian_signal_generator<real_type,random_generator_type> >(mean, sd, rng);
+					p_sig_gen = boost::shared_ptr< testbed::base_signal_generator<real_type> >(new testbed::gaussian_signal_generator<real_type,random_generator_type>(mean, sd, rng));
 				}
 				break;
 			case detail::half_sinusoidal_signal:
@@ -586,7 +623,7 @@ int main(int argc, char *argv[])
 					std::vector<real_type> min(nt, sig_unif_min);
 					std::vector<real_type> max(nt, sig_unif_max);
 					//p_sig_gen = boost::make_shared< testbed::uniform_signal_generator<real_type,random_generator_type> >(min, max, rng);
-					p_sig_gen = boost::make_shared< testbed::uniform_signal_generator<real_type,random_generator_type> >(min, max, rng);
+					p_sig_gen = boost::shared_ptr< testbed::base_signal_generator<real_type> >(new testbed::uniform_signal_generator<real_type,random_generator_type>(min, max, rng));
 				}
 				break;
 			default:
@@ -597,7 +634,7 @@ int main(int argc, char *argv[])
 		p_sig_gen->upper_bound(sig_common_up_bound);
 		p_sig_gen->lower_bound(sig_common_lo_bound);
 
-		testbed::system_identification<traits_type> sysid(vms.begin(), vms.end(), p_driver, p_sig_gen);
+		testbed::system_identification<traits_type> sysid(p_app, p_drv, p_sig_gen);
 		sysid.output_data_file(out_dat_file);
 		sysid.sampling_time(ts);
 		sysid.output_extended_format(true);

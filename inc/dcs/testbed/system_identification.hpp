@@ -42,6 +42,7 @@
 #include <dcs/assert.hpp>
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
+#include <dcs/testbed/base_application.hpp>
 #include <dcs/testbed/base_signal_generator.hpp>
 #include <dcs/testbed/base_virtual_machine.hpp>
 #include <dcs/testbed/base_workload_driver.hpp>
@@ -66,12 +67,14 @@ class system_identification
 {
 	public: typedef TraitsT traits_type;
 	public: typedef typename traits_type::real_type real_type;
-	public: typedef base_virtual_machine<traits_type> vm_type;
-	public: typedef ::boost::shared_ptr<vm_type> vm_pointer;
+	public: typedef base_application<traits_type> app_type;
+	public: typedef ::boost::shared_ptr<app_type> app_pointer;
 	public: typedef base_signal_generator<real_type> signal_generator_type;
 	public: typedef ::boost::shared_ptr<signal_generator_type> signal_generator_pointer;
 	public: typedef base_workload_driver<traits_type> workload_driver_type;
 	public: typedef ::boost::shared_ptr<workload_driver_type> workload_driver_pointer;
+	private: typedef base_virtual_machine<traits_type> vm_type;
+	private: typedef ::boost::shared_ptr<vm_type> vm_pointer;
 	private: typedef ::std::vector<vm_pointer> vm_container;
 
 
@@ -88,9 +91,8 @@ class system_identification
 	}
 
 	/// A constructor.
-	public: template <typename FwdIterT>
-			system_identification(FwdIterT vm_first, FwdIterT vm_last, workload_driver_pointer const& p_wkl_driver, signal_generator_pointer const& p_sig_gen)
-	: vms_(vm_first, vm_last),
+	public: system_identification(app_pointer const& p_app, workload_driver_pointer const& p_wkl_driver, signal_generator_pointer const& p_sig_gen)
+	: p_app_(p_app),
 	  p_wkl_driver_(p_wkl_driver),
 	  p_sig_gen_(p_sig_gen),
 	  ts_(default_sampling_time),
@@ -137,7 +139,7 @@ class system_identification
 	 */
 	public: void run()
 	{
-		::std::vector<real_type> init_shares(vms_.size(), 1);
+		::std::vector<real_type> init_shares(p_app_->num_vms(), 1);
 
 		this->run(init_shares.begin(), init_shares.end());
 	}
@@ -149,7 +151,7 @@ class system_identification
 			void run(FwdIterT share_first, FwdIterT share_end)
 	{
 		// distance(share_first,share_end) == size(vms_)
-		DCS_ASSERT(static_cast< ::std::size_t >(::std::distance(share_first, share_end)) == vms_.size(),
+		DCS_ASSERT(static_cast< ::std::size_t >(::std::distance(share_first, share_end)) == p_app_->num_vms(),
 				   DCS_EXCEPTION_THROW(::std::invalid_argument,
 									   "Share container size does not match"));
 
@@ -159,8 +161,10 @@ class system_identification
 
 		DCS_DEBUG_TRACE( "BEGIN Execution of System Identification" );
 
-		vm_iterator vm_end_it(vms_.end());
-		vm_iterator vm_beg_it(vms_.begin());
+		vm_container vms = p_app_->vms();
+
+		vm_iterator vm_end_it(vms.end());
+		vm_iterator vm_beg_it(vms.begin());
 
 		if (vm_beg_it == vm_end_it)
 		{
@@ -243,7 +247,7 @@ class system_identification
 				share_container share((*p_sig_gen_)());
 
 				// check: consistency
-				DCS_DEBUG_ASSERT( share.size() == vms_.size() );
+				DCS_DEBUG_ASSERT( share.size() == p_app_->num_vms() );
 
 				DCS_DEBUG_TRACE( "   Generated shares: " << dcs::debug::to_string(share.begin(), share.end()) );
 
@@ -331,7 +335,7 @@ class system_identification
 	}
 
 
-	private: vm_container vms_; ///< VMs container
+	private: app_pointer p_app_; ///< Ptr to application
 	private: workload_driver_pointer p_wkl_driver_; ///< Ptr to workload driver
 	private: signal_generator_pointer p_sig_gen_; ///< Ptr to signal generator used to excite VMs
 	private: unsigned int ts_; ///< The sampling time
