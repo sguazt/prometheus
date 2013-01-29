@@ -15,7 +15,7 @@
  *                           University of Piemonte Orientale,
  *                           Alessandria (Italy)]
  *
- * This file is part of Foobar (below referred to as "this program").
+ * This file is part of dcsxx-testbed (below referred to as "this program").
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
