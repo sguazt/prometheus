@@ -198,6 +198,8 @@ class application_experiment
 
 		mgr_thd_grp.interrupt_all();
 		mgr_thd_grp.join_all();
+
+		p_drv_->stop();
 	}
 
 
