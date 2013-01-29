@@ -219,7 +219,6 @@ class workload_driver: public base_workload_driver<TraitsT>
 	private: typedef ::dcs::system::posix_process sys_process_type;
 	private: typedef ::boost::shared_ptr<sys_process_type> sys_process_pointer;
 	public: typedef typename base_type::real_type real_type;
-	public: typedef typename base_type::observation_type observation_type;
 	public: typedef typename base_type::app_pointer app_pointer;
 	public: typedef base_sensor<traits_type> sensor_type;
 	public: typedef ::boost::shared_ptr<sensor_type> sensor_pointer;
@@ -228,8 +227,6 @@ class workload_driver: public base_workload_driver<TraitsT>
 
 	template <typename T>
 	friend struct detail::rampup_monitor_runnable;
-//	template <typename T>
-//	friend struct detail::steady_state_monitor_runnable;
 	template <typename T>
 	friend struct detail::steady_state_logger_runnable;
 
@@ -240,7 +237,6 @@ class workload_driver: public base_workload_driver<TraitsT>
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
 	  rampup_thread_active_(false),
-//	  steady_thread_active_(false),
 	  logger_thread_active_(false)
 	{
 	}
@@ -252,7 +248,6 @@ class workload_driver: public base_workload_driver<TraitsT>
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
 	  rampup_thread_active_(false),
-//	  steady_thread_active_(false),
 	  logger_thread_active_(false)
 	{
 	}
@@ -265,7 +260,6 @@ class workload_driver: public base_workload_driver<TraitsT>
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
 	  rampup_thread_active_(false),
-//	  steady_thread_active_(false),
 	  logger_thread_active_(false)
 	{
 	}
@@ -281,7 +275,6 @@ class workload_driver: public base_workload_driver<TraitsT>
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
 	  rampup_thread_active_(false),
-//	  steady_thread_active_(false),
 	  logger_thread_active_(false)
 	{
 	}
@@ -303,11 +296,6 @@ class workload_driver: public base_workload_driver<TraitsT>
 			rampup_thread_.interrupt();
 			rampup_thread_.join();
 		}
-//		if (this->steady_state_thread_active())
-//		{
-//			steady_thread_.interrupt();
-//			steady_thread_.join();
-//		}
 		if (this->logger_thread_active())
 		{
 			logger_thread_.interrupt();
@@ -348,20 +336,6 @@ class workload_driver: public base_workload_driver<TraitsT>
 		return proc_;
 	}
 
-	private: void add_observation(observation_type const& obs)
-	{
-		::boost::lock_guard<mutex_type> lock(obs_mutex_);
-
-		obs_.push_back(obs);
-	}
-
-	private: void add_observation(::std::time_t ts,
-								  ::std::string const& op,
-								  real_type val)
-	{
-		this->add_observation(base_type::make_observation(ts, op, val));
-	}
-
 	private: ::boost::thread& rampup_thread()
 	{
 		return rampup_thread_;
@@ -385,30 +359,6 @@ class workload_driver: public base_workload_driver<TraitsT>
 
 		return rampup_thread_active_;
 	}
-
-//	private: ::boost::thread& steady_state_thread()
-//	{
-//		return steady_thread_;
-//	}
-
-//	private: ::boost::thread const& steady_state_thread() const
-//	{
-//		return steady_thread_;
-//	}
-
-//	private: void steady_state_thread_active(bool val)
-//	{
-//		::boost::lock_guard<mutex_type> lock(steady_thread_mutex_);
-//
-//		steady_thread_active_ = val;
-//	}
-
-//	private: bool steady_state_thread_active() const
-//	{
-//		::boost::lock_guard<mutex_type> lock(steady_thread_mutex_);
-//
-//		return steady_thread_active_;
-//	}
 
 	private: ::boost::thread& logger_thread()
 	{
@@ -467,12 +417,6 @@ class workload_driver: public base_workload_driver<TraitsT>
 			rampup_thread_.join();
 			this->rampup_thread_active(false);
 		}
-//		if (this->steady_state_thread_active())
-//		{
-//			steady_thread_.interrupt();
-//			steady_thread_.join();
-//			this->steady_state_thread_active(false);
-//		}
 		if (this->logger_thread_active())
 		{
 			logger_thread_.interrupt();
@@ -535,23 +479,6 @@ class workload_driver: public base_workload_driver<TraitsT>
 			this->rampup_thread_active(false);
 		}
 
-//		if (this->steady_state_thread_active())
-//		{
-//			try
-//			{
-//				steady_thread_.interrupt();
-//				steady_thread_.join();
-//			}
-//			catch (::std::exception const& e)
-//			{
-//				::std::ostringstream oss;
-//				oss << "Unable to join steady-state phase monitor thread for the RAIN workload driver: " << e.what();
-//
-//				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
-//			}
-//			this->steady_state_thread_active(false);
-//		}
-
 		if (this->logger_thread_active())
 		{
 			try
@@ -582,46 +509,19 @@ class workload_driver: public base_workload_driver<TraitsT>
 		return ready_;
 	}
 
-	private: bool do_has_observation() const
-	{
-		::boost::lock_guard<mutex_type> lock(obs_mutex_);
-
-		return !obs_.empty();
-	}
-
-	private: ::std::vector<observation_type> do_observations() const
-	{
-		::std::vector<observation_type> obs;
-
-		::boost::lock_guard<mutex_type> lock(obs_mutex_);
-
-		while (!obs_.empty())
-		{
-			obs.push_back(obs_.front());
-			obs_.pop_front();
-		}
-
-		return obs;
-	}
-
 
 	private: ::std::string cmd_;
 	private: ::std::vector< ::std::string > args_;
 	private: ::std::string metrics_path_;
 	private: bool ready_;
 	private: bool rampup_thread_active_;
-//	private: bool steady_thread_active_;
 	private: bool logger_thread_active_;
 	private: app_pointer p_app_;
 	private: sys_process_type proc_;
-	private: mutable ::std::list<observation_type> obs_;
 	private: ::boost::thread rampup_thread_;
-//	private: ::boost::thread steady_thread_;
 	private: ::boost::thread logger_thread_;
 	private: mutable mutex_type ready_mutex_;
-	private: mutable mutex_type obs_mutex_;
 	private: mutable mutex_type rampup_thread_mutex_;
-//	private: mutable mutex_type steady_thread_mutex_;
 	private: mutable mutex_type logger_thread_mutex_;
 }; // workload_driver
 
