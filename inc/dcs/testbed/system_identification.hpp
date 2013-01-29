@@ -73,9 +73,6 @@ class system_identification
 	public: typedef ::boost::shared_ptr<signal_generator_type> signal_generator_pointer;
 	public: typedef base_workload_driver<traits_type> workload_driver_type;
 	public: typedef ::boost::shared_ptr<workload_driver_type> workload_driver_pointer;
-	private: typedef base_virtual_machine<traits_type> vm_type;
-	private: typedef ::boost::shared_ptr<vm_type> vm_pointer;
-	private: typedef ::std::vector<vm_pointer> vm_container;
 
 
 	private: static const unsigned int default_sampling_time = 10;
@@ -155,9 +152,14 @@ class system_identification
 				   DCS_EXCEPTION_THROW(::std::invalid_argument,
 									   "Share container size does not match"));
 
+		typedef typename app_type::vm_type vm_type;
+		typedef typename app_type::vm_pointer vm_pointer;
+		typedef ::std::vector<vm_pointer> vm_container;
 		typedef typename vm_container::const_iterator vm_iterator;
 		typedef typename signal_generator_type::vector_type share_container;
 		typedef typename vm_type::identifier_type vm_identifier_type;
+		typedef typename app_type::sensor_type sensor_type;
+		typedef typename app_type::sensor_pointer sensor_pointer;
 
 		DCS_DEBUG_TRACE( "BEGIN Execution of System Identification" );
 
@@ -222,10 +224,12 @@ class system_identification
 		::std::time_t t0(-1);
 		::std::time_t t1(-1);
 		::std::time(&t1);
+		const application_performance_category perf_cat = response_time_application_performance;
+		sensor_pointer p_sensor = p_app_->sensor(perf_cat);
 		while (!p_wkl_driver_->done())
 		{
 			DCS_DEBUG_TRACE( "   Driver is alive" );
-			if (p_wkl_driver_->ready() && p_wkl_driver_->has_observation())
+			if (p_wkl_driver_->ready() && p_sensor->has_observations())
 			{
 				// Stringstream used to hold common output info
 				::std::ostringstream oss;
@@ -272,10 +276,10 @@ class system_identification
 				}
 
 				// Get collected observations
-				typedef typename workload_driver_type::observation_type observation_type;
+				typedef typename sensor_type::observation_type observation_type;
 				typedef ::std::vector<observation_type> obs_container;
 				typedef typename obs_container::const_iterator obs_iterator;
-				obs_container obs = p_wkl_driver_->observations();
+				obs_container obs = p_sensor->observations();
 				//FIXME: parameterize the type of statistics the user want
 				::boost::accumulators::accumulator_set< real_type, ::boost::accumulators::stats< ::boost::accumulators::tag::mean > > acc;
 				obs_iterator obs_end_it(obs.end());
@@ -288,7 +292,7 @@ class system_identification
 
 					if (out_ext_fmt_)
 					{
-						ofs << oss.str() << "," << obs_it->timestamp() << "," << "\"" << obs_it->operation() << "\"" << "," << val << "," << "\"[DATA]\"" << ::std::endl;
+						ofs << oss.str() << "," << obs_it->timestamp() << "," << "\"" << obs_it->label() << "\"" << "," << val << "," << "\"[DATA]\"" << ::std::endl;
 					}
 				}
 
