@@ -229,86 +229,90 @@ class system_identification
 		while (!p_wkl_driver_->done())
 		{
 			DCS_DEBUG_TRACE( "   Driver is alive" );
-			if (p_wkl_driver_->ready() && p_sensor->has_observations())
+			if (p_wkl_driver_->ready())
 			{
-				// Stringstream used to hold common output info
-				::std::ostringstream oss;
-
-				// Compute the elapsed time
-				::std::time(&t1);
-				if (t0 == -1)
+				p_sensor->sense();
+				if (p_sensor->has_observations())
 				{
-					// Set t0 to the start of observation collection phase
-					t0 = t1;
-				}
-				double dt = ::std::difftime(t1, t0);
+					// Stringstream used to hold common output info
+					::std::ostringstream oss;
 
-				DCS_DEBUG_TRACE( "-- Time " << dt );
+					// Compute the elapsed time
+					::std::time(&t1);
+					if (t0 == -1)
+					{
+						// Set t0 to the start of observation collection phase
+						t0 = t1;
+					}
+					double dt = ::std::difftime(t1, t0);
 
-				oss << dt;
+					DCS_DEBUG_TRACE( "-- Time " << dt );
 
-				// Generate new shares
-				share_container share((*p_sig_gen_)());
+					oss << dt;
 
-				// check: consistency
-				DCS_DEBUG_ASSERT( share.size() == p_app_->num_vms() );
+					// Generate new shares
+					share_container share((*p_sig_gen_)());
 
-				DCS_DEBUG_TRACE( "   Generated shares: " << dcs::debug::to_string(share.begin(), share.end()) );
+					// check: consistency
+					DCS_DEBUG_ASSERT( share.size() == p_app_->num_vms() );
 
-				// Set new shares to every VM
-				::std::size_t ix(0);
-				for (vm_iterator vm_it = vm_beg_it;
-					 vm_it != vm_end_it;
-					 ++vm_it)
-				{
-					vm_pointer p_vm(*vm_it);
+					DCS_DEBUG_TRACE( "   Generated shares: " << dcs::debug::to_string(share.begin(), share.end()) );
 
-					// check: not null
-					DCS_DEBUG_ASSERT( p_vm );
+					// Set new shares to every VM
+					::std::size_t ix(0);
+					for (vm_iterator vm_it = vm_beg_it;
+						 vm_it != vm_end_it;
+						 ++vm_it)
+					{
+						vm_pointer p_vm(*vm_it);
 
-					DCS_DEBUG_TRACE( "   VM '" << p_vm->name() << "' :: Old CPU share: " << p_vm->cpu_share() << " :: New CPU share: " << share[ix] );
+						// check: not null
+						DCS_DEBUG_ASSERT( p_vm );
 
-					oss << "," << p_vm->cpu_share();
+						DCS_DEBUG_TRACE( "   VM '" << p_vm->name() << "' :: Old CPU share: " << p_vm->cpu_share() << " :: New CPU share: " << share[ix] );
 
-					p_vm->cpu_share(share[ix]);
+						oss << "," << p_vm->cpu_share();
 
-					++ix;
-				}
+						p_vm->cpu_share(share[ix]);
 
-				// Get collected observations
-				typedef typename sensor_type::observation_type observation_type;
-				typedef ::std::vector<observation_type> obs_container;
-				typedef typename obs_container::const_iterator obs_iterator;
-				obs_container obs = p_sensor->observations();
-				//FIXME: parameterize the type of statistics the user want
-				::boost::accumulators::accumulator_set< real_type, ::boost::accumulators::stats< ::boost::accumulators::tag::mean > > acc;
-				obs_iterator obs_end_it(obs.end());
-				for (obs_iterator obs_it = obs.begin();
-					 obs_it != obs_end_it;
-					 ++obs_it)
-				{
-					real_type val(obs_it->value());
-					acc(val);
+						++ix;
+					}
+
+					// Get collected observations
+					typedef typename sensor_type::observation_type observation_type;
+					typedef ::std::vector<observation_type> obs_container;
+					typedef typename obs_container::const_iterator obs_iterator;
+					obs_container obs = p_sensor->observations();
+					//FIXME: parameterize the type of statistics the user want
+					::boost::accumulators::accumulator_set< real_type, ::boost::accumulators::stats< ::boost::accumulators::tag::mean > > acc;
+					obs_iterator obs_end_it(obs.end());
+					for (obs_iterator obs_it = obs.begin();
+						 obs_it != obs_end_it;
+						 ++obs_it)
+					{
+						real_type val(obs_it->value());
+						acc(val);
+
+						if (out_ext_fmt_)
+						{
+							ofs << oss.str() << "," << obs_it->timestamp() << "," << "\"" << obs_it->label() << "\"" << "," << val << "," << "\"[DATA]\"" << ::std::endl;
+						}
+					}
+
+					// Compute a summary statistics of collected observation
+					//FIXME: parameterize the type of statistics the user want
+					real_type summary_obs = ::boost::accumulators::mean(acc);
+
+					DCS_DEBUG_TRACE( "   Current (summary) observation: " << summary_obs );
 
 					if (out_ext_fmt_)
 					{
-						ofs << oss.str() << "," << obs_it->timestamp() << "," << "\"" << obs_it->label() << "\"" << "," << val << "," << "\"[DATA]\"" << ::std::endl;
+						ofs << oss.str() << "," << dt << ",\"\"," << summary_obs << "," << "\"[SUMMARY]\"" << ::std::endl;
 					}
-				}
-
-				// Compute a summary statistics of collected observation
-				//FIXME: parameterize the type of statistics the user want
-				real_type summary_obs = ::boost::accumulators::mean(acc);
-
-				DCS_DEBUG_TRACE( "   Current (summary) observation: " << summary_obs );
-
-				if (out_ext_fmt_)
-				{
-					ofs << oss.str() << "," << dt << ",\"\"," << summary_obs << "," << "\"[SUMMARY]\"" << ::std::endl;
-				}
-				else
-				{
-					ofs << oss.str() << "," << summary_obs << ::std::endl;
+					else
+					{
+						ofs << oss.str() << "," << summary_obs << ::std::endl;
+					}
 				}
 			}
 
