@@ -168,7 +168,7 @@ class response_time_sensor: public base_sensor<TraitsT>
 						{
 							::std::size_t pos2(pos);
 							//for (; pos2 < n && ::std::isalpha(line[pos2]); ++pos2)
-							for (; pos2 < n && ::std::isspace(line[pos2]); ++pos2)
+							for (; pos2 < n && !::std::isspace(line[pos2]); ++pos2)
 							{
 								;
 							}
@@ -201,7 +201,7 @@ class response_time_sensor: public base_sensor<TraitsT>
 				}
 			}
 
-			obs_.push_back(observation_type(obs_ts, obs_op, obs_rtns*1.0e-6));
+			obs_.push_back(observation_type(obs_ts, obs_op, obs_rtns*1.0e-9));
 		}
 
 		DCS_DEBUG_TRACE("END Do Sense");
