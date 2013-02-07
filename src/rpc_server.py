@@ -36,7 +36,7 @@ class NetworkConnectionsManager:
 	def num_connections_by_status(self, host, port, status):
 		sql = "SELECT COUNT(*) FROM network_connection WHERE server_addr=? AND server_port=? GROUP BY status HAVING status=?"
 		db_conn = apsw.Connection(self.db_file_, apsw.SQLITE_OPEN_READONLY)
-		db_conn.setbusyhandler(db_busy_handler)
+		db_conn.setbusyhandler(db_busy_handler_)
 		db_cursor = db_conn.cursor()
 		ret = 0
 		#num_trials = 5
