@@ -4,6 +4,8 @@ import apsw
 import argparse
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 import sys
+import time
+
 
 ## Internal logic
 
@@ -22,8 +24,29 @@ class NetworkConnectionsManager:
 		sql = "SELECT COUNT(*) FROM network_connection WHERE server_addr=? AND server_port=? GROUP BY status HAVING status=?"
 		db_conn = apsw.Connection(self.db_file_, apsw.SQLITE_OPEN_READONLY)
 		db_cursor = db_conn.cursor()
-		for row in db_cursor.execute(sql, (host, port, status)):
-			return row[0]
+		ret = 0
+		num_trials = 5
+		trial = 1
+		loop = True
+		while loop:
+			try:
+				for row in db_cursor.execute(sql, (host, port, status)):
+					ret = row[0]
+					loop = False
+			except:
+				if trial < num_trials:
+					++trial
+					print >> sys.stderr, "Unable to query the DB: Zzz..."
+					time.sleep(1)
+				else:
+					loop = False
+					print >> sys.stderr, "Unable to query the DB. Give-up!"
+					raise
+			else:
+				loop = False
+		db_cursor.close()
+		db_conn.close()
+		return ret
 
 
 ## XML-RPC functions
