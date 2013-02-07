@@ -9,6 +9,18 @@ import time
 
 ## Internal logic
 
+max_num_trials = 30
+zzz_time = 1
+
+def db_busy_handler_(num_trials):
+	if num_trials >= max_num_trials:
+		print >> sys.stderr, "Unable to query the DB: Give-up"
+		return False
+	print >> sys.stderr, "Unable to query the DB: Zzz..."
+	time.sleep(zzz_time)
+	return True
+
+
 class NetworkConnectionsManager:
 	"""Managed stored network connections."""
 
@@ -16,8 +28,6 @@ class NetworkConnectionsManager:
 	wait_connection_status = 0
 	active_connection_status = 1
 	closed_connection_status = 2
-
-	max_num_trials = 10
 
 
 	def __init__(self, db_file):
@@ -57,11 +67,6 @@ class NetworkConnectionsManager:
 		db_cursor.close()
 		db_conn.close()
 		return ret
-
-	def db_busy_handler(num_trials):
-		if num_trials >= max_num_trials:
-			return False
-		return True
 
 
 ## XML-RPC functions
