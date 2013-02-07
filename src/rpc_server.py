@@ -17,36 +17,51 @@ class NetworkConnectionsManager:
 	active_connection_status = 1
 	closed_connection_status = 2
 
+	max_num_trials = 10
+
+
 	def __init__(self, db_file):
 		self.db_file_ = db_file
 
 	def num_connections_by_status(self, host, port, status):
 		sql = "SELECT COUNT(*) FROM network_connection WHERE server_addr=? AND server_port=? GROUP BY status HAVING status=?"
 		db_conn = apsw.Connection(self.db_file_, apsw.SQLITE_OPEN_READONLY)
+		db_conn.setbusyhandler(db_busy_handler)
 		db_cursor = db_conn.cursor()
 		ret = 0
-		num_trials = 5
-		trial = 1
-		loop = True
-		while loop:
-			try:
-				for row in db_cursor.execute(sql, (host, port, status)):
-					ret = row[0]
-					loop = False
-			except:
-				if trial < num_trials:
-					++trial
-					print >> sys.stderr, "Unable to query the DB: Zzz..."
-					time.sleep(1)
-				else:
-					loop = False
-					print >> sys.stderr, "Unable to query the DB. Give-up!"
-					raise
-			else:
-				loop = False
+		#num_trials = 5
+		#trial = 1
+		#loop = True
+		#while loop:
+		#	try:
+		#		for row in db_cursor.execute(sql, (host, port, status)):
+		#			ret = row[0]
+		#			loop = False
+		#	except apsw.BusyError
+		#		#TODO: the code below should only be executed if the exception
+		#		#      related to a DB locking problem
+		#		if trial < num_trials:
+		#			++trial
+		#			print >> sys.stderr, "Unable to query the DB: Zzz..."
+		#			time.sleep(1)
+		#		else:
+		#			loop = False
+		#			print >> sys.stderr, "Unable to query the DB. Give-up!"
+		#			raise
+		#	except:
+		#		raise
+		#	else:
+		#		loop = False
+		for row in db_cursor.execute(sql, (host, port, status)):
+			ret = row[0]
 		db_cursor.close()
 		db_conn.close()
 		return ret
+
+	def db_busy_handler(num_trials):
+		if num_trials >= max_num_trials:
+			return False
+		return True
 
 
 ## XML-RPC functions
