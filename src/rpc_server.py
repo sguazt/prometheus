@@ -69,7 +69,8 @@ if __name__ == "__main__":
 		arg_parser.error("DB has not been specified")
 
 	# Setup the server
-	server = SimpleXMLRPCServer(("localhost", args.port));
+	# NOTE: Hostname "" is a symbolic name meaning all available interfaces
+	server = SimpleXMLRPCServer(("", args.port));
 
 	# Register functions
 	server.register_introspection_functions()
