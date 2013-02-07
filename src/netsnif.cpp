@@ -803,7 +803,8 @@ int main(int argc, char* argv[])
 	std::string filter_expr;
 	{
 		std::ostringstream oss;
-		oss << "tcp[tcpflags] host " << srv_address << " port " << srv_port;
+		//oss << "tcp[tcpflags] host " << srv_address << " port " << srv_port;
+		oss << "tcp and host " << srv_address << " and port " << srv_port;
 		filter_expr = oss.str();
 	}
 
