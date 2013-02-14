@@ -740,6 +740,175 @@ void usage(char const* progname)
 	return host_addr;
 }
 
+
+class batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_handler
+{
+	public: batch_packet_handler(::std::string const& srv_address, ::boost::uint16_t srv_port, network_connection_manager* p_conn_mgr)
+	:srv_address_(srv_address),
+	 srv_port_(srv_port),
+	 p_conn_mgr_(p_conn_mgr),
+	 count_(0)
+	{
+	}
+
+	public: void operator()(::boost::shared_ptr< ::dcs::network::pcap::raw_packet > const& p_pkt)
+	{
+		++count_;
+
+		//DCS_DEBUG_TRACE( "-[" << count_ << "] Grabbed new packet: " << *p_pkt );
+
+		boost::shared_ptr<dcs::network::ethernet_frame> p_eth = dcs::network::pcap::make_ethernet_frame(*p_pkt);
+		DCS_DEBUG_TRACE( "-[" << count_ << "] -> Ethernet frame: " << *p_eth );
+
+		if (p_eth->ethertype_field() == ::dcs::network::ethernet_frame::ethertype_ipv4)
+		{
+			boost::shared_ptr<dcs::network::ip4_packet> p_ip = ::boost::make_shared<dcs::network::ip4_packet>(p_eth->payload(), p_eth->payload_size());
+			DCS_DEBUG_TRACE( "-[" << count_ << "] -> IP packet: " << *p_ip );
+
+			if (p_ip->protocol_field() == ::dcs::network::ip4_packet::proto_tcp)
+			{
+				boost::shared_ptr<dcs::network::tcp_segment> p_tcp = ::boost::make_shared<dcs::network::tcp_segment>(p_ip->payload(), p_ip->payload_size());
+				DCS_DEBUG_TRACE( "-[" << count_ << "] -> TCP segment: " << *p_tcp );
+#ifdef DCS_DEBUG
+				if (p_tcp->payload_size() > 0)
+				{
+					char const* payload = reinterpret_cast<char const*>(p_tcp->payload());
+					std::size_t payload_sz = p_tcp->payload_size();
+					std::size_t i = 0;
+					while (i < payload_sz && std::isprint(payload[i]))
+					{
+						++i;
+					}
+					if (i == payload_sz)
+					{
+						DCS_DEBUG_TRACE( "-[" << count_ << "] -> TCP payload: " << std::string(payload, payload_sz) );
+					}
+					else
+					{
+						DCS_DEBUG_TRACE( "-[" << count_ << "] -> TCP payload: <binary data>" );
+					}
+				}
+#endif // DCS_DEBUG
+
+				//::std::string srv_address;
+				//::boost::uint16_t srv_port(0);
+				::std::string cli_address;
+				::boost::uint16_t cli_port(0);
+
+				std::string src_addr = p_ip->source_address();
+				std::string dst_addr = p_ip->destination_address();
+
+				if (src_addr == srv_address_ && p_tcp->source_port_field() == srv_port_)
+				{
+					// SERVER --> CLIENT
+
+					if (p_tcp->payload_size() > 0)
+					{
+						DCS_DEBUG_TRACE( "TCP have PAYLOAD" );
+
+						// The server sends back data to the client
+						//srv_address_ = src_addr;
+						//srv_port_ = p_tcp->source_port_field();
+						cli_address = dst_addr;
+						cli_port = p_tcp->destination_port_field();
+
+						try
+						{
+							p_conn_mgr_->end_connection_establishment(srv_address_, srv_port_, cli_address, cli_port);
+						}
+						catch (std::exception const& e)
+						{
+							std::ostringstream oss;
+							oss << "Stats update for end of connection establishment: " << e.what();
+							dcs::log_error(DCS_LOGGING_AT, oss.str());
+						}
+					}
+					else if (p_tcp->have_flags(dcs::network::tcp_segment::flags_fin))
+					{
+						// We are in the four-way handshake procedure (connection termination)
+
+						if (p_tcp->have_flags(dcs::network::tcp_segment::flags_ack))
+						{
+							DCS_DEBUG_TRACE( "TCP have FIN-ACK" );
+
+							// The server sends back FIN-ACK to the client
+							//srv_address_ = src_addr;
+							//srv_port_ = p_tcp->source_port_field();
+							cli_address = dst_addr;
+							cli_port = p_tcp->destination_port_field();
+
+							try
+							{
+								p_conn_mgr_->end_connection_termination(srv_address_, srv_port_, cli_address, cli_port);
+							}
+							catch (std::exception const& e)
+							{
+								std::ostringstream oss;
+								oss << "Stats update for end of connection termination: " << e.what();
+								dcs::log_error(DCS_LOGGING_AT, oss.str());
+							}
+						}
+					}
+				}
+				else if (dst_addr == srv_address_ && p_tcp->destination_port_field() == srv_port_)
+				{
+					// CLIENT --> SERVER
+
+					if (p_tcp->have_flags(dcs::network::tcp_segment::flags_syn))
+					{
+						DCS_DEBUG_TRACE( "TCP have SYN" );
+
+						// The client begins the 3-way handshake by sending SYN to the server
+						cli_address = src_addr;
+						cli_port = p_tcp->source_port_field();
+						//srv_address_ = dst_addr;
+						//srv_port_ = p_tcp->destination_port_field();
+
+						try
+						{
+							p_conn_mgr_->begin_connection_establishment(srv_address_, srv_port_, cli_address, cli_port);
+						}
+						catch (std::exception const& e)
+						{
+							std::ostringstream oss;
+							oss << "Stats update for begin of connection establishment: " << e.what();
+							dcs::log_error(DCS_LOGGING_AT, oss.str());
+						}
+					}
+					else if (p_tcp->have_flags(dcs::network::tcp_segment::flags_fin))
+					{
+						// The client begins the 4-way handshake by sending FIN to the server
+						cli_address = src_addr;
+						cli_port = p_tcp->source_port_field();
+						//srv_address_ = dst_addr;
+						//srv_port_ = p_tcp->destination_port_field();
+
+						try
+						{
+							p_conn_mgr_->begin_connection_termination(srv_address_, srv_port_, cli_address, cli_port);
+						}
+						catch (std::exception const& e)
+						{
+							std::ostringstream oss;
+							oss << "Stats update for begin of connection termination: " << e.what();
+							dcs::log_error(DCS_LOGGING_AT, oss.str());
+						}
+					}
+//						std::cout << ":: Num Waiting Connections for (" << srv_address_ << ":" << srv_port_ << "): " << p_conn_mgr_->num_connections(srv_address_, srv_port_, detail::wait_connection_status) << std::endl;
+				}
+				std::cout << ":: Num Waiting Connections for (" << srv_address_ << ":" << srv_port_ << "): " << p_conn_mgr_->num_connections(srv_address_, srv_port_, detail::wait_connection_status) << std::endl;
+			}
+			std::cout << "--------------------------------------------" << std::endl;
+		}
+	}
+
+
+	private: ::std::string srv_address_;
+	private: ::boost::uint16_t srv_port_;
+ 	private: detail::network_connection_manager* p_conn_mgr_;
+	private: unsigned long count_;
+}; // batch_packet_handler
+
 }} // Namespace detail::<unnamed>
 
 
@@ -789,7 +958,7 @@ int main(int argc, char* argv[])
 
 	srv_address = detail::host_address(srv_address);
 
-	detail::network_connection_manager stats_mgr(boost::make_shared<detail::sqlite3_data_store>(db_file));
+	detail::network_connection_manager conn_mgr(boost::make_shared<detail::sqlite3_data_store>(db_file));
 
 	// Open the device for sniffing
 	dcs::network::pcap::live_packet_sniffer sniffer(dev);
@@ -810,6 +979,13 @@ int main(int argc, char* argv[])
 
 	sniffer.filter(filter_expr);
 
+	detail::batch_packet_handler pkt_handler(srv_address,
+											 srv_port,
+											 &conn_mgr);
+
+	sniffer.batch_capture(pkt_handler);
+
+/*
 	boost::shared_ptr<dcs::network::pcap::raw_packet> p_pkt;
 
 	const unsigned int num_trials(5);
@@ -883,7 +1059,7 @@ int main(int argc, char* argv[])
 
 							try
 							{
-								stats_mgr.end_connection_establishment(srv_address, srv_port, cli_address, cli_port);
+								conn_mgr.end_connection_establishment(srv_address, srv_port, cli_address, cli_port);
 							}
 							catch (std::exception const& e)
 							{
@@ -908,7 +1084,7 @@ int main(int argc, char* argv[])
 
 								try
 								{
-									stats_mgr.end_connection_termination(srv_address, srv_port, cli_address, cli_port);
+									conn_mgr.end_connection_termination(srv_address, srv_port, cli_address, cli_port);
 								}
 								catch (std::exception const& e)
 								{
@@ -935,7 +1111,7 @@ int main(int argc, char* argv[])
 
 							try
 							{
-								stats_mgr.begin_connection_establishment(srv_address, srv_port, cli_address, cli_port);
+								conn_mgr.begin_connection_establishment(srv_address, srv_port, cli_address, cli_port);
 							}
 							catch (std::exception const& e)
 							{
@@ -954,7 +1130,7 @@ int main(int argc, char* argv[])
 
 							try
 							{
-								stats_mgr.begin_connection_termination(srv_address, srv_port, cli_address, cli_port);
+								conn_mgr.begin_connection_termination(srv_address, srv_port, cli_address, cli_port);
 							}
 							catch (std::exception const& e)
 							{
@@ -963,9 +1139,9 @@ int main(int argc, char* argv[])
 								dcs::log_error(DCS_LOGGING_AT, oss.str());
 							}
 						}
-//						std::cout << ":: Num Waiting Connections for (" << srv_address << ":" << srv_port << "): " << stats_mgr.num_connections(srv_address, srv_port, detail::wait_connection_status) << std::endl;
+//						std::cout << ":: Num Waiting Connections for (" << srv_address << ":" << srv_port << "): " << conn_mgr.num_connections(srv_address, srv_port, detail::wait_connection_status) << std::endl;
 					}
-					std::cout << ":: Num Waiting Connections for (" << srv_address << ":" << srv_port << "): " << stats_mgr.num_connections(srv_address, srv_port, detail::wait_connection_status) << std::endl;
+					std::cout << ":: Num Waiting Connections for (" << srv_address << ":" << srv_port << "): " << conn_mgr.num_connections(srv_address, srv_port, detail::wait_connection_status) << std::endl;
 				}
 				std::cout << "--------------------------------------------" << std::endl;
 			}
@@ -975,4 +1151,5 @@ int main(int argc, char* argv[])
 	}
 	//while (trial < num_trials);
 	while (true);
+*/
 }
