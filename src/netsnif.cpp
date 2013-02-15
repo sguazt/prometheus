@@ -965,7 +965,7 @@ int main(int argc, char* argv[])
 
 	sniffer.snapshot_length(65535);
 	sniffer.promiscuous_mode(true);
-	sniffer.timeout(1000);
+	sniffer.read_timeout(1000);
 
 	//std::string filter_expr = "tcp[tcpflags] & (tcp-syn|tcp-ack|tcp-fin) != 0";
 	//std::string filter_expr = "tcp[tcpflags]";
