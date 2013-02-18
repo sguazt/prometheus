@@ -750,6 +750,7 @@ class mysql_data_store: public base_data_store
 
 		DCS_DEBUG_TRACE("AutoCommit before Commit: " << p_db_->getAutoCommit());
 		p_db_->commit();
+		p_db_->setAutoCommit(true);
 		//FIXME: should we re-enable AutoCommit mode?
 		DCS_DEBUG_TRACE("AutoCommit after Commit: " << p_db_->getAutoCommit());
 	}
@@ -762,6 +763,7 @@ class mysql_data_store: public base_data_store
 
 		DCS_DEBUG_TRACE("AutoCommit before Rollback: " << p_db_->getAutoCommit());
 		p_db_->rollback();
+		p_db_->setAutoCommit(true);
 		//FIXME: should we re-enable AutoCommit mode?
 		DCS_DEBUG_TRACE("AutoCommit after Rollback: " << p_db_->getAutoCommit());
 	}
@@ -805,16 +807,19 @@ class mysql_data_store: public base_data_store
 			::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
 			::boost::scoped_ptr< ::sql::ResultSet > p_res(p_stmt->executeQuery(sql_oss.str()));
 
-			if (p_res->rowsCount() != 1)
+			if (p_res->rowsCount() > 1)
 			{
-				::std::ostringstream oss;
-				oss << "Expected 1 row, got " << p_res->rowsCount();
-				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				if (p_res->rowsCount() != 1)
+				{
+					::std::ostringstream oss;
+					oss << "Expected 1 row, got " << p_res->rowsCount();
+					DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				}
+
+				p_res->next();
+
+				count = p_res->getUInt(1);
 			}
-
-			p_res->next();
-
-			count = p_res->getUInt(1);
 		}
 		catch (::sql::SQLException const& e)
 		{
