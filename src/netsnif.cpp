@@ -70,7 +70,7 @@ enum connection_status_category
 	unknown_connection_status = -1,
 	wait_connection_status = 0,
 	active_connection_status,
-	closed_connection_status,
+	closed_connection_status
 };
 
 
