@@ -656,7 +656,7 @@ class mysql_data_store: public base_data_store
 		sql_oss << "REPLACE INTO " << tbl_connection
 				<< " (server_addr,server_port,client_addr,client_port,status)"
 				<< " VALUES ('" << this->escape_for_db(conn.server_address) << "'"
-				<<          "," << conn.server_port << ","
+				<<          "," << conn.server_port
 				<<          ",'" << this->escape_for_db(conn.client_address) << "'"
 				<<          "," << conn.client_port
 				<<          "," << static_cast<int>(conn.status)
