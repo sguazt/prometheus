@@ -518,7 +518,7 @@ class mysql_data_store: public base_data_store
 				<< ", client_port SMALLINT UNSIGNED DEFAULT 0"
 				<< ", status TINYINT DEFAULT 0"
 				<< ", last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
-				<< "  CONSTRAINT pk_addr_port PRIMARY KEY (server_addr,server_port,client_addr,client_port)"
+				<< ", CONSTRAINT pk_addr_port PRIMARY KEY (server_addr,server_port,client_addr,client_port)"
 				<< ")";
 
 		try
