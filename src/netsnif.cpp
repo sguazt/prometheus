@@ -1297,6 +1297,15 @@ class batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_ha
 	private: unsigned long count_;
 }; // batch_packet_handler
 
+
+struct dummy_batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_handler
+{
+	void operator()(::boost::shared_ptr< ::dcs::network::pcap::raw_packet > const& p_pkt)
+	{
+		(void)p_pkt;
+	}
+}; // dummy_batch_packet_handler
+
 }} // Namespace detail::<unnamed>
 
 
@@ -1374,6 +1383,7 @@ int main(int argc, char* argv[])
 	detail::batch_packet_handler pkt_handler(srv_address,
 											 srv_port,
 											 &conn_mgr);
+	//detail::dummy_batch_packet_handler pkt_handler;
 
 	sniffer.batch_capture(pkt_handler);
 
