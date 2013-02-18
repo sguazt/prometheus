@@ -1363,11 +1363,11 @@ int main(int argc, char* argv[])
 
 	dcs::uri uri(db_uri);
 #if defined(DCS_TESTBED_NETSNIF_USE_SQLITE_DATA_STORE)
-	std::string db_name(uri.path());
+	std::string db_name(uri.path().substr(1));
 	detail::network_connection_manager conn_mgr(boost::make_shared<detail::sqlite_data_store>(db_name));
 #elif defined(DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE)
 	std::string db_host;
-	std::string db_name(uri.path());
+	std::string db_name(uri.path().substr(1));
 	std::string db_user;//TODO: parse uri.user_info()
 	std::string db_pass;//TODO: parse uri.user_info()
 	{
