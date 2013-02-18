@@ -31,6 +31,15 @@
  */
 
 #include <boost/smart_ptr.hpp>
+#ifdef DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE
+# include <cppconn/connection.h>
+# include <cppconn/driver.h>
+# include <cppconn/exception.h>
+# include <cppconn/resultset.h>
+# include <cppconn/statement.h>
+# include <mysql_connection.h>
+# include <mysql_driver.h>
+#endif // DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE
 #include <dcs/cli.hpp>
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
@@ -40,20 +49,13 @@
 #include <dcs/network/ip.hpp>
 #include <dcs/network/pcap.hpp>
 #include <dcs/network/tcp.hpp>
+#include <dcs/uri.hpp>
 #include <exception>
 #include <iostream>
 #include <netdb.h>
-#if defined(DCS_TESTBED_NETSNIF_USE_SQLITE_DATA_STORE)
+#ifdef DCS_TESTBED_NETSNIF_USE_SQLITE_DATA_STORE
 # include <sqlite3.h>
-#elif defined(DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE)
-# include <cppconn/connection.h>
-# include <cppconn/driver.h>
-# include <cppconn/exception.h>
-# include <cppconn/resultset.h>
-# include <cppconn/statement.h>
-# include <mysql_connection.h>
-# include <mysql_driver.h>
-#endif // DCS_TESTBED_NETSNIF_USE_*_DATA_STORE
+#endif // DCS_TESTBED_NETSNIF_USE_SQLITE_DATA_STORE
 #include <string>
 #include <stdexcept>
 #include <sys/types.h>
@@ -484,13 +486,15 @@ class mysql_data_store: public base_data_store
 	{
 	}
 
-	public: explicit mysql_data_store(::std::string const& uri)
-	: uri_(uri)
+	public: mysql_data_store(::std::string const& host_uri, ::std::string const& db_name)
+	: uri_(host_uri),
+	  db_name_(db_name)
 	{
 	}
 
-	public: mysql_data_store(::std::string const& uri, ::std::string const& user, ::std::string const& passwd)
-	: uri_(uri),
+	public: mysql_data_store(::std::string const& host_uri, ::std::string const& db_name, ::std::string const& user, ::std::string const& passwd)
+	: uri_(host_uri),
+	  db_name_(db_name),
 	  user_(user),
 	  passwd_(passwd)
 	{
@@ -521,6 +525,7 @@ class mysql_data_store: public base_data_store
 			// Open the DB
 			::sql::mysql::MySQL_Driver* p_driver = ::sql::mysql::get_driver_instance();
 			p_db_ = ::boost::shared_ptr< ::sql::Connection >(p_driver->connect(uri_, user_, passwd_));
+			p_db_->setSchema(db_name_);
 
 			// Create tables (if needed)
 			::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
@@ -838,6 +843,7 @@ class mysql_data_store: public base_data_store
 
 
 	private: ::std::string uri_;
+	private: ::std::string db_name_;
 	private: ::std::string user_;
 	private: ::std::string passwd_;
 	private: ::boost::shared_ptr< ::sql::Connection > p_db_;
@@ -1355,10 +1361,21 @@ int main(int argc, char* argv[])
 
 	srv_address = detail::host_address(srv_address);
 
+	dcs::uri uri(db_uri);
 #if defined(DCS_TESTBED_NETSNIF_USE_SQLITE_DATA_STORE)
-	detail::network_connection_manager conn_mgr(boost::make_shared<detail::sqlite_data_store>(db_uri));
+	std::string db_name(uri.path());
+	detail::network_connection_manager conn_mgr(boost::make_shared<detail::sqlite_data_store>(db_name));
 #elif defined(DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE)
-	detail::network_connection_manager conn_mgr(boost::make_shared<detail::mysql_data_store>(db_uri));
+	std::string db_host;
+	std::string db_name(uri.path());
+	std::string db_user;//TODO: parse uri.user_info()
+	std::string db_pass;//TODO: parse uri.user_info()
+	{
+		std::ostringstream mysql_oss;
+		mysql_oss << uri.scheme() << "://" << uri.host() << ":" << uri.port();
+		db_host = mysql_oss.str();
+	}
+	detail::network_connection_manager conn_mgr(boost::make_shared<detail::mysql_data_store>(db_host, db_name, db_user, db_pass));
 #endif // DCS_TESTBED_NETSNIF_USE_*_DATA_STORE
 
 	// Open the device for sniffing
