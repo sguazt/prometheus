@@ -223,6 +223,7 @@ class sqlite_data_store: public base_data_store
 		DCS_DEBUG_TRACE("-- SQL: " << sql);//XXX
 
 		network_connection* p_conn = new network_connection();
+		p_conn->status = unknown_connection_status;
 
 		int ret(SQLITE_OK);
 		ret = sqlite3_exec(p_db_, sql, &load_callback, p_conn, 0);
@@ -516,8 +517,8 @@ class mysql_data_store: public base_data_store
 				<< ", client_addr VARCHAR(255) DEFAULT ''"
 				<< ", client_port SMALLINT UNSIGNED DEFAULT 0"
 				<< ", status TINYINT DEFAULT 0"
-				<< ", last_update DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
-				<< ", CONSTRAINT pk_addr_port PRIMARY KEY (server_addr,server_port,client_addr,client_port)"
+				<< ", last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+				<< "  CONSTRAINT pk_addr_port PRIMARY KEY (server_addr,server_port,client_addr,client_port)"
 				<< ")";
 
 		try
@@ -603,17 +604,25 @@ class mysql_data_store: public base_data_store
 			::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
 			::boost::scoped_ptr< ::sql::ResultSet > p_res(p_stmt->executeQuery(sql_oss.str()));
 
-			if (p_res->rowsCount() != 1)
-			{
-				::std::ostringstream oss;
-				oss << "Expected 1 row, got " << p_res->rowsCount();
-				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
-			}
-
-			p_res->next();
-
 			p_net_conn = ::boost::make_shared<network_connection>();
-			p_net_conn->status = static_cast<detail::connection_status_category>(p_res->getInt("status"));
+
+			if (p_res->rowsCount() > 0)
+			{
+				if (p_res->rowsCount() != 1)
+				{
+					::std::ostringstream oss;
+					oss << "Expected 1 row, got " << p_res->rowsCount();
+					DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				}
+
+				p_res->next();
+
+				p_net_conn->status = static_cast<connection_status_category>(p_res->getInt("status"));
+			}
+			else
+			{
+				p_net_conn->status = unknown_connection_status;
+			}
 			p_net_conn->server_address = server_address;
 			p_net_conn->server_port = server_port;
 			p_net_conn->client_address = client_address;
