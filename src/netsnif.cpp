@@ -31,17 +31,24 @@
  */
 
 #include <boost/smart_ptr.hpp>
+#ifdef DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE
+#include <boost/thread.hpp>
+#endif // DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE
 #ifdef DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE
 # include <cppconn/connection.h>
 # include <cppconn/driver.h>
 # include <cppconn/exception.h>
 # include <cppconn/resultset.h>
 # include <cppconn/statement.h>
-# include <mysql_connection.h>
-# include <mysql_driver.h>
 #endif // DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE
+#ifdef DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE
+# include <cstring>
+#endif // DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE
 #include <dcs/cli.hpp>
 #include <dcs/debug.hpp>
+#ifdef DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE
+# include <dcs/digest/md5.hpp>
+#endif // DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE
 #include <dcs/exception.hpp>
 #include <dcs/logging.hpp>
 #include <dcs/macro.hpp>
@@ -52,6 +59,13 @@
 #include <dcs/uri.hpp>
 #include <exception>
 #include <iostream>
+#ifdef DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE
+# include <map>
+#endif // DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE
+#ifdef DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE
+# include <mysql_connection.h>
+# include <mysql_driver.h>
+#endif // DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE
 #include <netdb.h>
 #ifdef DCS_TESTBED_NETSNIF_USE_SQLITE_DATA_STORE
 # include <sqlite3.h>
@@ -868,6 +882,216 @@ const ::std::string mysql_data_store::tbl_connection = "network_connection";
 #endif // DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE
 
 
+#ifdef DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE
+
+class ram_data_store: public base_data_store
+{
+	private: typedef ::boost::mutex mutex_type;
+
+
+	private: static const ::std::string tbl_connection;
+
+
+	public: ram_data_store()
+	{
+	}
+
+	public: ~ram_data_store()
+	{
+		this->close();
+	}
+
+	public: void open()
+	{
+		this->close();
+	}
+
+	public: void clear()
+	{
+		DCS_ASSERT(this->is_open(),
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "DB is not open"));
+
+		store_.clear();
+	}
+
+	public: ::boost::shared_ptr<network_connection> load(::std::string const& server_address,
+														 ::boost::uint16_t server_port,
+														 ::std::string const& client_address,
+														 ::boost::uint16_t client_port)
+	{
+		::boost::lock_guard<mutex_type> lock(store_mutex_);
+
+		::boost::shared_ptr<network_connection> p_net_conn;
+
+		::std::string id = make_id(server_address, server_port, client_address, client_port);
+		if (store_.count(id) > 0)
+		{
+			p_net_conn = ::boost::make_shared<network_connection>(*(store_.at(id)));
+		}
+		else
+		{
+			p_net_conn = ::boost::make_shared<network_connection>();
+			p_net_conn->server_address = server_address;
+			p_net_conn->server_port = server_port;
+			p_net_conn->client_address = client_address;
+			p_net_conn->client_port = client_port;
+			p_net_conn->status = unknown_connection_status;
+		}
+
+		return p_net_conn;
+	}
+
+	public: void save(network_connection const& conn)
+	{
+		::std::string id = make_id(conn.server_address,
+								   conn.server_port,
+								   conn.client_address,
+								   conn.client_port);
+
+		::boost::lock_guard<mutex_type> lock(store_mutex_);
+
+		if (store_.count(id) == 0)
+		{
+			store_[id] = ::boost::make_shared<network_connection>();
+		}
+		store_[id]->server_address = conn.server_address;
+		store_[id]->server_port = conn.server_port;
+		store_[id]->client_address = conn.client_address;
+		store_[id]->client_port = conn.client_port;
+		store_[id]->status = conn.status;
+	}
+
+	public: void erase(::std::string const& server_address,
+					   ::boost::uint16_t server_port,
+					   ::std::string const& client_address,
+					   ::boost::uint16_t client_port)
+	{
+		::std::string id = make_id(server_address,
+								   server_port,
+								   client_address,
+								   client_port);
+
+		::boost::lock_guard<mutex_type> lock(store_mutex_);
+
+		store_.erase(id);
+	}
+
+	public: void erase(network_connection const& conn)
+	{
+		this->erase(conn.server_address,
+					conn.server_port,
+					conn.client_address,
+					conn.client_port);
+	}
+
+	public: void begin_transaction()
+	{
+	}
+
+	public: void commit_transaction()
+	{
+	}
+
+	public: void rollback_transaction()
+	{
+	}
+
+	public: void close()
+	{
+		// Do nothing
+	}
+
+	public: bool is_open() const
+	{
+		return true;
+	}
+
+	public: unsigned long num_connections(::std::string const& server_address,
+										  ::boost::uint16_t server_port,
+										  connection_status_category status)
+	{
+		
+/*
+		DCS_ASSERT(this->is_open(),
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "DB is not open"));
+
+		::std::ostringstream sql_oss;
+		sql_oss << "SELECT COUNT(*)"
+				<< " FROM " << tbl_connection
+				<< " WHERE server_addr='" << this->escape_for_db(server_address) << "'"
+				<< " AND   server_port=" << server_port
+				<< " GROUP BY status"
+				<< " HAVING   status=" << static_cast<int>(status);
+
+		DCS_DEBUG_TRACE("-- SQL: " << sql_oss.str());//XXX
+
+		unsigned long count(0);
+
+		try
+		{
+			::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
+			::boost::scoped_ptr< ::sql::ResultSet > p_res(p_stmt->executeQuery(sql_oss.str()));
+
+			if (p_res->rowsCount() > 1)
+			{
+				if (p_res->rowsCount() != 1)
+				{
+					::std::ostringstream oss;
+					oss << "Expected 1 row, got " << p_res->rowsCount();
+					DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				}
+
+				p_res->next();
+
+				count = p_res->getUInt(1);
+			}
+		}
+		catch (::sql::SQLException const& e)
+		{
+			::std::ostringstream oss;
+			oss << "Unable to count connections (" << server_address << ":" << server_port << ") from table '" << tbl_connection << "': " << e.what() << " (MySQL Code: " << e.getErrorCode() << ", state: " << e.getSQLState() << ")";
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+		catch (::std::runtime_error const& e)
+		{
+			::std::ostringstream oss;
+			oss << "Unable to count connections (" << server_address << ":" << server_port << ") from table '" << tbl_connection << "': " << e.what();
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+
+		return count;
+*/
+	}
+
+	private: static ::std::string make_id(::std::string const& server_address,
+										  ::boost::uint16_t server_port,
+										  ::std::string const& client_address,
+										  ::boost::uint16_t client_port)
+	{
+		::std::ostringstream oss;
+		oss << "<"
+			<< server_address << ":" << server_port
+			<< ","
+			<< client_address << ":" << client_port
+			<< ">";
+			
+		::std::vector< ::dcs::digest::byte_type > digest = ::dcs::digest::md5_digest(oss.str());
+
+		return ::dcs::digest::hex_string(digest.begin(), digest.end());
+	}
+
+
+	private: ::std::map< ::std::string, ::boost::shared_ptr<network_connection> > store_;
+	private: mutex_type store_mutex_;
+}; // ram_data_store
+
+#endif // DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE
+
+
 //class in_memory_data_store: public base_data_store
 //{
 //}; // in_memory_data_store
@@ -1390,6 +1614,10 @@ int main(int argc, char* argv[])
 		db_host = mysql_oss.str();
 	}
 	detail::network_connection_manager conn_mgr(boost::make_shared<detail::mysql_data_store>(db_host, db_name, db_user, db_pass));
+#elif defined(DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE)
+	detail::network_connection_manager conn_mgr(boost::make_shared<detail::ram_data_store>());
+#else
+# error "Unknown data store."
 #endif // DCS_TESTBED_NETSNIF_USE_*_DATA_STORE
 
 	// Open the device for sniffing
