@@ -905,6 +905,8 @@ const ::std::string mysql_data_store::tbl_connection = "network_connection";
 class ram_data_store: public base_data_store
 {
 	private: typedef ::boost::mutex mutex_type;
+	private: typedef ::std::map< ::std::string, ::boost::shared_ptr<network_connection> > client_entry_container;
+	private: typedef ::std::map< ::std::string, client_entry_container > server_entry_container;
 
 
 	private: static const ::std::string tbl_connection;
@@ -938,22 +940,24 @@ class ram_data_store: public base_data_store
 														 ::std::string const& client_address,
 														 ::boost::uint16_t client_port)
 	{
+		::boost::shared_ptr<network_connection> p_net_conn;
+		p_net_conn = ::boost::make_shared<network_connection>();
+		p_net_conn->server_address = server_address;
+		p_net_conn->server_port = server_port;
+		p_net_conn->client_address = client_address;
+		p_net_conn->client_port = client_port;
+
+		::std::string srv_id = make_id(server_address, server_port);
+		::std::string cli_id = make_id(client_address, client_port);
+
 		::boost::lock_guard<mutex_type> lock(store_mutex_);
 
-		::boost::shared_ptr<network_connection> p_net_conn;
-
-		::std::string id = make_id(server_address, server_port, client_address, client_port);
-		if (store_.count(id) > 0)
+		if (store_.count(srv_id) > 0 && store_.at(srv_id).count(cli_id) > 0)
 		{
-			p_net_conn = ::boost::make_shared<network_connection>(*(store_.at(id)));
+			p_net_conn->status = store_.at(srv_id).at(cli_id)->status;
 		}
 		else
 		{
-			p_net_conn = ::boost::make_shared<network_connection>();
-			p_net_conn->server_address = server_address;
-			p_net_conn->server_port = server_port;
-			p_net_conn->client_address = client_address;
-			p_net_conn->client_port = client_port;
 			p_net_conn->status = unknown_connection_status;
 		}
 
@@ -962,22 +966,24 @@ class ram_data_store: public base_data_store
 
 	public: void save(network_connection const& conn)
 	{
-		::std::string id = make_id(conn.server_address,
-								   conn.server_port,
-								   conn.client_address,
-								   conn.client_port);
+		::std::string srv_id = make_id(conn.server_address, conn.server_port);
+		::std::string cli_id = make_id(conn.client_address, conn.client_port);
 
 		::boost::lock_guard<mutex_type> lock(store_mutex_);
 
-		if (store_.count(id) == 0)
+		if (store_.count(srv_id) == 0)
 		{
-			store_[id] = ::boost::make_shared<network_connection>();
+			store_[srv_id] = client_entry_container();
 		}
-		store_[id]->server_address = conn.server_address;
-		store_[id]->server_port = conn.server_port;
-		store_[id]->client_address = conn.client_address;
-		store_[id]->client_port = conn.client_port;
-		store_[id]->status = conn.status;
+		if (store_.at(srv_id).count(cli_id) == 0)
+		{
+			store_[srv_id][cli_id] = ::boost::make_shared<network_connection>();
+		}
+		store_[srv_id][cli_id]->server_address = conn.server_address;
+		store_[srv_id][cli_id]->server_port = conn.server_port;
+		store_[srv_id][cli_id]->client_address = conn.client_address;
+		store_[srv_id][cli_id]->client_port = conn.client_port;
+		store_[srv_id][cli_id]->status = conn.status;
 	}
 
 	public: void erase(::std::string const& server_address,
@@ -985,14 +991,19 @@ class ram_data_store: public base_data_store
 					   ::std::string const& client_address,
 					   ::boost::uint16_t client_port)
 	{
-		::std::string id = make_id(server_address,
-								   server_port,
-								   client_address,
-								   client_port);
+		::std::string srv_id = make_id(server_address, server_port);
+		::std::string cli_id = make_id(client_address, client_port);
 
 		::boost::lock_guard<mutex_type> lock(store_mutex_);
 
-		store_.erase(id);
+		if (store_.count(srv_id) > 0)
+		{
+			store_[srv_id].erase(cli_id);
+			if (store_[srv_id].size() == 0)
+			{
+				store_.erase(srv_id);
+			}
+		}
 	}
 
 	public: void erase(network_connection const& conn)
@@ -1005,14 +1016,17 @@ class ram_data_store: public base_data_store
 
 	public: void begin_transaction()
 	{
+		// Do nothing
 	}
 
 	public: void commit_transaction()
 	{
+		// Do nothing
 	}
 
 	public: void rollback_transaction()
 	{
+		// Do nothing
 	}
 
 	public: void close()
@@ -1033,55 +1047,42 @@ class ram_data_store: public base_data_store
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "DB is not open"));
 
-/*
-		::std::ostringstream sql_oss;
-		sql_oss << "SELECT COUNT(*)"
-				<< " FROM " << tbl_connection
-				<< " WHERE server_addr='" << this->escape_for_db(server_address) << "'"
-				<< " AND   server_port=" << server_port
-				<< " GROUP BY status"
-				<< " HAVING   status=" << static_cast<int>(status);
-
-		DCS_DEBUG_TRACE("-- SQL: " << sql_oss.str());//XXX
-
 		unsigned long count(0);
 
-		try
-		{
-			::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
-			::boost::scoped_ptr< ::sql::ResultSet > p_res(p_stmt->executeQuery(sql_oss.str()));
+		::std::string srv_id = make_id(server_address, server_port);
 
-			if (p_res->rowsCount() > 1)
+		::boost::lock_guard<mutex_type> lock(store_mutex_);
+
+		if (store_.count(srv_id) > 0)
+		{
+			typedef client_entry_container::const_iterator entry_iterator;
+
+			entry_iterator end_it(store_.at(srv_id).end());
+			for (entry_iterator it = store_.at(srv_id).begin();
+				 it != end_it;
+				 ++it)
 			{
-				if (p_res->rowsCount() != 1)
+				if (it->second->status == status)
 				{
-					::std::ostringstream oss;
-					oss << "Expected 1 row, got " << p_res->rowsCount();
-					DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+					++count;
 				}
-
-				p_res->next();
-
-				count = p_res->getUInt(1);
 			}
-		}
-		catch (::sql::SQLException const& e)
-		{
-			::std::ostringstream oss;
-			oss << "Unable to count connections (" << server_address << ":" << server_port << ") from table '" << tbl_connection << "': " << e.what() << " (MySQL Code: " << e.getErrorCode() << ", state: " << e.getSQLState() << ")";
-
-			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
-		}
-		catch (::std::runtime_error const& e)
-		{
-			::std::ostringstream oss;
-			oss << "Unable to count connections (" << server_address << ":" << server_port << ") from table '" << tbl_connection << "': " << e.what();
-
-			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
 
 		return count;
-*/
+	}
+
+	private: static ::std::string make_id(::std::string const& address,
+										  ::boost::uint16_t port)
+	{
+		::std::ostringstream oss;
+		oss << "<"
+			<< address << ":" << port
+			<< ">";
+			
+		::std::vector< ::dcs::digest::byte_type > digest = ::dcs::digest::md5_digest(oss.str());
+
+		return ::dcs::digest::hex_string(digest.begin(), digest.end());
 	}
 
 	private: static ::std::string make_id(::std::string const& server_address,
@@ -1102,7 +1103,7 @@ class ram_data_store: public base_data_store
 	}
 
 
-	private: ::std::map< ::std::string, ::boost::shared_ptr<network_connection> > store_;
+	private: server_entry_container store_;
 	private: mutex_type store_mutex_;
 }; // ram_data_store
 
