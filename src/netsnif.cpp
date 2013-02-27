@@ -148,26 +148,20 @@ struct base_data_store
 class sqlite_data_store: public base_data_store
 {
 	private: static const ::std::string tbl_connection;
-	private: static const ::std::string stmt_create_tbl_connection;
-	private: static const ::std::string stmt_delete_all_tbl_connection;
-	private: static const ::std::string stmt_delete_tbl_connection;
-	private: static const ::std::string stmt_replace_tbl_connection;
-	private: static const ::std::string stmt_select_tbl_connection;
-	private: static const ::std::string stmt_count_status_tbl_connection;
 
 
-	public: sqlite3_data_store()
+	public: sqlite_data_store()
 	: p_db_(0)
 	{
 	}
 
-	public: sqlite3_data_store(::std::string const& db_name)
+	public: sqlite_data_store(::std::string const& db_name)
 	: name_(db_name),
 	  p_db_(0)
 	{
 	}
 
-	public: ~sqlite3_data_store()
+	public: ~sqlite_data_store()
 	{
 		this->close();
 	}
@@ -191,12 +185,34 @@ class sqlite_data_store: public base_data_store
 		// Enable the extended result codes
 		::sqlite3_extended_result_codes(p_db_, 1);
 
+		::std::ostringstream sql_oss;
+
 		// Create tables (if needed)
-		ret = sqlite3_exec(p_db_, stmt_create_tbl_connection.c_str(), 0, 0, 0);
+		sql_oss << "CREATE TABLE IF NOT EXISTS " << tbl_connection << " ("
+				<< "  server_addr TEXT DEFAULT ''"
+				<< ", server_port INTEGER DEFAULT 0"
+				<< ", client_addr TEXT DEFAULT ''"
+				<< ", client_port INTEGER DEFAULT 0"
+				<< ", status INTEGER DEFAULT 0"
+				<< ", last_update TEXT DEFAULT (datetime('now'))"
+				<< ", CONSTRAINT pk_addr_port PRIMARY KEY (server_addr,server_port,client_addr,client_port)"
+				<< ")";
+		ret = sqlite3_exec(p_db_, sql_oss.str().c_str(), 0, 0, 0);
 		if (ret != SQLITE_OK)
 		{
 			::std::ostringstream oss;
 			oss << "Unable to create table '" << tbl_connection << "': " << ::sqlite3_errmsg(p_db_);
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+		// Create indexes (if needed)
+		sql_oss.str("");
+		sql_oss << "CREATE INDEX IF NOT EXISTS idx_srv ON " << tbl_connection << " (server_addr,server_port)";
+		ret = sqlite3_exec(p_db_, sql_oss.str().c_str(), 0, 0, 0);
+		if (ret != SQLITE_OK)
+		{
+			::std::ostringstream oss;
+			oss << "Unable to create index 'idx_srv': " << ::sqlite3_errmsg(p_db_);
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
@@ -208,8 +224,11 @@ class sqlite_data_store: public base_data_store
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "DB is not open"));
 
+		::std::ostringstream sql_oss;
+		sql_oss <<  "DELETE FROM " << tbl_connection;
+
 		int ret(SQLITE_OK);
-		ret = sqlite3_exec(p_db_, stmt_delete_all_tbl_connection.c_str(), 0, 0, 0);
+		ret = sqlite3_exec(p_db_, sql_oss.str().c_str(), 0, 0, 0);
 		if (ret != SQLITE_OK)
 		{
 			::std::ostringstream oss;
@@ -228,7 +247,14 @@ class sqlite_data_store: public base_data_store
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "DB is not open"));
 
-		char* sql = ::sqlite3_mprintf(stmt_select_tbl_connection.c_str(),
+		::std::ostringstream sql_oss;
+		sql_oss << "SELECT status,last_update FROM " << tbl_connection
+				<< " WHERE server_addr=%Q"
+				<< " AND   server_port=%u"
+				<< " AND   client_addr=%Q"
+				<< " AND   client_port=%u";
+
+		char* sql = ::sqlite3_mprintf(sql_oss.str().c_str(),
 									  server_address.c_str(),
 									  server_port,
 									  client_address.c_str(),
@@ -266,7 +292,12 @@ class sqlite_data_store: public base_data_store
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "DB is not open"));
 
-		char* sql = ::sqlite3_mprintf(stmt_replace_tbl_connection.c_str(),
+		::std::ostringstream sql_oss;
+		sql_oss << "REPLACE INTO " << tbl_connection
+				<< " (server_addr,server_port,client_addr,client_port,status,last_update)"
+				<< " VALUES (%Q,%u,%Q,%u,%lu,(datetime('now')))";
+
+		char* sql = ::sqlite3_mprintf(sql_oss.str().c_str(),
 									  conn.server_address.c_str(),
 									  conn.server_port,
 									  conn.client_address.c_str(),
@@ -298,7 +329,10 @@ class sqlite_data_store: public base_data_store
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "DB is not open"));
 
-		char* sql = ::sqlite3_mprintf(stmt_delete_tbl_connection.c_str(),
+		::std::ostringstream sql_oss;
+		sql_oss << "DELETE FROM " << tbl_connection << " WHERE server_addr=%Q AND server_port=%u AND client_addr=%Q AND client_port=%u";
+
+		char* sql = ::sqlite3_mprintf(sql_oss.str().c_str(),
 									  server_address.c_str(),
 									  server_port,
 									  client_address.c_str(),
@@ -401,8 +435,15 @@ class sqlite_data_store: public base_data_store
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "DB is not open"));
 
+		::std::ostringstream sql_oss;
+		sql_oss << "SELECT COUNT(*) FROM " << tbl_connection
+				<< " WHERE server_addr=%Q"
+				<< " AND   server_port=%u"
+				<< " GROUP BY status"
+				<< " HAVING status=%d";
+
 		int ret(SQLITE_OK);
-		char* sql = ::sqlite3_mprintf(stmt_count_status_tbl_connection.c_str(),
+		char* sql = ::sqlite3_mprintf(sql_oss.str().c_str(),
 									  server_address.c_str(),
 									  server_port,
 									  status);
@@ -427,6 +468,9 @@ class sqlite_data_store: public base_data_store
 
 	private: static int load_callback(void* user_data, int num_cols, char** col_values, char** col_names)
 	{
+		DCS_MACRO_SUPPRESS_UNUSED_VARIABLE_WARNING( num_cols );
+		DCS_MACRO_SUPPRESS_UNUSED_VARIABLE_WARNING( col_names );
+
 		DCS_DEBUG_ASSERT( user_data );
 
 		network_connection* p_conn = static_cast<network_connection*>(user_data);
@@ -442,6 +486,9 @@ class sqlite_data_store: public base_data_store
 
 	private: static int num_connections_callback(void* user_data, int num_cols, char** col_values, char** col_names)
 	{
+		DCS_MACRO_SUPPRESS_UNUSED_VARIABLE_WARNING( num_cols );
+		DCS_MACRO_SUPPRESS_UNUSED_VARIABLE_WARNING( col_names );
+
 		DCS_DEBUG_ASSERT( user_data );
 
 		unsigned long* p_count = static_cast<unsigned long*>(user_data);
@@ -457,36 +504,6 @@ class sqlite_data_store: public base_data_store
 }; // sqlite_data_store
 
 const ::std::string sqlite_data_store::tbl_connection = "network_connection";
-
-const ::std::string sqlite_data_store::stmt_create_tbl_connection = "CREATE TABLE IF NOT EXISTS " + tbl_connection + " ("
-																	"  server_addr TEXT DEFAULT ''"
-																	", server_port INTEGER DEFAULT 0"
-																	", client_addr TEXT DEFAULT ''"
-																	", client_port INTEGER DEFAULT 0"
-																	", status INTEGER DEFAULT 0"
-																	", last_update TEXT DEFAULT (datetime('now'))"
-																	", CONSTRAINT pk_addr_port PRIMARY KEY (server_addr,server_port,client_addr,client_port)"
-																	")";
-
-const ::std::string sqlite_data_store::stmt_delete_all_tbl_connection = "DELETE FROM " + tbl_connection;
-
-const ::std::string sqlite_data_store::stmt_delete_tbl_connection = "DELETE FROM " + tbl_connection + " WHERE server_addr=%Q AND server_port=%u AND client_addr=%Q AND client_port=%u";
-
-const ::std::string sqlite_data_store::stmt_replace_tbl_connection = "REPLACE INTO " + tbl_connection +
-																	 " (server_addr,server_port,client_addr,client_port,status,last_update)"
-																	 " VALUES (%Q,%u,%Q,%u,%lu,(datetime('now')))";
-
-const ::std::string sqlite_data_store::stmt_select_tbl_connection = "SELECT status,last_update FROM " + tbl_connection +
-																	" WHERE server_addr=%Q"
-																	" AND   server_port=%u"
-																	" AND   client_addr=%Q"
-																	" AND   client_port=%u";
-
-const ::std::string sqlite_data_store::stmt_count_status_tbl_connection = "SELECT COUNT(*) FROM " + tbl_connection +
-																		  " WHERE server_addr=%Q"
-																		  " AND   server_port=%u"
-																		  " GROUP BY status"
-																		  " HAVING status=%d";
 
 #endif // DCS_TESTBED_NETSNIF_USE_SQLITE_DATA_STORE
 
@@ -533,6 +550,7 @@ class mysql_data_store: public base_data_store
 				<< ", status TINYINT DEFAULT 0"
 				<< ", last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
 				<< ", CONSTRAINT pk_addr_port PRIMARY KEY (server_addr,server_port,client_addr,client_port)"
+				<< ", INDEX idx_srv (server_addr,server_port)"
 				<< ")";
 
 		try
@@ -1011,12 +1029,11 @@ class ram_data_store: public base_data_store
 										  ::boost::uint16_t server_port,
 										  connection_status_category status)
 	{
-		
-/*
 		DCS_ASSERT(this->is_open(),
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "DB is not open"));
 
+/*
 		::std::ostringstream sql_oss;
 		sql_oss << "SELECT COUNT(*)"
 				<< " FROM " << tbl_connection
