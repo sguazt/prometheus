@@ -1330,6 +1330,8 @@ void usage(char const* progname)
 	::std::cerr << "Usage: " << progname << " [options]" << ::std::endl
 				<< " --db <URI>" << ::std::endl
 				<< "   The URI to the database where packet information is stored." << ::std::endl
+				<< "   The generic URI format is: protocol://host:port/dbname?param1=value1&param2=value2&...." << ::std::endl
+				<< "   Typical parameters are the user name and password, for instance: tcp://127.0.0.1:3306/netsnifdb?user=foo&password=bar" << ::std::endl
 				<< "   [default: '" << default_db_uri << "']." << ::std::endl
 				<< " --dev <device name>" << ::std::endl
 				<< "   The name of the capture device (e.g., eth0, lo, ...)." << ::std::endl
@@ -1624,12 +1626,31 @@ int main(int argc, char* argv[])
 #elif defined(DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE)
 	std::string db_host;
 	std::string db_name(uri.path().substr(1));
-	std::string db_user;//TODO: parse uri.user_info()
-	std::string db_pass;//TODO: parse uri.user_info()
+	std::string db_user;
+	std::string db_pass;
 	{
 		std::ostringstream mysql_oss;
 		mysql_oss << uri.scheme() << "://" << uri.host() << ":" << uri.port();
 		db_host = mysql_oss.str();
+
+		std::string query(uri.query());
+		if (!query.empty())
+		{
+			std::size_t pos1;
+			std::size_t pos2;
+			std::size_t off;
+			std::string tok;
+			tok = "user=";
+			off = tok.length();
+			pos1 = query.find(tok);
+			pos2 = query.find("&", pos1);
+			db_user = query.substr(pos1+off, pos2-pos1-off);
+			tok = "password=";
+			off = tok.length();
+			pos1 = query.find(tok);
+			pos2 = query.find("&", pos1);
+			db_pass = query.substr(pos1+off, pos2-pos1-off);
+		}
 	}
 	detail::network_connection_manager conn_mgr(boost::make_shared<detail::mysql_data_store>(db_host, db_name, db_user, db_pass));
 #elif defined(DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE)
