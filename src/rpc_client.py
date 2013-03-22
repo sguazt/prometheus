@@ -22,5 +22,9 @@ url = "http://%s:%d" % (args.server, args.port)
 rpc = xmlrpclib.ServerProxy(url)
 
 # Query for the number of TCP connections
-n = rpc.num_tcp_connections(args.mon_server, args.mon_port, 0)
-print("Number of connections: %d" % n)
+n = rpc.num_pending_connections(args.mon_server, args.mon_port)
+print("Number of pending connections: %d" % n)
+(na,nd,ts) = rpc.connection_stats(args.mon_server, args.mon_port)
+print("num-arrivals: %d - num-departures: %d - ts: %d" % (na, nd, ts))
+#n = rpc.num_connections_by_status(args.mon_server, args.mon_port, 0)
+#print("Number of connections: %d" % n)
