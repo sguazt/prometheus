@@ -128,6 +128,9 @@ struct base_data_store
 	virtual void erase(network_connection const& conn) = 0;
 
 	virtual unsigned long num_connections(::std::string const& server_address,
+										  ::boost::uint16_t server_port) = 0;
+
+	virtual unsigned long num_connections(::std::string const& server_address,
 										  ::boost::uint16_t server_port,
 										  connection_status_category status) = 0;
 
@@ -147,9 +150,6 @@ struct base_data_store
 
 class sqlite_data_store: public base_data_store
 {
-	private: static const ::std::string tbl_connection;
-
-
 	public: sqlite_data_store()
 	: p_db_(0)
 	{
@@ -188,7 +188,7 @@ class sqlite_data_store: public base_data_store
 		::std::ostringstream sql_oss;
 
 		// Create tables (if needed)
-		sql_oss << "CREATE TABLE IF NOT EXISTS " << tbl_connection << " ("
+		sql_oss << "CREATE TABLE IF NOT EXISTS network_connection ("
 				<< "  server_addr TEXT DEFAULT ''"
 				<< ", server_port INTEGER DEFAULT 0"
 				<< ", client_addr TEXT DEFAULT ''"
@@ -201,13 +201,13 @@ class sqlite_data_store: public base_data_store
 		if (ret != SQLITE_OK)
 		{
 			::std::ostringstream oss;
-			oss << "Unable to create table '" << tbl_connection << "': " << ::sqlite3_errmsg(p_db_);
+			oss << "Unable to create table 'network_connection': " << ::sqlite3_errmsg(p_db_);
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
 		// Create indexes (if needed)
 		sql_oss.str("");
-		sql_oss << "CREATE INDEX IF NOT EXISTS idx_srv ON " << tbl_connection << " (server_addr,server_port)";
+		sql_oss << "CREATE INDEX IF NOT EXISTS idx_srv ON network_connection (server_addr,server_port)";
 		ret = sqlite3_exec(p_db_, sql_oss.str().c_str(), 0, 0, 0);
 		if (ret != SQLITE_OK)
 		{
@@ -225,14 +225,14 @@ class sqlite_data_store: public base_data_store
 									   "DB is not open"));
 
 		::std::ostringstream sql_oss;
-		sql_oss <<  "DELETE FROM " << tbl_connection;
+		sql_oss <<  "DELETE FROM network_connection";
 
 		int ret(SQLITE_OK);
 		ret = sqlite3_exec(p_db_, sql_oss.str().c_str(), 0, 0, 0);
 		if (ret != SQLITE_OK)
 		{
 			::std::ostringstream oss;
-			oss << "Unable to clear table '" << tbl_connection << "': " << ::sqlite3_errmsg(p_db_);
+			oss << "Unable to clear table 'network_connection': " << ::sqlite3_errmsg(p_db_);
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
@@ -248,7 +248,7 @@ class sqlite_data_store: public base_data_store
 									   "DB is not open"));
 
 		::std::ostringstream sql_oss;
-		sql_oss << "SELECT status,last_update FROM " << tbl_connection
+		sql_oss << "SELECT status,last_update FROM network_connection"
 				<< " WHERE server_addr=%Q"
 				<< " AND   server_port=%u"
 				<< " AND   client_addr=%Q"
@@ -270,7 +270,7 @@ class sqlite_data_store: public base_data_store
 		if (ret != SQLITE_OK)
 		{
 			::std::ostringstream oss;
-			oss << "Unable to load (" << server_address << ":" << server_port << "," << client_address << ":" << client_port << ") from table '" << tbl_connection << "': " << ::sqlite3_errmsg(p_db_);
+			oss << "Unable to load (" << server_address << ":" << server_port << "," << client_address << ":" << client_port << ") from table 'network_connection': " << ::sqlite3_errmsg(p_db_);
 			::sqlite3_free(sql);
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
@@ -293,7 +293,7 @@ class sqlite_data_store: public base_data_store
 									   "DB is not open"));
 
 		::std::ostringstream sql_oss;
-		sql_oss << "REPLACE INTO " << tbl_connection
+		sql_oss << "REPLACE INTO network_connection"
 				<< " (server_addr,server_port,client_addr,client_port,status,last_update)"
 				<< " VALUES (%Q,%u,%Q,%u,%lu,(datetime('now')))";
 
@@ -311,7 +311,7 @@ class sqlite_data_store: public base_data_store
 		if (ret != SQLITE_OK)
 		{
 			::std::ostringstream oss;
-			oss << "Unable to save (" << conn.server_address << ":" << conn.server_port << "," << conn.client_address << ":" << conn.client_port << ") into table '" << tbl_connection << "': " << ::sqlite3_errmsg(p_db_);
+			oss << "Unable to save (" << conn.server_address << ":" << conn.server_port << "," << conn.client_address << ":" << conn.client_port << ") into table 'network_connection': " << ::sqlite3_errmsg(p_db_);
 			::sqlite3_free(sql);
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
@@ -330,7 +330,7 @@ class sqlite_data_store: public base_data_store
 									   "DB is not open"));
 
 		::std::ostringstream sql_oss;
-		sql_oss << "DELETE FROM " << tbl_connection << " WHERE server_addr=%Q AND server_port=%u AND client_addr=%Q AND client_port=%u";
+		sql_oss << "DELETE FROM network_connection WHERE server_addr=%Q AND server_port=%u AND client_addr=%Q AND client_port=%u";
 
 		char* sql = ::sqlite3_mprintf(sql_oss.str().c_str(),
 									  server_address.c_str(),
@@ -345,7 +345,7 @@ class sqlite_data_store: public base_data_store
 		if (ret != SQLITE_OK)
 		{
 			::std::ostringstream oss;
-			oss << "Unable to erase (" << server_address << ":" << server_port << "," << client_address << ":" << client_port << ") from table '" << tbl_connection << "': " << ::sqlite3_errmsg(p_db_);
+			oss << "Unable to erase (" << server_address << ":" << server_port << "," << client_address << ":" << client_port << ") from table 'network_connection': " << ::sqlite3_errmsg(p_db_);
 			::sqlite3_free(sql);
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
@@ -428,6 +428,12 @@ class sqlite_data_store: public base_data_store
 	}
 
 	public: unsigned long num_connections(::std::string const& server_address,
+										  ::boost::uint16_t server_port)
+	{
+		throw ::std::runtime_error("Not yet implemented");
+	}
+
+	public: unsigned long num_connections(::std::string const& server_address,
 										  ::boost::uint16_t server_port,
 										  connection_status_category status)
 	{
@@ -436,7 +442,7 @@ class sqlite_data_store: public base_data_store
 									   "DB is not open"));
 
 		::std::ostringstream sql_oss;
-		sql_oss << "SELECT COUNT(*) FROM " << tbl_connection
+		sql_oss << "SELECT COUNT(*) FROM network_connection"
 				<< " WHERE server_addr=%Q"
 				<< " AND   server_port=%u"
 				<< " GROUP BY status"
@@ -455,7 +461,7 @@ class sqlite_data_store: public base_data_store
 		if (ret != SQLITE_OK)
 		{
 			::std::ostringstream oss;
-			oss << "Unable to count connections (" << server_address << ":" << server_port << ") from table '" << tbl_connection << "': " << ::sqlite3_errmsg(p_db_);
+			oss << "Unable to count connections (" << server_address << ":" << server_port << ") from table 'network_connection': " << ::sqlite3_errmsg(p_db_);
 			::sqlite3_free(sql);
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
@@ -503,17 +509,12 @@ class sqlite_data_store: public base_data_store
 	private: ::sqlite3* p_db_;
 }; // sqlite_data_store
 
-const ::std::string sqlite_data_store::tbl_connection = "network_connection";
-
 #endif // DCS_TESTBED_NETSNIF_USE_SQLITE_DATA_STORE
 
 #ifdef DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE
 
 class mysql_data_store: public base_data_store
 {
-	private: static const ::std::string tbl_connection;
-
-
 	public: mysql_data_store()
 	{
 	}
@@ -541,18 +542,6 @@ class mysql_data_store: public base_data_store
 	{
 		this->close();
 
-		::std::ostringstream sql_oss;
-		sql_oss << "CREATE TABLE IF NOT EXISTS " << tbl_connection << " ("
-				<< "  server_addr VARCHAR(255) DEFAULT ''"
-				<< ", server_port SMALLINT UNSIGNED DEFAULT 0"
-				<< ", client_addr VARCHAR(255) DEFAULT ''"
-				<< ", client_port SMALLINT UNSIGNED DEFAULT 0"
-				<< ", status TINYINT DEFAULT 0"
-				<< ", last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
-				<< ", CONSTRAINT pk_addr_port PRIMARY KEY (server_addr,server_port,client_addr,client_port)"
-				<< ", INDEX idx_srv (server_addr,server_port)"
-				<< ")";
-
 		try
 		{
 			// Open the DB
@@ -560,9 +549,44 @@ class mysql_data_store: public base_data_store
 			p_db_ = ::boost::shared_ptr< ::sql::Connection >(p_driver->connect(uri_, user_, passwd_));
 			p_db_->setSchema(db_name_);
 
+			::std::ostringstream sql_oss;
+			::boost::scoped_ptr< ::sql::Statement > p_stmt;
+
 			// Create tables (if needed)
-			::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
+			sql_oss << "CREATE TABLE IF NOT EXISTS network_connection ("
+					<< "  server_addr VARCHAR(255) DEFAULT ''"
+					<< ", server_port SMALLINT UNSIGNED DEFAULT 0"
+					<< ", client_addr VARCHAR(255) DEFAULT ''"
+					<< ", client_port SMALLINT UNSIGNED DEFAULT 0"
+					<< ", status TINYINT DEFAULT 0"
+					<< ", last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+					<< ", CONSTRAINT pk_nc_srv_cli PRIMARY KEY (server_addr,server_port,client_addr,client_port)"
+					<< ", INDEX idx_nc_srv (server_addr,server_port)"
+					<< ")";
+			p_stmt.reset(p_db_->createStatement());
 			p_stmt->execute(sql_oss.str());
+			sql_oss.str("");
+			sql_oss << "CREATE TABLE IF NOT EXISTS network_connection_stat ("
+					<< "  server_addr VARCHAR(255) DEFAULT ''"
+					<< ", server_port SMALLINT UNSIGNED DEFAULT 0"
+					<< ", num_arrivals INTEGER UNSIGNED DEFAULT 0"
+					<< ", num_departures INTEGER UNSIGNED DEFAULT 0"
+					<< ", last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+					<< ", CONSTRAINT pk_ncs_srv PRIMARY KEY (server_addr,server_port)"
+					<< ", INDEX idx_ncs_srv (server_addr,server_port)"
+					<< ")";
+			p_stmt.reset(p_db_->createStatement());
+			p_stmt->execute(sql_oss.str());
+		
+			//// Delete tables
+			//sql_oss.str("");
+			//sql_oss << "DELETE FROM network_connection";
+			//p_stmt.reset(p_db_->createStatement());
+			//p_stmt->execute(sql_oss.str());
+			//sql_oss.str("");
+			//sql_oss << "DELETE FROM network_connection_stat";
+			//p_stmt.reset(p_db_->createStatement());
+			//p_stmt->execute(sql_oss.str());
 		}
 		catch (::sql::SQLException const& e)
 		{
@@ -586,12 +610,17 @@ class mysql_data_store: public base_data_store
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "DB is not open"));
 
-		::std::ostringstream sql_oss;
-		sql_oss << "DELETE FROM " << tbl_connection;
-
 		try
 		{
-			::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
+			::std::ostringstream sql_oss;
+			::boost::scoped_ptr< ::sql::Statement > p_stmt;
+
+			sql_oss << "DELETE FROM network_connection";
+			p_stmt.reset(p_db_->createStatement());
+			p_stmt->execute(sql_oss.str());
+			sql_oss.str("");
+			sql_oss << "DELETE FROM network_connection_stat";
+			p_stmt.reset(p_db_->createStatement());
 			p_stmt->execute(sql_oss.str());
 		}
 		catch (::sql::SQLException const& e)
@@ -621,7 +650,7 @@ class mysql_data_store: public base_data_store
 
 		::std::ostringstream sql_oss;
 		sql_oss << "SELECT status,last_update"
-				<< " FROM " << tbl_connection
+				<< " FROM network_connection"
 				<< " WHERE server_addr='" << this->escape_for_db(server_address) << "'"
 				<< " AND   server_port=" << server_port
 				<< " AND   client_addr='" << this->escape_for_db(client_address) << "'"
@@ -663,14 +692,14 @@ class mysql_data_store: public base_data_store
 		catch (::sql::SQLException const& e)
 		{
 			::std::ostringstream oss;
-			oss << "Unable to load (" << server_address << ":" << server_port << "," << client_address << ":" << client_port << ") from table '" << tbl_connection << "': " << e.what() << " (MySQL Code: " << e.getErrorCode() << ", state: " << e.getSQLState() << ")";
+			oss << "Unable to load (" << server_address << ":" << server_port << "," << client_address << ":" << client_port << ") from table 'network_connection': " << e.what() << " (MySQL Code: " << e.getErrorCode() << ", state: " << e.getSQLState() << ")";
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
 		catch (::std::runtime_error const& e)
 		{
 			::std::ostringstream oss;
-			oss << "Unable to load (" << server_address << ":" << server_port << "," << client_address << ":" << client_port << ") from table '" << tbl_connection << "': " << e.what();
+			oss << "Unable to load (" << server_address << ":" << server_port << "," << client_address << ":" << client_port << ") from table 'network_connection': " << e.what();
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
@@ -684,35 +713,76 @@ class mysql_data_store: public base_data_store
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "DB is not open"));
 
-		::std::ostringstream sql_oss;
-		sql_oss << "REPLACE INTO " << tbl_connection
-				<< " (server_addr,server_port,client_addr,client_port,status)"
-				<< " VALUES ('" << this->escape_for_db(conn.server_address) << "'"
-				<<          "," << conn.server_port
-				<<          ",'" << this->escape_for_db(conn.client_address) << "'"
-				<<          "," << conn.client_port
-				<<          "," << static_cast<int>(conn.status)
-				<<          ")";
-
-
-		DCS_DEBUG_TRACE("-- SQL: " << sql_oss.str());//XXX
-
 		try
 		{
-			::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
-			p_stmt->execute(sql_oss.str());
+			::std::ostringstream sql_oss;
+
+			this->begin_transaction();
+
+				::boost::scoped_ptr< ::sql::Statement > p_stmt;
+				int nr;
+
+				// Add/Update connection status
+				sql_oss << "REPLACE INTO network_connection"
+						<< " (server_addr,server_port,client_addr,client_port,status)"
+						<< " VALUES ('" << this->escape_for_db(conn.server_address) << "'"
+						<<          "," << conn.server_port
+						<<          ",'" << this->escape_for_db(conn.client_address) << "'"
+						<<          "," << conn.client_port
+						<<          "," << static_cast<int>(conn.status)
+						<<          ")";
+				DCS_DEBUG_TRACE("-- SQL: " << sql_oss.str());//XXX
+				p_stmt.reset(p_db_->createStatement());
+				nr = p_stmt->executeUpdate(sql_oss.str());
+
+				// Add/Update statistics only in case of a new insertion
+				if (nr == 1 || conn.status == closed_connection_status)
+				{
+					sql_oss.str("");
+					if (conn.status == closed_connection_status)
+					{
+						sql_oss << "INSERT INTO network_connection_stat"
+								<< " (server_addr,server_port,num_arrivals,num_departures)"
+								<< " VALUES ('" << this->escape_for_db(conn.server_address) << "'"
+								<<          "," << conn.server_port
+								<<          ",0"
+								<<          ",1"
+								<<          ")"
+								<< " ON DUPLICATE KEY UPDATE num_departures=num_departures+1";
+					}
+					else
+					{
+						sql_oss << "INSERT INTO network_connection_stat"
+								<< " (server_addr,server_port,num_arrivals,num_departures)"
+								<< " VALUES ('" << this->escape_for_db(conn.server_address) << "'"
+								<<          "," << conn.server_port
+								<<          ",1"
+								<<          ",0"
+								<<          ")"
+								<< " ON DUPLICATE KEY UPDATE num_arrivals=num_arrivals+1";
+					}
+					DCS_DEBUG_TRACE("-- SQL: " << sql_oss.str());//XXX
+					p_stmt.reset(p_db_->createStatement());
+					p_stmt->executeUpdate(sql_oss.str());
+				}
+
+			this->commit_transaction();
 		}
 		catch (::sql::SQLException const& e)
 		{
+			this->rollback_transaction();
+
 			::std::ostringstream oss;
-			oss << "Unable to save (" << conn.server_address << ":" << conn.server_port << "," << conn.client_address << ":" << conn.client_port << ") into table '" << tbl_connection << "': " << e.what() << " (MySQL Code: " << e.getErrorCode() << ", state: " << e.getSQLState() << ")";
+			oss << "Unable to save (" << conn.server_address << ":" << conn.server_port << "," << conn.client_address << ":" << conn.client_port << "): " << e.what() << " (MySQL Code: " << e.getErrorCode() << ", state: " << e.getSQLState() << ")";
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
 		catch (::std::runtime_error const& e)
 		{
+			this->rollback_transaction();
+
 			::std::ostringstream oss;
-			oss << "Unable to save (" << conn.server_address << ":" << conn.server_port << "," << conn.client_address << ":" << conn.client_port << ") into table '" << tbl_connection << "': " << e.what();
+			oss << "Unable to save (" << conn.server_address << ":" << conn.server_port << "," << conn.client_address << ":" << conn.client_port << "): " << e.what();
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
@@ -727,31 +797,52 @@ class mysql_data_store: public base_data_store
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "DB is not open"));
 
-		::std::ostringstream sql_oss;
-		sql_oss << "DELETE FROM " << tbl_connection
-				<< " WHERE server_addr='" << this->escape_for_db(server_address) << "'"
-				<< " AND   server_port=" << server_port
-				<< " AND   client_addr='" << this->escape_for_db(client_address) << "'"
-				<< " AND   client_port=" << client_port;
-
-		DCS_DEBUG_TRACE("-- SQL: " << sql_oss.str());//XXX
-
 		try
 		{
-			::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
-			p_stmt->execute(sql_oss.str());
+			::std::ostringstream sql_oss;
+
+			this->begin_transaction();
+
+				sql_oss << "DELETE FROM network_connection"
+						<< " WHERE server_addr='" << this->escape_for_db(server_address) << "'"
+						<< " AND   server_port=" << server_port
+						<< " AND   client_addr='" << this->escape_for_db(client_address) << "'"
+						<< " AND   client_port=" << client_port;
+				DCS_DEBUG_TRACE("-- SQL: " << sql_oss.str());//XXX
+				::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
+				p_stmt->execute(sql_oss.str());
+
+//				// Add/Update statistics
+//				sql_oss.str("");
+//				sql_oss << "INSERT INTO network_connection_stat"
+//						<< " (server_addr,server_port,num_arrivals,num_departures)"
+//						<< " VALUES ('" << server_address << "'"
+//						<<          "," << server_port
+//						<<          ",0"
+//						<<          ",1"
+//						<<          ")"
+//						<< " ON DUPLICATE KEY UPDATE num_departures=num_departures+1";
+//				DCS_DEBUG_TRACE("-- SQL: " << sql_oss.str());//XXX
+//				p_stmt.reset(p_db_->createStatement());
+//				p_stmt->executeUpdate(sql_oss.str());
+
+			this->commit_transaction();
 		}
 		catch (::sql::SQLException const& e)
 		{
+			this->rollback_transaction();
+
 			::std::ostringstream oss;
-			oss << "Unable to erase (" << server_address << ":" << server_port << "," << client_address << ":" << client_port << ") into table '" << tbl_connection << "': " << e.what() << " (MySQL Code: " << e.getErrorCode() << ", state: " << e.getSQLState() << ")";
+			oss << "Unable to erase (" << server_address << ":" << server_port << "," << client_address << ":" << client_port << ") into table 'network_connection': " << e.what() << " (MySQL Code: " << e.getErrorCode() << ", state: " << e.getSQLState() << ")";
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
 		catch (::std::runtime_error const& e)
 		{
+			this->rollback_transaction();
+
 			::std::ostringstream oss;
-			oss << "Unable to erase (" << server_address << ":" << server_port << "," << client_address << ":" << client_port << ") into table '" << tbl_connection << "': " << e.what();
+			oss << "Unable to erase (" << server_address << ":" << server_port << "," << client_address << ":" << client_port << ") into table 'network_connection': " << e.what();
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
@@ -771,7 +862,9 @@ class mysql_data_store: public base_data_store
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "DB is not open"));
 
-		p_db_->setAutoCommit(false);
+		//p_db_->setAutoCommit(false);
+		::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
+		p_stmt->execute("START TRANSACTION");
 	}
 
 	public: void commit_transaction()
@@ -780,11 +873,13 @@ class mysql_data_store: public base_data_store
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "DB is not open"));
 
-		DCS_DEBUG_TRACE("AutoCommit before Commit: " << p_db_->getAutoCommit());
-		p_db_->commit();
-		p_db_->setAutoCommit(true);
-		//FIXME: should we re-enable AutoCommit mode?
-		DCS_DEBUG_TRACE("AutoCommit after Commit: " << p_db_->getAutoCommit());
+		//DCS_DEBUG_TRACE("AutoCommit before Commit: " << p_db_->getAutoCommit());
+		//p_db_->commit();
+		//p_db_->setAutoCommit(true);
+		////FIXME: should we re-enable AutoCommit mode?
+		//DCS_DEBUG_TRACE("AutoCommit after Commit: " << p_db_->getAutoCommit());
+		::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
+		p_stmt->execute("COMMIT");
 	}
 
 	public: void rollback_transaction()
@@ -793,11 +888,13 @@ class mysql_data_store: public base_data_store
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "DB is not open"));
 
-		DCS_DEBUG_TRACE("AutoCommit before Rollback: " << p_db_->getAutoCommit());
-		p_db_->rollback();
-		p_db_->setAutoCommit(true);
-		//FIXME: should we re-enable AutoCommit mode?
-		DCS_DEBUG_TRACE("AutoCommit after Rollback: " << p_db_->getAutoCommit());
+		//DCS_DEBUG_TRACE("AutoCommit before Rollback: " << p_db_->getAutoCommit());
+		//p_db_->rollback();
+		//p_db_->setAutoCommit(true);
+		////FIXME: should we re-enable AutoCommit mode?
+		//DCS_DEBUG_TRACE("AutoCommit after Rollback: " << p_db_->getAutoCommit());
+		::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
+		p_stmt->execute("ROLLBACK");
 	}
 
 	public: void close()
@@ -824,7 +921,7 @@ class mysql_data_store: public base_data_store
 
 		::std::ostringstream sql_oss;
 		sql_oss << "SELECT COUNT(*)"
-				<< " FROM " << tbl_connection
+				<< " FROM network_connection"
 				<< " WHERE server_addr='" << this->escape_for_db(server_address) << "'"
 				<< " AND   server_port=" << server_port
 				<< " GROUP BY status"
@@ -856,14 +953,68 @@ class mysql_data_store: public base_data_store
 		catch (::sql::SQLException const& e)
 		{
 			::std::ostringstream oss;
-			oss << "Unable to count connections (" << server_address << ":" << server_port << ") from table '" << tbl_connection << "': " << e.what() << " (MySQL Code: " << e.getErrorCode() << ", state: " << e.getSQLState() << ")";
+			oss << "Unable to count connections (" << server_address << ":" << server_port << ") with status '" << status << "': " << e.what() << " (MySQL Code: " << e.getErrorCode() << ", state: " << e.getSQLState() << ")";
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
 		catch (::std::runtime_error const& e)
 		{
 			::std::ostringstream oss;
-			oss << "Unable to count connections (" << server_address << ":" << server_port << ") from table '" << tbl_connection << "': " << e.what();
+			oss << "Unable to count connections (" << server_address << ":" << server_port << ") with status '" << status << "': " << e.what();
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+
+		return count;
+	}
+
+	public: unsigned long num_connections(::std::string const& server_address,
+										  ::boost::uint16_t server_port)
+	{
+		DCS_ASSERT(this->is_open(),
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "DB is not open"));
+
+		::std::ostringstream sql_oss;
+		sql_oss << "SELECT num_arrivals-num_departures"
+				<< " FROM network_connection_stat"
+				<< " WHERE server_addr='" << this->escape_for_db(server_address) << "'"
+				<< " AND   server_port=" << server_port;
+
+		DCS_DEBUG_TRACE("-- SQL: " << sql_oss.str());//XXX
+
+		unsigned long count(0);
+
+		try
+		{
+			::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
+			::boost::scoped_ptr< ::sql::ResultSet > p_res(p_stmt->executeQuery(sql_oss.str()));
+
+			if (p_res->rowsCount() > 1)
+			{
+				if (p_res->rowsCount() != 1)
+				{
+					::std::ostringstream oss;
+					oss << "Expected 1 row, got " << p_res->rowsCount();
+					DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				}
+
+				p_res->next();
+
+				count = p_res->getUInt(1);
+			}
+		}
+		catch (::sql::SQLException const& e)
+		{
+			::std::ostringstream oss;
+			oss << "Unable to count connections (" << server_address << ":" << server_port << "): " << e.what() << " (MySQL Code: " << e.getErrorCode() << ", state: " << e.getSQLState() << ")";
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+		catch (::std::runtime_error const& e)
+		{
+			::std::ostringstream oss;
+			oss << "Unable to count connections (" << server_address << ":" << server_port << "): " << e.what();
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
@@ -895,8 +1046,6 @@ class mysql_data_store: public base_data_store
 	private: ::boost::shared_ptr< ::sql::Connection > p_db_;
 }; // mysql_data_store
 
-const ::std::string mysql_data_store::tbl_connection = "network_connection";
-
 #endif // DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE
 
 
@@ -907,9 +1056,6 @@ class ram_data_store: public base_data_store
 	private: typedef ::boost::mutex mutex_type;
 	private: typedef ::std::map< ::std::string, ::boost::shared_ptr<network_connection> > client_entry_container;
 	private: typedef ::std::map< ::std::string, client_entry_container > server_entry_container;
-
-
-	private: static const ::std::string tbl_connection;
 
 
 	public: ram_data_store()
@@ -1072,6 +1218,12 @@ class ram_data_store: public base_data_store
 		return count;
 	}
 
+	public: unsigned long num_connections(::std::string const& server_address,
+										  ::boost::uint16_t server_port)
+	{
+		throw ::std::runtime_error("Not yet implemented");
+	}
+
 	private: static ::std::string make_id(::std::string const& address,
 										  ::boost::uint16_t port)
 	{
@@ -1203,7 +1355,7 @@ class network_connection_manager
 				// Treat this entry as garbage and delete it
 
 				::std::ostringstream oss;
-				oss << "Found connection status is '" << p_conn->status << ": expected '" << wait_connection_status << "'";
+				oss << "Found connection status '" << p_conn->status << ": expected '" << wait_connection_status << "'";
 				::dcs::log_warn(DCS_LOGGING_AT, oss.str());
 
 				p_ds_->erase(*p_conn);
@@ -1274,7 +1426,7 @@ class network_connection_manager
 				// Treat this entry as garbage and delete it
 
 				::std::ostringstream oss;
-				oss << "Found connection status is '" << p_conn->status << ": expected '" << active_connection_status << "'";
+				oss << "Found connection status '" << p_conn->status << ": expected '" << active_connection_status << "'";
 				::dcs::log_warn(DCS_LOGGING_AT, oss.str());
 
 				p_ds_->erase(*p_conn);
@@ -1300,6 +1452,12 @@ class network_connection_manager
 			}
 			DCS_EXCEPTION_THROW(::std::runtime_error, "Unknown error");
 		}
+	}
+
+	public: unsigned long num_connections(::std::string const& server_address,
+										  ::boost::uint16_t server_port) const
+	{
+		return p_ds_->num_connections(server_address, server_port);
 	}
 
 	public: unsigned long num_connections(::std::string const& server_address,
@@ -1463,6 +1621,7 @@ class batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_ha
 						//srv_port_ = p_tcp->source_port_field();
 						::std::string cli_address = dst_addr;
 						cli_port = p_tcp->destination_port_field();
+						DCS_DEBUG_TRACE("END CONNECTION ESTABLISHMENT");//XXX
 
 						try
 						{
@@ -1488,6 +1647,7 @@ class batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_ha
 							//srv_port_ = p_tcp->source_port_field();
 							::std::string cli_address = dst_addr;
 							cli_port = p_tcp->destination_port_field();
+							DCS_DEBUG_TRACE("END CONNECTION TERMINATION");//XXX
 
 							try
 							{
@@ -1515,6 +1675,7 @@ class batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_ha
 						cli_port = p_tcp->source_port_field();
 						//srv_address_ = dst_addr;
 						//srv_port_ = p_tcp->destination_port_field();
+						DCS_DEBUG_TRACE("BEGIN CONNECTION ESTABLISHMENT");//XXX
 
 						try
 						{
@@ -1534,6 +1695,7 @@ class batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_ha
 						cli_port = p_tcp->source_port_field();
 						//srv_address_ = dst_addr;
 						//srv_port_ = p_tcp->destination_port_field();
+						DCS_DEBUG_TRACE("BEGIN CONNECTION TERMINATION");//XXX
 
 						try
 						{
@@ -1548,7 +1710,8 @@ class batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_ha
 					}
 //						std::cout << ":: Num Waiting Connections for (" << srv_address_ << ":" << srv_port_ << "): " << p_conn_mgr_->num_connections(srv_address_, srv_port_, detail::wait_connection_status) << std::endl;
 				}
-				std::cout << ":: Num Waiting Connections for (" << srv_address_ << ":" << srv_port_ << "): " << p_conn_mgr_->num_connections(srv_address_, srv_port_, detail::wait_connection_status) << std::endl;
+				//std::cout << ":: Num Waiting Connections for (" << srv_address_ << ":" << srv_port_ << "): " << p_conn_mgr_->num_connections(srv_address_, srv_port_, detail::wait_connection_status) << std::endl;
+				std::cout << ":: Num Waiting Connections for (" << srv_address_ << ":" << srv_port_ << "): " << p_conn_mgr_->num_connections(srv_address_, srv_port_) << std::endl;
 			}
 			std::cout << "--------------------------------------------" << std::endl;
 		}
@@ -1620,9 +1783,12 @@ int main(int argc, char* argv[])
 	srv_address = detail::host_address(srv_address);
 
 	dcs::uri uri(db_uri);
+
+	boost::shared_ptr<detail::base_data_store> p_data_store;
 #if defined(DCS_TESTBED_NETSNIF_USE_SQLITE_DATA_STORE)
 	std::string db_name(uri.path().substr(1));
-	detail::network_connection_manager conn_mgr(boost::make_shared<detail::sqlite_data_store>(db_name));
+	//detail::network_connection_manager conn_mgr(boost::make_shared<detail::sqlite_data_store>(db_name));
+	p_data_store = boost::make_shared<detail::sqlite_data_store>(db_name);
 #elif defined(DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE)
 	std::string db_host;
 	std::string db_name(uri.path().substr(1));
@@ -1652,38 +1818,55 @@ int main(int argc, char* argv[])
 			db_pass = query.substr(pos1+off, pos2-pos1-off);
 		}
 	}
-	detail::network_connection_manager conn_mgr(boost::make_shared<detail::mysql_data_store>(db_host, db_name, db_user, db_pass));
+	//detail::network_connection_manager conn_mgr(boost::make_shared<detail::mysql_data_store>(db_host, db_name, db_user, db_pass));
+	p_data_store = boost::make_shared<detail::mysql_data_store>(db_host, db_name, db_user, db_pass);
 #elif defined(DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE)
-	detail::network_connection_manager conn_mgr(boost::make_shared<detail::ram_data_store>());
+	//detail::network_connection_manager conn_mgr(boost::make_shared<detail::ram_data_store>());
+	p_data_store = boost::make_shared<detail::ram_data_store>();
 #else
 # error "Unknown data store."
 #endif // DCS_TESTBED_NETSNIF_USE_*_DATA_STORE
 
-	// Open the device for sniffing
-	dcs::network::pcap::live_packet_sniffer sniffer(dev);
-
-	sniffer.snapshot_length(65535);
-	sniffer.promiscuous_mode(true);
-	sniffer.read_timeout(1000);
-
-	//std::string filter_expr = "tcp[tcpflags] & (tcp-syn|tcp-ack|tcp-fin) != 0";
-	//std::string filter_expr = "tcp[tcpflags]";
-	std::string filter_expr;
+	try
 	{
-		std::ostringstream oss;
-		//oss << "tcp[tcpflags] host " << srv_address << " port " << srv_port;
-		oss << "tcp and host " << srv_address << " and port " << srv_port;
-		filter_expr = oss.str();
+		p_data_store->open();
+		p_data_store->clear();
+		detail::network_connection_manager conn_mgr(p_data_store);
+
+		// Open the device for sniffing
+		dcs::network::pcap::live_packet_sniffer sniffer(dev);
+
+		sniffer.snapshot_length(65535);
+		sniffer.promiscuous_mode(true);
+		sniffer.read_timeout(1000);
+
+		//std::string filter_expr = "tcp[tcpflags] & (tcp-syn|tcp-ack|tcp-fin) != 0";
+		//std::string filter_expr = "tcp[tcpflags]";
+		std::string filter_expr;
+		{
+			std::ostringstream oss;
+			//oss << "tcp[tcpflags] host " << srv_address << " port " << srv_port;
+			oss << "tcp and host " << srv_address << " and port " << srv_port;
+			filter_expr = oss.str();
+		}
+
+		sniffer.filter(filter_expr);
+
+		detail::batch_packet_handler pkt_handler(srv_address,
+												 srv_port,
+												 &conn_mgr);
+		//detail::dummy_batch_packet_handler pkt_handler;
+
+		sniffer.batch_capture(pkt_handler);
 	}
+	catch (std::runtime_error const& e)
+	{
+		p_data_store->close();
 
-	sniffer.filter(filter_expr);
-
-	detail::batch_packet_handler pkt_handler(srv_address,
-											 srv_port,
-											 &conn_mgr);
-	//detail::dummy_batch_packet_handler pkt_handler;
-
-	sniffer.batch_capture(pkt_handler);
+		std::ostringstream oss;
+		oss << "Something went wrong: " << e.what();
+		dcs::log_error(DCS_LOGGING_AT, oss.str());
+	}
 
 /*
 	boost::shared_ptr<dcs::network::pcap::raw_packet> p_pkt;
