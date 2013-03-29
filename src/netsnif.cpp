@@ -30,10 +30,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <boost/atomic.hpp>
+#include <boost/ref.hpp>
 #include <boost/smart_ptr.hpp>
-#ifdef DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE
 #include <boost/thread.hpp>
-#endif // DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE
+#include <boost/thread/sync_queue.hpp>
 #ifdef DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE
 # include <cppconn/connection.h>
 # include <cppconn/driver.h>
@@ -1554,17 +1555,22 @@ void usage(char const* progname)
 
 class batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_handler
 {
-	public: batch_packet_handler(::std::string const& srv_address, ::boost::uint16_t srv_port, network_connection_manager* p_conn_mgr)
+	public: typedef ::boost::sync_queue< ::boost::shared_ptr< ::dcs::network::pcap::raw_packet > > blocking_queue_type;
+
+
+	public: batch_packet_handler(::std::string const& srv_address, ::boost::uint16_t srv_port, blocking_queue_type* p_pkt_queue)
 	:srv_address_(srv_address),
 	 srv_port_(srv_port),
-	 p_conn_mgr_(p_conn_mgr),
+	 p_pkt_queue_(p_pkt_queue),
 	 count_(0)
 	{
 	}
 
 	public: void operator()(::boost::shared_ptr< ::dcs::network::pcap::raw_packet > const& p_pkt)
 	{
+#ifdef DCS_DEBUG
 		++count_;
+#endif // DCS_DEBUG
 
 		//DCS_DEBUG_TRACE( "-[" << count_ << "] Grabbed new packet: " << *p_pkt );
 
@@ -1600,6 +1606,155 @@ class batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_ha
 					}
 				}
 #endif // DCS_DEBUG
+
+				p_pkt_queue_->wait_and_push(p_pkt);
+			}
+		}
+
+		DCS_DEBUG_TRACE( "--------------------------------------------" );
+	}
+
+
+	private: ::std::string srv_address_;
+	private: ::boost::uint16_t srv_port_;
+	private: blocking_queue_type* p_pkt_queue_;
+	private: unsigned long count_;
+}; // batch_packet_handler
+
+
+struct dummy_batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_handler
+{
+	void operator()(::boost::shared_ptr< ::dcs::network::pcap::raw_packet > const& p_pkt)
+	{
+		(void)p_pkt;
+	}
+}; // dummy_batch_packet_handler
+
+
+class packet_sniffer_runner
+{
+	public: packet_sniffer_runner(::std::string const& dev,
+								  ::std::string const& srv_address,
+								  ::boost::uint16_t srv_port,
+								  ::boost::atomic<bool>* p_sniffer_done,
+								  ::boost::sync_queue< ::boost::shared_ptr< ::dcs::network::pcap::raw_packet > >* p_pkt_queue)
+	: dev_(dev),
+	  srv_address_(srv_address),
+	  srv_port_(srv_port),
+	  p_sniffer_done_(p_sniffer_done),
+	  p_pkt_queue_(p_pkt_queue)
+	{
+	}
+
+	public: void operator()()
+	{
+		// check: p_sniffer_done_ != null
+		DCS_DEBUG_TRACE( p_sniffer_done_ );
+		// check: p_pkt_queue_ != null
+		DCS_DEBUG_TRACE( p_pkt_queue_ );
+
+		// Open the device for sniffing
+		::dcs::network::pcap::live_packet_sniffer sniffer(dev_);
+
+		sniffer.snapshot_length(65535);
+		sniffer.promiscuous_mode(true);
+		sniffer.read_timeout(1000);
+
+		//std::string filter_expr = "tcp[tcpflags] & (tcp-syn|tcp-ack|tcp-fin) != 0";
+		//std::string filter_expr = "tcp[tcpflags]";
+		::std::string filter_expr;
+		{
+			::std::ostringstream oss;
+			//oss << "tcp[tcpflags] host " << srv_address_ << " port " << srv_port_;
+			oss << "tcp and host " << srv_address_ << " and port " << srv_port_;
+			filter_expr = oss.str();
+		}
+
+		sniffer.filter(filter_expr);
+
+		batch_packet_handler pkt_handler(srv_address_, srv_port_, p_pkt_queue_);
+		//detail::dummy_batch_packet_handler pkt_handler;
+
+		try
+		{
+			sniffer.batch_capture(pkt_handler);
+		}
+		catch (...)
+		{
+		}
+
+		*p_sniffer_done_ = true;
+	}
+
+
+	private: ::std::string dev_;
+	private: ::std::string srv_address_;
+	private: ::boost::uint16_t srv_port_;
+	private: ::boost::atomic<bool>* p_sniffer_done_;
+	private: ::boost::sync_queue< ::boost::shared_ptr< ::dcs::network::pcap::raw_packet > >* p_pkt_queue_;
+}; // packet_sniffer_runner
+
+
+class packet_analyzer_runner
+{
+	public: packet_analyzer_runner(::std::string const& srv_address,
+								   ::boost::uint16_t srv_port,
+								   network_connection_manager* p_conn_mgr,
+								   ::boost::atomic<bool>* p_sniffer_done,
+								   ::boost::sync_queue< ::boost::shared_ptr< ::dcs::network::pcap::raw_packet > >* p_pkt_queue)
+	: srv_address_(srv_address),
+	  srv_port_(srv_port),
+	  p_conn_mgr_(p_conn_mgr),
+	  p_sniffer_done_(p_sniffer_done),
+	  p_pkt_queue_(p_pkt_queue)
+	{
+	}
+
+	public: void operator()()
+	{
+		// check: p_conn_mgr_ != null
+		DCS_DEBUG_TRACE( p_conn_mgr_ );
+		// check: p_sniffer_done_ != null
+		DCS_DEBUG_TRACE( p_sniffer_done_ );
+		// check: p_pkt_queue_ != null
+		DCS_DEBUG_TRACE( p_pkt_queue_ );
+
+		::boost::shared_ptr< ::dcs::network::pcap::raw_packet > p_pkt;
+		bool one_more_time(true);
+
+		do
+		{
+			while (!*p_sniffer_done_ || !one_more_time)
+			{
+				if (one_more_time)
+				{
+					p_pkt_queue_->wait_and_pop(p_pkt);
+				}
+				else
+				{
+					bool ok = p_pkt_queue_->try_pop(p_pkt);
+					if (!ok)
+					{
+						break;
+					}
+				}
+
+				// check: null
+				DCS_DEBUG_ASSERT( p_pkt );
+
+				boost::shared_ptr<dcs::network::ip4_packet> p_ip;
+				boost::shared_ptr<dcs::network::tcp_segment> p_tcp;
+				boost::shared_ptr<dcs::network::ethernet_frame> p_eth = dcs::network::pcap::make_ethernet_frame(*p_pkt);
+				if (p_eth->ethertype_field() == ::dcs::network::ethernet_frame::ethertype_ipv4)
+				{
+					p_ip = ::boost::make_shared<dcs::network::ip4_packet>(p_eth->payload(), p_eth->payload_size());
+					p_tcp = ::boost::make_shared<dcs::network::tcp_segment>(p_ip->payload(), p_ip->payload_size());
+				}
+				else
+				{
+					// IPv6 not yet handled
+					DCS_EXCEPTION_THROW(::std::runtime_error, "IPv6 packet analysis not yet implemented");
+				}
 
 				//::std::string srv_address;
 				//::boost::uint16_t srv_port(0);
@@ -1708,30 +1863,24 @@ class batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_ha
 							dcs::log_error(DCS_LOGGING_AT, oss.str());
 						}
 					}
-//						std::cout << ":: Num Waiting Connections for (" << srv_address_ << ":" << srv_port_ << "): " << p_conn_mgr_->num_connections(srv_address_, srv_port_, detail::wait_connection_status) << std::endl;
+	//						std::cout << ":: Num Waiting Connections for (" << srv_address_ << ":" << srv_port_ << "): " << p_conn_mgr_->num_connections(srv_address_, srv_port_, detail::wait_connection_status) << std::endl;
 				}
 				//std::cout << ":: Num Waiting Connections for (" << srv_address_ << ":" << srv_port_ << "): " << p_conn_mgr_->num_connections(srv_address_, srv_port_, detail::wait_connection_status) << std::endl;
-				std::cout << ":: Num Waiting Connections for (" << srv_address_ << ":" << srv_port_ << "): " << p_conn_mgr_->num_connections(srv_address_, srv_port_) << std::endl;
+				//std::cout << ":: Num Waiting Connections for (" << srv_address_ << ":" << srv_port_ << "): " << p_conn_mgr_->num_connections(srv_address_, srv_port_) << std::endl;
 			}
-			std::cout << "--------------------------------------------" << std::endl;
+
+			one_more_time = !one_more_time;
 		}
+		while (!*p_sniffer_done_ && !one_more_time);
 	}
 
 
 	private: ::std::string srv_address_;
 	private: ::boost::uint16_t srv_port_;
- 	private: detail::network_connection_manager* p_conn_mgr_;
-	private: unsigned long count_;
-}; // batch_packet_handler
-
-
-struct dummy_batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_handler
-{
-	void operator()(::boost::shared_ptr< ::dcs::network::pcap::raw_packet > const& p_pkt)
-	{
-		(void)p_pkt;
-	}
-}; // dummy_batch_packet_handler
+	private: network_connection_manager* p_conn_mgr_;
+	private: ::boost::atomic<bool>* p_sniffer_done_;
+	private: ::boost::sync_queue< ::boost::shared_ptr< ::dcs::network::pcap::raw_packet > >* p_pkt_queue_;
+}; // packet_analyzer_runner
 
 }} // Namespace detail::<unnamed>
 
@@ -1833,31 +1982,28 @@ int main(int argc, char* argv[])
 		p_data_store->clear();
 		detail::network_connection_manager conn_mgr(p_data_store);
 
-		// Open the device for sniffing
-		dcs::network::pcap::live_packet_sniffer sniffer(dev);
+		boost::thread_group thd_group;
 
-		sniffer.snapshot_length(65535);
-		sniffer.promiscuous_mode(true);
-		sniffer.read_timeout(1000);
+		boost::sync_queue< boost::shared_ptr<dcs::network::pcap::raw_packet> > pkt_queue;
+		boost::atomic<bool> sniffer_done(false);
 
-		//std::string filter_expr = "tcp[tcpflags] & (tcp-syn|tcp-ack|tcp-fin) != 0";
-		//std::string filter_expr = "tcp[tcpflags]";
-		std::string filter_expr;
-		{
-			std::ostringstream oss;
-			//oss << "tcp[tcpflags] host " << srv_address << " port " << srv_port;
-			oss << "tcp and host " << srv_address << " and port " << srv_port;
-			filter_expr = oss.str();
-		}
+		thd_group.create_thread(
+				detail::packet_sniffer_runner(dev,
+											  srv_address,
+											  srv_port,
+											  &sniffer_done,
+											  &pkt_queue));
 
-		sniffer.filter(filter_expr);
+		thd_group.create_thread(
+				detail::packet_analyzer_runner(srv_address,
+											   srv_port,
+											   &conn_mgr,
+											   &sniffer_done,
+											   &pkt_queue));
 
-		detail::batch_packet_handler pkt_handler(srv_address,
-												 srv_port,
-												 &conn_mgr);
-		//detail::dummy_batch_packet_handler pkt_handler;
+		thd_group.join_all();
 
-		sniffer.batch_capture(pkt_handler);
+		pkt_queue.close();
 	}
 	catch (std::runtime_error const& e)
 	{
