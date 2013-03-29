@@ -1649,9 +1649,9 @@ class packet_sniffer_runner
 	public: void operator()()
 	{
 		// check: p_sniffer_done_ != null
-		DCS_DEBUG_TRACE( p_sniffer_done_ );
+		DCS_DEBUG_ASSERT( p_sniffer_done_ );
 		// check: p_pkt_queue_ != null
-		DCS_DEBUG_TRACE( p_pkt_queue_ );
+		DCS_DEBUG_ASSERT( p_pkt_queue_ );
 
 		// Open the device for sniffing
 		::dcs::network::pcap::live_packet_sniffer sniffer(dev_);
@@ -1713,11 +1713,11 @@ class packet_analyzer_runner
 	public: void operator()()
 	{
 		// check: p_conn_mgr_ != null
-		DCS_DEBUG_TRACE( p_conn_mgr_ );
+		DCS_DEBUG_ASSERT( p_conn_mgr_ );
 		// check: p_sniffer_done_ != null
-		DCS_DEBUG_TRACE( p_sniffer_done_ );
+		DCS_DEBUG_ASSERT( p_sniffer_done_ );
 		// check: p_pkt_queue_ != null
-		DCS_DEBUG_TRACE( p_pkt_queue_ );
+		DCS_DEBUG_ASSERT( p_pkt_queue_ );
 
 		::boost::shared_ptr< ::dcs::network::pcap::raw_packet > p_pkt;
 		bool one_more_time(true);
