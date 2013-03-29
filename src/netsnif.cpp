@@ -1455,6 +1455,19 @@ class network_connection_manager
 		}
 	}
 
+	public: connection_status_category connection_status(::std::string const& server_address,
+														 ::boost::uint16_t server_port,
+														 ::std::string const& client_address,
+														 ::boost::uint16_t client_port) const
+	{
+		::boost::shared_ptr<network_connection> p_conn = p_ds_->load(server_address,
+																	 server_port,
+																	 client_address,
+																	 client_port);
+
+		return p_conn->status;
+	}
+
 	public: unsigned long num_connections(::std::string const& server_address,
 										  ::boost::uint16_t server_port) const
 	{
@@ -1776,11 +1789,15 @@ class packet_analyzer_runner
 						//srv_port_ = p_tcp->source_port_field();
 						::std::string cli_address = dst_addr;
 						cli_port = p_tcp->destination_port_field();
-						DCS_DEBUG_TRACE("END CONNECTION ESTABLISHMENT");//XXX
 
 						try
 						{
-							p_conn_mgr_->end_connection_establishment(srv_address_, srv_port_, cli_address, cli_port);
+							connection_status_category status = p_conn_mgr_->connection_status(srv_address_, srv_port_, cli_address, cli_port);
+							if (wait_connection_status == status)
+							{
+								DCS_DEBUG_TRACE("END CONNECTION ESTABLISHMENT");//XXX
+								p_conn_mgr_->end_connection_establishment(srv_address_, srv_port_, cli_address, cli_port);
+							}
 						}
 						catch (std::exception const& e)
 						{
