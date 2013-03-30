@@ -1645,7 +1645,7 @@ class batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_ha
 #endif // DCS_DEBUG
 
 #if defined(DCS_TESTBED_NETSNIF_USE_BOOST_THREAD_SYNC_PACKET_QUEUE)
-				p_pkt_queue_->wait_and_push(p_pkt);
+				p_pkt_queue_->push(p_pkt);
 #elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_MWMR_PACKET_QUEUE)
 				p_pkt_queue_->push(p_pkt);
 #elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_SPSC_PACKET_QUEUE)
@@ -1784,7 +1784,7 @@ class packet_analyzer_runner
 				if (one_more_time)
 				{
 #if defined(DCS_TESTBED_NETSNIF_USE_BOOST_THREAD_SYNC_PACKET_QUEUE)
-					p_pkt_queue_->wait_and_pop(p_pkt);
+					p_pkt_queue_->pull(p_pkt);
 #elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_MWMR_PACKET_QUEUE)
 					p_pkt_queue_->pop(p_pkt);
 #elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_SPSC_PACKET_QUEUE)
@@ -1796,7 +1796,7 @@ class packet_analyzer_runner
 				else
 				{
 #if defined(DCS_TESTBED_NETSNIF_USE_BOOST_THREAD_SYNC_PACKET_QUEUE)
-					bool ok = p_pkt_queue_->try_pop(p_pkt);
+					bool ok = p_pkt_queue_->try_pull(p_pkt);
 #elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_MWMR_PACKET_QUEUE)
 					bool ok = p_pkt_queue_->pop(p_pkt);
 #elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_SPSC_PACKET_QUEUE)
