@@ -30,11 +30,34 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+#if    !defined(DCS_TESTBED_NETSNIF_USE_BOOST_THREAD_SYNC_PACKET_QUEUE) \
+	&& !defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_MWMR_PACKET_QUEUE) \
+	&& !defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_SPSC_PACKET_QUEUE) \
+	&& !defined(DCS_TESTBED_NETSNIF_USE_DCS_CONCURRENT_BLOCKING_PACKET_QUEUE)
+# error "Don't know what type of packet queue to use."
+#endif // DCS_TESTBED_USE_*_PACKET_QUEUE
+
+#if    !defined(DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE) \
+	&& !defined(DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE) \
+	&& !defined(DCS_TESTBED_NETSNIF_USE_SQLITE_DATA_STORE)
+# error "Don't know what type of data store to use."
+#endif // DCS_TESTBED_NETSNIF_USE_*_DATA_STORE
+
+
 #include <boost/atomic.hpp>
 #include <boost/ref.hpp>
 #include <boost/smart_ptr.hpp>
 #include <boost/thread.hpp>
-#include <boost/thread/sync_queue.hpp>
+#ifdef DCS_TESTBED_NETSNIF_USE_BOOST_THREAD_SYNC_PACKET_QUEUE
+# include <boost/thread/sync_queue.hpp>
+#elif DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_MWMR_PACKET_QUEUE
+# include <boost/lockfree/queue.hpp>
+#elif DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_SPSC_PACKET_QUEUE
+# include <boost/lockfree/spsc_queue.hpp>
+#elif DCS_TESTBED_NETSNIF_USE_DCS_CONCURRENT_BLOCKING_PACKET_QUEUE
+# include <dcs/concurrent/blocking_queue.hpp>
+#endif // DCS_TESTBED_USE_*_PACKET_QUEUE
 #ifdef DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE
 # include <cppconn/connection.h>
 # include <cppconn/driver.h>
@@ -1566,12 +1589,13 @@ void usage(char const* progname)
 }
 
 
+template <typename QueueT>
 class batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_handler
 {
-	public: typedef ::boost::sync_queue< ::boost::shared_ptr< ::dcs::network::pcap::raw_packet > > blocking_queue_type;
+	public: typedef QueueT packet_queue_type;
 
 
-	public: batch_packet_handler(::std::string const& srv_address, ::boost::uint16_t srv_port, blocking_queue_type* p_pkt_queue)
+	public: batch_packet_handler(::std::string const& srv_address, ::boost::uint16_t srv_port, packet_queue_type* p_pkt_queue)
 	:srv_address_(srv_address),
 	 srv_port_(srv_port),
 	 p_pkt_queue_(p_pkt_queue),
@@ -1620,7 +1644,15 @@ class batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_ha
 				}
 #endif // DCS_DEBUG
 
+#if defined(DCS_TESTBED_NETSNIF_USE_BOOST_THREAD_SYNC_PACKET_QUEUE)
 				p_pkt_queue_->wait_and_push(p_pkt);
+#elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_MWMR_PACKET_QUEUE)
+				p_pkt_queue_->push(p_pkt);
+#elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_SPSC_PACKET_QUEUE)
+				p_pkt_queue_->push(p_pkt);
+#elif defined(DCS_TESTBED_NETSNIF_USE_DCS_CONCURRENT_BLOCKING_PACKET_QUEUE)
+				p_pkt_queue_->push(p_pkt);
+#endif // DCS_TESTBED_NETSNIF_USE_*_PACKET_QUEUE
 			}
 		}
 
@@ -1630,7 +1662,7 @@ class batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_packet_ha
 
 	private: ::std::string srv_address_;
 	private: ::boost::uint16_t srv_port_;
-	private: blocking_queue_type* p_pkt_queue_;
+	private: packet_queue_type* p_pkt_queue_;
 	private: unsigned long count_;
 }; // batch_packet_handler
 
@@ -1644,13 +1676,18 @@ struct dummy_batch_packet_handler: public ::dcs::network::pcap::sniffer_batch_pa
 }; // dummy_batch_packet_handler
 
 
+template <typename QueueT>
 class packet_sniffer_runner
 {
+	public: typedef QueueT packet_queue_type
+;
+
+
 	public: packet_sniffer_runner(::std::string const& dev,
 								  ::std::string const& srv_address,
 								  ::boost::uint16_t srv_port,
 								  ::boost::atomic<bool>* p_sniffer_done,
-								  ::boost::sync_queue< ::boost::shared_ptr< ::dcs::network::pcap::raw_packet > >* p_pkt_queue)
+								  packet_queue_type* p_pkt_queue)
 	: dev_(dev),
 	  srv_address_(srv_address),
 	  srv_port_(srv_port),
@@ -1685,7 +1722,7 @@ class packet_sniffer_runner
 
 		sniffer.filter(filter_expr);
 
-		batch_packet_handler pkt_handler(srv_address_, srv_port_, p_pkt_queue_);
+		batch_packet_handler<packet_queue_type> pkt_handler(srv_address_, srv_port_, p_pkt_queue_);
 		//detail::dummy_batch_packet_handler pkt_handler;
 
 		try
@@ -1704,17 +1741,22 @@ class packet_sniffer_runner
 	private: ::std::string srv_address_;
 	private: ::boost::uint16_t srv_port_;
 	private: ::boost::atomic<bool>* p_sniffer_done_;
-	private: ::boost::sync_queue< ::boost::shared_ptr< ::dcs::network::pcap::raw_packet > >* p_pkt_queue_;
+	private: packet_queue_type* p_pkt_queue_;
 }; // packet_sniffer_runner
 
 
+template <typename QueueT>
 class packet_analyzer_runner
 {
+	public: typedef QueueT packet_queue_type
+;
+
+
 	public: packet_analyzer_runner(::std::string const& srv_address,
 								   ::boost::uint16_t srv_port,
 								   network_connection_manager* p_conn_mgr,
 								   ::boost::atomic<bool>* p_sniffer_done,
-								   ::boost::sync_queue< ::boost::shared_ptr< ::dcs::network::pcap::raw_packet > >* p_pkt_queue)
+								   packet_queue_type* p_pkt_queue)
 	: srv_address_(srv_address),
 	  srv_port_(srv_port),
 	  p_conn_mgr_(p_conn_mgr),
@@ -1741,11 +1783,27 @@ class packet_analyzer_runner
 			{
 				if (one_more_time)
 				{
+#if defined(DCS_TESTBED_NETSNIF_USE_BOOST_THREAD_SYNC_PACKET_QUEUE)
 					p_pkt_queue_->wait_and_pop(p_pkt);
+#elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_MWMR_PACKET_QUEUE)
+					p_pkt_queue_->pop(p_pkt);
+#elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_SPSC_PACKET_QUEUE)
+					p_pkt_queue_->pop(p_pkt);
+#elif defined(DCS_TESTBED_NETSNIF_USE_DCS_CONCURRENT_BLOCKING_PACKET_QUEUE)
+					p_pkt_queue_->pop(p_pkt);
+#endif // DCS_TESTBED_NETSNIF_USE_*_PACKET_QUEUE
 				}
 				else
 				{
+#if defined(DCS_TESTBED_NETSNIF_USE_BOOST_THREAD_SYNC_PACKET_QUEUE)
 					bool ok = p_pkt_queue_->try_pop(p_pkt);
+#elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_MWMR_PACKET_QUEUE)
+					bool ok = p_pkt_queue_->pop(p_pkt);
+#elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_SPSC_PACKET_QUEUE)
+					bool ok = p_pkt_queue_->pop(p_pkt);
+#elif defined(DCS_TESTBED_NETSNIF_USE_DCS_CONCURRENT_BLOCKING_PACKET_QUEUE)
+					bool ok = p_pkt_queue_->try_pop(p_pkt);
+#endif // DCS_TESTBED_NETSNIF_USE_*_PACKET_QUEUE
 					if (!ok)
 					{
 						break;
@@ -1896,7 +1954,7 @@ class packet_analyzer_runner
 	private: ::boost::uint16_t srv_port_;
 	private: network_connection_manager* p_conn_mgr_;
 	private: ::boost::atomic<bool>* p_sniffer_done_;
-	private: ::boost::sync_queue< ::boost::shared_ptr< ::dcs::network::pcap::raw_packet > >* p_pkt_queue_;
+	private: packet_queue_type* p_pkt_queue_;
 }; // packet_analyzer_runner
 
 }} // Namespace detail::<unnamed>
@@ -1989,9 +2047,17 @@ int main(int argc, char* argv[])
 #elif defined(DCS_TESTBED_NETSNIF_USE_RAM_DATA_STORE)
 	//detail::network_connection_manager conn_mgr(boost::make_shared<detail::ram_data_store>());
 	p_data_store = boost::make_shared<detail::ram_data_store>();
-#else
-# error "Unknown data store."
 #endif // DCS_TESTBED_NETSNIF_USE_*_DATA_STORE
+
+#if defined(DCS_TESTBED_NETSNIF_USE_BOOST_THREAD_SYNC_PACKET_QUEUE)
+	typedef boost::sync_queue< boost::shared_ptr<dcs::network::pcap::raw_packet> > packet_queue_type;
+#elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_MWMR_PACKET_QUEUE)
+	typedef boost::lockfree::queue< boost::shared_ptr<dcs::network::pcap::raw_packet>, boost::lockfree:capacity<1024> > packet_queue_type;
+#elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_SPSC_PACKET_QUEUE)
+	typedef boost::lockfree::spsc_queue< boost::shared_ptr<dcs::network::pcap::raw_packet> > packet_queue_type;
+#elif defined(DCS_TESTBED_NETSNIF_USE_DCS_CONCURRENT_BLOCKING_PACKET_QUEUE)
+	typedef dcs::concurrent::blocking_queue< boost::shared_ptr<dcs::network::pcap::raw_packet> > packet_queue_type;
+#endif // DCS_TESTBED_NETSNIF_USE_*_PACKET_QUEUE
 
 	try
 	{
@@ -2001,18 +2067,26 @@ int main(int argc, char* argv[])
 
 		boost::thread_group thd_group;
 
-		boost::sync_queue< boost::shared_ptr<dcs::network::pcap::raw_packet> > pkt_queue;
+#if defined(DCS_TESTBED_NETSNIF_USE_BOOST_THREAD_SYNC_PACKET_QUEUE)
+		packet_queue_type pkt_queue;
+#elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_MWMR_PACKET_QUEUE)
+		packet_queue_type pkt_queue;
+#elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_SPSC_PACKET_QUEUE)
+		packet_queue_type pkt_queue(1024);
+#elif defined(DCS_TESTBED_NETSNIF_USE_DCS_CONCURRENT_BLOCKING_PACKET_QUEUE)
+		packet_queue_type pkt_queue;
+#endif // DCS_TESTBED_NETSNIF_USE_*_PACKET_QUEUE
 		boost::atomic<bool> sniffer_done(false);
 
 		thd_group.create_thread(
-				detail::packet_sniffer_runner(dev,
+				detail::packet_sniffer_runner<packet_queue_type>(dev,
 											  srv_address,
 											  srv_port,
 											  &sniffer_done,
 											  &pkt_queue));
 
 		thd_group.create_thread(
-				detail::packet_analyzer_runner(srv_address,
+				detail::packet_analyzer_runner<packet_queue_type>(srv_address,
 											   srv_port,
 											   &conn_mgr,
 											   &sniffer_done,
@@ -2020,7 +2094,9 @@ int main(int argc, char* argv[])
 
 		thd_group.join_all();
 
+#if defined(DCS_TESTBED_NETSNIF_USE_BOOST_THREAD_SYNC_PACKET_QUEUE)
 		pkt_queue.close();
+#endif // DCS_TESTBED_NETSNIF_USE_BOOST_THREAD_SYNC_PACKET_QUEUE
 	}
 	catch (std::runtime_error const& e)
 	{
