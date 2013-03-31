@@ -2152,7 +2152,7 @@ int main(int argc, char* argv[])
 
 	boost::shared_ptr<detail::base_data_store> p_data_store;
 #if defined(DCS_TESTBED_NETSNIF_USE_SQLITE_DATA_STORE)
-	std::string db_name(uri.path().substr(1));
+	std::string db_name(uri.path());
 	//detail::network_connection_manager conn_mgr(boost::make_shared<detail::sqlite_data_store>(db_name));
 	p_data_store = boost::make_shared<detail::sqlite_data_store>(db_name);
 #elif defined(DCS_TESTBED_NETSNIF_USE_MYSQL_DATA_STORE)
