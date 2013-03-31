@@ -219,7 +219,7 @@ class sqlite_data_store: public base_data_store
 				<< ", client_port INTEGER DEFAULT 0"
 				<< ", status INTEGER DEFAULT 0"
 				<< ", last_update TEXT DEFAULT (datetime('now'))"
-				<< ", CONSTRAINT pk_addr_port PRIMARY KEY (server_addr,server_port,client_addr,client_port)"
+				<< ", CONSTRAINT pk_nc_srv_cli PRIMARY KEY (server_addr,server_port,client_addr,client_port)"
 				<< ")";
 		ret = sqlite3_exec(p_db_, sql_oss.str().c_str(), 0, 0, 0);
 		if (ret != SQLITE_OK)
@@ -229,17 +229,44 @@ class sqlite_data_store: public base_data_store
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
-		// Create indexes (if needed)
 		sql_oss.str("");
-		sql_oss << "CREATE INDEX IF NOT EXISTS idx_srv ON network_connection (server_addr,server_port)";
+		sql_oss << "CREATE TABLE IF NOT EXISTS network_connection_stat ("
+				<< "  server_addr TEXT DEFAULT ''"
+				<< ", server_port INTEGER DEFAULT 0"
+				<< ", num_arrivals INTEGER DEFAULT 0"
+				<< ", num_departures INTEGER DEFAULT 0"
+				<< ", last_update TEXT DEFAULT (datetime('now'))"
+				<< ", CONSTRAINT pk_ncs_srv PRIMARY KEY (server_addr,server_port)"
+				<< ")";
 		ret = sqlite3_exec(p_db_, sql_oss.str().c_str(), 0, 0, 0);
 		if (ret != SQLITE_OK)
 		{
 			::std::ostringstream oss;
-			oss << "Unable to create index 'idx_srv': " << ::sqlite3_errmsg(p_db_);
+			oss << "Unable to create table 'network_connection_stat': " << ::sqlite3_errmsg(p_db_);
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
+		// Create indices (if needed)
+		sql_oss.str("");
+		sql_oss << "CREATE INDEX IF NOT EXISTS idx_nc_srv ON network_connection (server_addr,server_port)";
+		ret = sqlite3_exec(p_db_, sql_oss.str().c_str(), 0, 0, 0);
+		if (ret != SQLITE_OK)
+		{
+			::std::ostringstream oss;
+			oss << "Unable to create index 'idx_nc_srv': " << ::sqlite3_errmsg(p_db_);
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+//		sql_oss.str("");
+//		sql_oss << "CREATE INDEX IF NOT EXISTS idx_ncs_srv ON network_connection_stat (server_addr,server_port)";
+//		ret = sqlite3_exec(p_db_, sql_oss.str().c_str(), 0, 0, 0);
+//		if (ret != SQLITE_OK)
+//		{
+//			::std::ostringstream oss;
+//			oss << "Unable to create index 'idx_ncs_srv': " << ::sqlite3_errmsg(p_db_);
+//
+//			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+//		}
 	}
 
 	public: void clear()
@@ -248,15 +275,25 @@ class sqlite_data_store: public base_data_store
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "DB is not open"));
 
-		::std::ostringstream sql_oss;
-		sql_oss <<  "DELETE FROM network_connection";
-
 		int ret(SQLITE_OK);
+		::std::ostringstream sql_oss;
+
+		sql_oss <<  "DELETE FROM network_connection";
 		ret = sqlite3_exec(p_db_, sql_oss.str().c_str(), 0, 0, 0);
 		if (ret != SQLITE_OK)
 		{
 			::std::ostringstream oss;
 			oss << "Unable to clear table 'network_connection': " << ::sqlite3_errmsg(p_db_);
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+		sql_oss.str("");
+		sql_oss <<  "DELETE FROM network_connection_stat";
+		ret = sqlite3_exec(p_db_, sql_oss.str().c_str(), 0, 0, 0);
+		if (ret != SQLITE_OK)
+		{
+			::std::ostringstream oss;
+			oss << "Unable to clear table 'network_connection_stat': " << ::sqlite3_errmsg(p_db_);
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 		}
@@ -272,7 +309,8 @@ class sqlite_data_store: public base_data_store
 									   "DB is not open"));
 
 		::std::ostringstream sql_oss;
-		sql_oss << "SELECT status,last_update FROM network_connection"
+		sql_oss << "SELECT status,last_update"
+				<< " FROM network_connection"
 				<< " WHERE server_addr=%Q"
 				<< " AND   server_port=%u"
 				<< " AND   client_addr=%Q"
@@ -317,9 +355,9 @@ class sqlite_data_store: public base_data_store
 									   "DB is not open"));
 
 		::std::ostringstream sql_oss;
-		sql_oss << "REPLACE INTO network_connection"
-				<< " (server_addr,server_port,client_addr,client_port,status,last_update)"
-				<< " VALUES (%Q,%u,%Q,%u,%lu,(datetime('now')))";
+		sql_oss << "INSERT OR REPLACE INTO network_connection"
+				<< " (server_addr,server_port,client_addr,client_port,status)"
+				<< " VALUES (%Q,%u,%Q,%u,%lu))";
 
 		char* sql = ::sqlite3_mprintf(sql_oss.str().c_str(),
 									  conn.server_address.c_str(),
@@ -342,6 +380,55 @@ class sqlite_data_store: public base_data_store
 		}
 
 		::sqlite3_free(sql);
+
+		sql_oss.str("");
+		int nr = ::sqlite3_changes(p_db_);
+		if (nr == 1 || conn.status == closed_connection_status)
+		{
+			// The following emulate the 'INSERT INTO ... ON DUPLICATE KEY UPDATE' MySQL extension
+			sql_oss << "INSERT OR IGNORE INTO network_connection_stat"
+					<< " (server_addr,server_port)"
+					<< " VALUES (%Q,%u));"
+					<< "UPDATE network_connection_stat"
+					<< " SET num_departures=num_departures+1"
+					<< " WHERE server_addr=%Q AND server_port=%u";
+
+			sql = ::sqlite3_mprintf(sql_oss.str().c_str(),
+									conn.server_address.c_str(),
+									conn.server_port,
+									conn.server_address.c_str(),
+									conn.server_port);
+		}
+		else
+		{
+			// The following emulate the 'INSERT INTO ... ON DUPLICATE KEY UPDATE' MySQL extension
+			sql_oss << "INSERT OR IGNORE INTO network_connection_stat"
+					<< " (server_addr,server_port)"
+					<< " VALUES (%Q,%u));"
+					<< "UPDATE network_connection_stat"
+					<< " SET num_arrivals=num_arrivals+1"
+					<< " WHERE server_addr=%Q AND server_port=%u";
+
+			sql = ::sqlite3_mprintf(sql_oss.str().c_str(),
+									conn.server_address.c_str(),
+									conn.server_port,
+									conn.server_address.c_str(),
+									conn.server_port);
+		}
+
+		DCS_DEBUG_TRACE("-- SQL: " << sql);//XXX
+
+		ret = sqlite3_exec(p_db_, sql, 0, 0, 0);
+		if (ret != SQLITE_OK)
+		{
+			::std::ostringstream oss;
+			oss << "Unable to save (" << conn.server_address << ":" << conn.server_port << ") into table 'network_connection_stat': " << ::sqlite3_errmsg(p_db_);
+			::sqlite3_free(sql);
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+
+		::sqlite3_free(sql);
 	}
 
 	public: void erase(::std::string const& server_address,
@@ -354,7 +441,11 @@ class sqlite_data_store: public base_data_store
 									   "DB is not open"));
 
 		::std::ostringstream sql_oss;
-		sql_oss << "DELETE FROM network_connection WHERE server_addr=%Q AND server_port=%u AND client_addr=%Q AND client_port=%u";
+		sql_oss << "DELETE FROM network_connection"
+				<< " WHERE server_addr=%Q"
+				<< " AND   server_port=%u"
+				<< " AND   client_addr=%Q"
+				<< " AND   client_port=%u";
 
 		char* sql = ::sqlite3_mprintf(sql_oss.str().c_str(),
 									  server_address.c_str(),
@@ -452,12 +543,6 @@ class sqlite_data_store: public base_data_store
 	}
 
 	public: unsigned long num_connections(::std::string const& server_address,
-										  ::boost::uint16_t server_port)
-	{
-		throw ::std::runtime_error("Not yet implemented");
-	}
-
-	public: unsigned long num_connections(::std::string const& server_address,
 										  ::boost::uint16_t server_port,
 										  connection_status_category status)
 	{
@@ -481,11 +566,48 @@ class sqlite_data_store: public base_data_store
 		DCS_DEBUG_TRACE("-- SQL: " << sql);//XXX
 
 		unsigned long count(0);
-		ret = sqlite3_exec(p_db_, sql, &num_connections_callback, &count, 0);
+		ret = sqlite3_exec(p_db_, sql, &num_connections_by_status_callback, &count, 0);
 		if (ret != SQLITE_OK)
 		{
 			::std::ostringstream oss;
 			oss << "Unable to count connections (" << server_address << ":" << server_port << ") from table 'network_connection': " << ::sqlite3_errmsg(p_db_);
+			::sqlite3_free(sql);
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+
+		::sqlite3_free(sql);
+
+		return count;
+	}
+
+	public: unsigned long num_connections(::std::string const& server_address,
+										  ::boost::uint16_t server_port)
+	{
+		DCS_ASSERT(this->is_open(),
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "DB is not open"));
+
+		::std::ostringstream sql_oss;
+		sql_oss << "SELECT num_arrivals-num_departures"
+				<< " FROM network_connection_stat"
+				<< " WHERE server_addr=%Q"
+				<< " AND   server_port=%u";
+
+		int ret(SQLITE_OK);
+		char* sql = ::sqlite3_mprintf(sql_oss.str().c_str(),
+									  server_address.c_str(),
+									  server_port);
+
+		DCS_DEBUG_TRACE("-- SQL: " << sql);//XXX
+
+		unsigned long count(0);
+
+		ret = sqlite3_exec(p_db_, sql, &num_connections_callback, &count, 0);
+		if (ret != SQLITE_OK)
+		{
+			::std::ostringstream oss;
+			oss << "Unable to count connections (" << server_address << ":" << server_port << ") from table 'network_connection_stat': " << ::sqlite3_errmsg(p_db_);
 			::sqlite3_free(sql);
 
 			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
@@ -514,6 +636,21 @@ class sqlite_data_store: public base_data_store
 		return 0;
 	}
 
+	private: static int num_connections_by_status_callback(void* user_data, int num_cols, char** col_values, char** col_names)
+	{
+		DCS_MACRO_SUPPRESS_UNUSED_VARIABLE_WARNING( num_cols );
+		DCS_MACRO_SUPPRESS_UNUSED_VARIABLE_WARNING( col_names );
+
+		DCS_DEBUG_ASSERT( user_data );
+
+		unsigned long* p_count = static_cast<unsigned long*>(user_data);
+		::std::istringstream iss;
+		iss.str(col_values[0]);
+		iss >> *p_count;
+
+		return 0;
+	}
+
 	private: static int num_connections_callback(void* user_data, int num_cols, char** col_values, char** col_names)
 	{
 		DCS_MACRO_SUPPRESS_UNUSED_VARIABLE_WARNING( num_cols );
@@ -528,6 +665,7 @@ class sqlite_data_store: public base_data_store
 
 		return 0;
 	}
+
 
 	private: ::std::string name_;
 	private: ::sqlite3* p_db_;
@@ -960,7 +1098,7 @@ class mysql_data_store: public base_data_store
 			::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
 			::boost::scoped_ptr< ::sql::ResultSet > p_res(p_stmt->executeQuery(sql_oss.str()));
 
-			if (p_res->rowsCount() > 1)
+			if (p_res->rowsCount() >= 1)
 			{
 				if (p_res->rowsCount() != 1)
 				{
