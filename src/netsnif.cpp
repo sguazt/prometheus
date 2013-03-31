@@ -1788,7 +1788,11 @@ class packet_analyzer_runner
 #elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_MWMR_PACKET_QUEUE)
 					p_pkt_queue_->pop(p_pkt);
 #elif defined(DCS_TESTBED_NETSNIF_USE_BOOST_LOCKFREE_SPSC_PACKET_QUEUE)
-					p_pkt_queue_->pop(p_pkt);
+					bool ok = p_pkt_queue_->pop(p_pkt);
+					if (!ok)
+					{
+						continue;
+					}
 #elif defined(DCS_TESTBED_NETSNIF_USE_DCS_CONCURRENT_BLOCKING_PACKET_QUEUE)
 					p_pkt_queue_->pop(p_pkt);
 #endif // DCS_TESTBED_NETSNIF_USE_*_PACKET_QUEUE
