@@ -1098,7 +1098,7 @@ class mysql_data_store: public base_data_store
 			::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
 			::boost::scoped_ptr< ::sql::ResultSet > p_res(p_stmt->executeQuery(sql_oss.str()));
 
-			if (p_res->rowsCount() >= 1)
+			if (p_res->rowsCount() > 0)
 			{
 				if (p_res->rowsCount() != 1)
 				{
@@ -1152,7 +1152,7 @@ class mysql_data_store: public base_data_store
 			::boost::scoped_ptr< ::sql::Statement > p_stmt(p_db_->createStatement());
 			::boost::scoped_ptr< ::sql::ResultSet > p_res(p_stmt->executeQuery(sql_oss.str()));
 
-			if (p_res->rowsCount() > 1)
+			if (p_res->rowsCount() > 0)
 			{
 				if (p_res->rowsCount() != 1)
 				{
@@ -1217,7 +1217,16 @@ class ram_data_store: public base_data_store
 {
 	private: typedef ::boost::mutex mutex_type;
 	private: typedef ::std::map< ::std::string, ::boost::shared_ptr<network_connection> > client_entry_container;
-	private: typedef ::std::map< ::std::string, client_entry_container > server_entry_container;
+	private: typedef struct server_entry {
+					server_entry()
+					: num_arrivals(0),
+					  num_departures(0)
+					{ }
+					client_entry_container clients;
+					unsigned long num_arrivals;
+					unsigned long num_departures;
+				} server_entry_type;
+	private: typedef ::std::map< ::std::string, server_entry_type > server_client_entry_container;
 
 
 	public: ram_data_store()
@@ -1260,9 +1269,9 @@ class ram_data_store: public base_data_store
 
 		::boost::lock_guard<mutex_type> lock(store_mutex_);
 
-		if (store_.count(srv_id) > 0 && store_.at(srv_id).count(cli_id) > 0)
+		if (store_.count(srv_id) > 0 && store_.at(srv_id).clients.count(cli_id) > 0)
 		{
-			p_net_conn->status = store_.at(srv_id).at(cli_id)->status;
+			p_net_conn->status = store_.at(srv_id).clients.at(cli_id)->status;
 		}
 		else
 		{
@@ -1281,17 +1290,24 @@ class ram_data_store: public base_data_store
 
 		if (store_.count(srv_id) == 0)
 		{
-			store_[srv_id] = client_entry_container();
+			store_[srv_id] = server_entry_type();
 		}
-		if (store_.at(srv_id).count(cli_id) == 0)
+		if (store_.at(srv_id).clients.count(cli_id) == 0)
 		{
-			store_[srv_id][cli_id] = ::boost::make_shared<network_connection>();
+			// A new client is arrived
+			store_[srv_id].clients[cli_id] = ::boost::make_shared<network_connection>();
+			store_[srv_id].num_arrivals += 1;
 		}
-		store_[srv_id][cli_id]->server_address = conn.server_address;
-		store_[srv_id][cli_id]->server_port = conn.server_port;
-		store_[srv_id][cli_id]->client_address = conn.client_address;
-		store_[srv_id][cli_id]->client_port = conn.client_port;
-		store_[srv_id][cli_id]->status = conn.status;
+		else if (store_[srv_id].clients[cli_id]->status == closed_connection_status)
+		{
+			// A client is leaving
+			store_[srv_id].num_departures += 1;
+		}
+		store_[srv_id].clients[cli_id]->server_address = conn.server_address;
+		store_[srv_id].clients[cli_id]->server_port = conn.server_port;
+		store_[srv_id].clients[cli_id]->client_address = conn.client_address;
+		store_[srv_id].clients[cli_id]->client_port = conn.client_port;
+		store_[srv_id].clients[cli_id]->status = conn.status;
 	}
 
 	public: void erase(::std::string const& server_address,
@@ -1306,11 +1322,11 @@ class ram_data_store: public base_data_store
 
 		if (store_.count(srv_id) > 0)
 		{
-			store_[srv_id].erase(cli_id);
-			if (store_[srv_id].size() == 0)
-			{
-				store_.erase(srv_id);
-			}
+			store_[srv_id].clients.erase(cli_id);
+//			if (store_[srv_id].size() == 0)
+//			{
+//				store_.erase(srv_id);
+//			}
 		}
 	}
 
@@ -1365,8 +1381,8 @@ class ram_data_store: public base_data_store
 		{
 			typedef client_entry_container::const_iterator entry_iterator;
 
-			entry_iterator end_it(store_.at(srv_id).end());
-			for (entry_iterator it = store_.at(srv_id).begin();
+			entry_iterator end_it(store_.at(srv_id).clients.end());
+			for (entry_iterator it = store_.at(srv_id).clients.begin();
 				 it != end_it;
 				 ++it)
 			{
@@ -1383,7 +1399,22 @@ class ram_data_store: public base_data_store
 	public: unsigned long num_connections(::std::string const& server_address,
 										  ::boost::uint16_t server_port)
 	{
-		throw ::std::runtime_error("Not yet implemented");
+		DCS_ASSERT(this->is_open(),
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "DB is not open"));
+
+		unsigned long count(0);
+
+		::std::string srv_id = make_id(server_address, server_port);
+
+		::boost::lock_guard<mutex_type> lock(store_mutex_);
+
+		if (store_.count(srv_id) > 0)
+		{
+			count = store_.at(srv_id).num_arrivals-store_.at(srv_id).num_departures;
+		}
+
+		return count;
 	}
 
 	private: static ::std::string make_id(::std::string const& address,
@@ -1417,7 +1448,7 @@ class ram_data_store: public base_data_store
 	}
 
 
-	private: server_entry_container store_;
+	private: server_client_entry_container store_;
 	private: mutex_type store_mutex_;
 }; // ram_data_store
 
