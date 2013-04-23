@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
-import apsw
 import argparse
+import mysql.connector
+from mysql.connector import errorcode
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 import sys
 import time
+import urlparse
 
 
 ## Internal logic
@@ -12,14 +14,9 @@ import time
 max_num_trials = 30
 zzz_time = 1
 
-def db_busy_handler_(num_trials):
-	if num_trials >= max_num_trials:
-		print >> sys.stderr, "Unable to query the DB: Give-up"
-		return False
-	print >> sys.stderr, "Unable to query the DB: Zzz..."
-	time.sleep(zzz_time)
-	return True
-
+def register_uri_scheme(scheme):
+    for method in filter(lambda s: s.startswith('uses_'), dir(urlparse)):
+        getattr(urlparse, method).append(scheme)
 
 class NetworkConnectionsManager:
 	"""Managed stored network connections."""
@@ -29,69 +26,70 @@ class NetworkConnectionsManager:
 	active_connection_status = 1
 	closed_connection_status = 2
 
+	default_host = "localhost"
+	default_port = 3306
+	default_db_name = "netsnif"
 
-	def __init__(self, db_file):
-		self.db_file_ = db_file
+	def __init__(self, db_uri):
+		# Register "tcp" scheme to let 'urlparse' to correctly parse associated URIs
+		register_uri_scheme('tcp')
+		uri = urlparse.urlsplit(db_uri)
+		params = urlparse.parse_qs(uri.query)
+		self.db_host_ = uri.hostname or self.default_host
+		self.db_port_ = uri.port or self.default_port
+		self.db_name_ = uri.path.lstrip("/") or self.default_db_name
+		if "user" in params:
+			self.db_user_ = params["user"][0]
+		else:
+			self.db_user_ = ""
+		if "password" in params:
+			self.db_passwd_ = params["password"][0]
+		else:
+			self.db_passwd_ = ""
+		#print("URI: %s\n" %  (db_uri))
 
 	def num_connections_by_status(self, host, port, status):
-		sql = "SELECT COUNT(*) FROM network_connection WHERE server_addr=? AND server_port=? GROUP BY status HAVING status=?"
-		db_conn = apsw.Connection(self.db_file_, apsw.SQLITE_OPEN_READONLY)
-		db_conn.setbusyhandler(db_busy_handler_)
-		db_cursor = db_conn.cursor()
+		sql = ("SELECT COUNT(*)"
+			   " FROM network_connection"
+			   " WHERE server_addr=%s AND server_port=%d"
+			   " GROUP BY status"
+			   " HAVING status=%d")
+
 		ret = 0
-		#num_trials = 5
-		#trial = 1
-		#loop = True
-		#while loop:
-		#	try:
-		#		for row in db_cursor.execute(sql, (host, port, status)):
-		#			ret = row[0]
-		#			loop = False
-		#	except apsw.BusyError
-		#		#TODO: the code below should only be executed if the exception
-		#		#      related to a DB locking problem
-		#		if trial < num_trials:
-		#			++trial
-		#			print >> sys.stderr, "Unable to query the DB: Zzz..."
-		#			time.sleep(1)
-		#		else:
-		#			loop = False
-		#			print >> sys.stderr, "Unable to query the DB. Give-up!"
-		#			raise
-		#	except:
-		#		raise
-		#	else:
-		#		loop = False
-		for row in db_cursor.execute(sql, (host, port, status)):
-			ret = row[0]
-		db_cursor.close()
-		db_conn.close()
+		try:
+			db_conn = mysql.connector.connect(host=self.db_host_,
+											  port=self.db_port_,
+											  database=self.db_name_,
+											  user=self.db_user_,
+											  password=self.db_passwd_)
+			db_cursor = db_conn.cursor()
+			db_cursor.execute(sql, (host, port, status))
+			for (count) in db_cursor:
+				ret = count
+			db_cursor.close()
+		except mysql.connector.Error as err:
+			if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+				print("Something is wrong your username or password: {}".format(err))
+			elif err.errno == errorcode.ER_BAD_DB_ERROR:
+				print("Database does not exists: {}".format(err))
+			else:
+				print("Something went wrong during DB operation: {}".format(err))
+		else:
+			db_conn.close()
 		return ret
 
 
 ## XML-RPC functions
 
 class RpcFuncs:
-	def __init__(self, db_file):
-#		import string
-		self.db_file_ = db_file
-#		self.string = string
+	def __init__(self, db_uri):
+		self.db_uri_ = db_uri
 
-#	def _listMethods(self):
-#		return list_public_methods(self) + \
-#				['string.' + method for method in list_public_methods(self.string)]
-
-	def num_tcp_connections(self, host="localhost", port=8080, status=NetworkConnectionsManager.wait_connection_status):
+	def num_tcp_connections(self, host="localhost", port=9090, status=NetworkConnectionsManager.wait_connection_status):
 		"""Return the number of pending and served TCP connection at the given
 		   host and port."""
-		mgr = NetworkConnectionsManager(self.db_file_)
+		mgr = NetworkConnectionsManager(self.db_uri_)
 		return mgr.num_connections_by_status(host, port, status)
-
-#def num_tcp_connections(host="localhost", port=8080, status=NetworkConnectionsManager.wait_connection_status):
-#	"""Return the number of pending and served TCP connection at the given
-#	   host and port."""
-#	mgr = NetworkConnectionsManager(self.db_file_)
-#	return mgr.num_connections_by_status(host, port, status)
 
 
 ## Entry point
@@ -101,8 +99,8 @@ if __name__ == "__main__":
 	# Positional args
 	#arg_parser.add_argument("args")
 	# Option args
-	arg_parser.add_argument("-p", "--port", dest="port", action="store", type=int, default=8080, help="Port to listen for connections")
-	arg_parser.add_argument("-b", "--db", dest="db", help="Full path to the DB data")
+	arg_parser.add_argument("-p", "--port", dest="port", action="store", type=int, default=9090, help="Port to listen for connections")
+	arg_parser.add_argument("-b", "--db", dest="db", help="DB URI")
 	args = arg_parser.parse_args();
 	#if len(vars(args)) == 0:
 	#	arg_parser.error("Invalid number of arguments")
