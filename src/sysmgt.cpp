@@ -315,6 +315,7 @@ int main(int argc, char *argv[])
 			padala2009_mgr.sysid_strategy(p_sysid_alg);
 			//padala2009_mgr.target_value(testbed::response_time_application_performance, rt_mean);
 			padala2009_mgr.target_value(testbed::response_time_application_performance, rt_q99*(1-0.20));
+			padala2009_mgr.stability_factor(q);
 
 			p_mgr = boost::make_shared< testbed::padala2009_application_manager<traits_type> >(padala2009_mgr);
 #else

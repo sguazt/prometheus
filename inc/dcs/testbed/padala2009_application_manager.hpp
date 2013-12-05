@@ -155,6 +155,16 @@ class padala2009_application_manager: public base_application_manager<TraitsT>
 		tgt_map_[cat] = val;
 	}
 
+	public: void stability_factor(real_type value)
+	{
+		q_ = value;
+	}
+
+	public: real_type stability_factor() const
+	{
+		return q_;
+	}
+
 	private: void do_sampling_time(uint_type val)
 	{
 		DCS_ASSERT(val > 0,
