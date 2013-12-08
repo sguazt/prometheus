@@ -36,6 +36,7 @@
 
 #include <dcs/debug.hpp>
 #include <dcs/macro.hpp>
+#include <limits>
 #include <vector>
 
 
@@ -45,7 +46,7 @@ template <typename ValueT>
 class base_smoother
 {
 	public: typedef ValueT value_type;
-	protected: typedef ::std::vector<value_type> observation_container;
+	protected: typedef ::std::vector<value_type> data_container;
 
 
 	public: value_type smooth(value_type val)
@@ -69,17 +70,52 @@ class base_smoother
 		return this->do_reset();
 	}
 
-	private: virtual value_type do_smooth(observation_container const& obs) = 0; 
+	private: virtual value_type do_smooth(data_container const& data) = 0; 
 	private: virtual value_type do_forecast(unsigned int t) const = 0;
 	private: virtual void do_reset() = 0;
 };
+
+template <typename ValueT>
+class dummy_smoother: public base_smoother<ValueT>
+{
+	private: typedef base_smoother<ValueT> base_type;
+	public: typedef typename base_type::value_type value_type;
+	private: typedef typename base_type::data_container data_container;
+
+
+	public: dummy_smoother()
+	: v_(::std::numeric_limits<value_type>::quiet_NaN())
+	{
+	}
+
+	private: value_type do_smooth(data_container const& data)
+	{
+		v_ = data.back();
+
+		return v_;
+	}
+
+	private: value_type do_forecast(unsigned int t) const
+	{
+		DCS_MACRO_SUPPRESS_UNUSED_VARIABLE_WARNING(t);
+
+		return v_;
+	}
+
+	private: void do_reset()
+	{
+		v_ = ::std::numeric_limits<value_type>::quiet_NaN();
+	}
+
+	private: value_type v_;
+}; // dummy_smoother
 
 template <typename ValueT>
 class brown_single_exponential_smoother: public base_smoother<ValueT>
 {
 	private: typedef base_smoother<ValueT> base_type;
 	public: typedef typename base_type::value_type value_type;
-	private: typedef typename base_type::observation_container observation_container;
+	private: typedef typename base_type::data_container data_container;
 
 
 	public: explicit brown_single_exponential_smoother(double alpha)
@@ -89,14 +125,14 @@ class brown_single_exponential_smoother: public base_smoother<ValueT>
 	{
 	}
 
-	private: value_type do_smooth(observation_container const& obs)
+	private: value_type do_smooth(data_container const& data)
 	{
-		typedef typename observation_container::const_iterator obs_iterator;
+		typedef typename data_container::const_iterator data_iterator;
 
-		obs_iterator obs_end_it(obs.end());
-		for (obs_iterator obs_it = obs.begin(); obs_it != obs_end_it; ++obs_it)
+		data_iterator data_end_it(data.end());
+		for (data_iterator data_it = data.begin(); data_it != data_end_it; ++data_it)
 		{
-			value_type val(*obs_it);
+			value_type val(*data_it);
 
 			if (init_)
 			{
@@ -136,7 +172,7 @@ class holt_winters_double_exponential_smoother: public base_smoother<ValueT>
 {
 	private: typedef base_smoother<ValueT> base_type;
 	public: typedef typename base_type::value_type value_type;
-	private: typedef typename base_type::observation_container observation_container;
+	private: typedef typename base_type::data_container data_container;
 
 
 	public: explicit holt_winters_double_exponential_smoother(double delta)
@@ -158,14 +194,14 @@ class holt_winters_double_exponential_smoother: public base_smoother<ValueT>
 	{
 	}
 
-	private: value_type do_smooth(observation_container const& obs)
+	private: value_type do_smooth(data_container const& data)
 	{
-		typedef typename observation_container::const_iterator obs_iterator;
+		typedef typename data_container::const_iterator data_iterator;
 
-		obs_iterator obs_end_it(obs.end());
-		for (obs_iterator obs_it = obs.begin(); obs_it != obs_end_it; ++obs_it)
+		data_iterator data_end_it(data.end());
+		for (data_iterator data_it = data.begin(); data_it != data_end_it; ++data_it)
 		{
-			value_type val(*obs_it);
+			value_type val(*data_it);
 
 			if (init_s_)
 			{
@@ -213,7 +249,7 @@ class brown_double_exponential_smoother: public base_smoother<ValueT>
 {
 	private: typedef base_smoother<ValueT> base_type;
 	public: typedef typename base_type::value_type value_type;
-	private: typedef typename base_type::observation_container observation_container;
+	private: typedef typename base_type::data_container data_container;
 
 
 	public: explicit brown_double_exponential_smoother(double alpha)
@@ -226,14 +262,14 @@ class brown_double_exponential_smoother: public base_smoother<ValueT>
 	{
 	}
 
-	private: value_type do_smooth(observation_container const& obs)
+	private: value_type do_smooth(data_container const& data)
 	{
-		typedef typename observation_container::const_iterator obs_iterator;
+		typedef typename data_container::const_iterator data_iterator;
 
-		obs_iterator obs_end_it(obs.end());
-		for (obs_iterator obs_it = obs.begin(); obs_it != obs_end_it; ++obs_it)
+		data_iterator data_end_it(data.end());
+		for (data_iterator data_it = data.begin(); data_it != data_end_it; ++data_it)
 		{
-			value_type val(*obs_it);
+			value_type val(*data_it);
 
 			if (init_s_)
 			{
