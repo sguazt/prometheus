@@ -8,7 +8,7 @@
  *
  * <hr/>
  *
- * Copyright (C) 2012       Marco Guazzone (marco.guazzone@gmail.com)
+ * Copyright (C) 2012-2013  Marco Guazzone (marco.guazzone@gmail.com)
  *                          [Distributed Computing System (DCS) Group,
  *                           Computer Science Institute,
  *                           Department of Science and Technological Innovation,
@@ -170,21 +170,37 @@ class base_arx_system_identification_strategy
 
 	public: matrix_type A(size_type k) const
 	{
+		DCS_ASSERT(k >= 1 && k <= this->output_order(),
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Argument k is out-of-range"));
+
 		return do_A(k);
 	}
 
 	public: matrix_type B(size_type k) const
 	{
+		DCS_ASSERT(k >= 1 && k <= this->input_order(),
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Argument k is out-of-range"));
+
 		return do_B(k);
 	}
 
 	public: vector_type y(size_type k) const
 	{
+		DCS_ASSERT(k >= 1 && k <= this->output_order(),
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Argument k is out-of-range"));
+
 		return do_y(k);
 	}
 
 	public: vector_type u(size_type k) const
 	{
+		DCS_ASSERT(k >= 1 && k <= (this->input_order()+this->input_delay()),
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Argument k is out-of-range"));
+
 		return do_u(k);
 	}
 
@@ -488,8 +504,6 @@ class rls_ff_arx_mimo_proxy: public rls_arx_system_identification_strategy<Trait
 	{
 		namespace ublas = ::boost::numeric::ublas;
 
-		DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
-
 		// Remember:
 		//   \hat{\Theta} = [a_{11}^{1},     a_{21}^{1},     ...,  a_{n_y1}^{1};
 		//                   ...,            ...,            ...,  ...;
@@ -518,8 +532,6 @@ class rls_ff_arx_mimo_proxy: public rls_arx_system_identification_strategy<Trait
 	{
 		namespace ublas = ::boost::numeric::ublas;
 
-		DCS_DEBUG_ASSERT( k >= 1 && k <= this->input_order() );
-
 		// Remember:
 		//   \hat{\Theta} = [a_{11}^{1},     a_{21}^{1},     ...,  a_{n_y1}^{1};
 		//                   ...,            ...,            ...,  ...;
@@ -546,8 +558,6 @@ class rls_ff_arx_mimo_proxy: public rls_arx_system_identification_strategy<Trait
 	private: vector_type do_y(size_type k) const
 	{
 		namespace ublas = ::boost::numeric::ublas;
-
-		DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
 
 		// Remeber:
 		// \phi = [ -y_{1}(t-1);
@@ -580,8 +590,6 @@ class rls_ff_arx_mimo_proxy: public rls_arx_system_identification_strategy<Trait
 	private: vector_type do_u(size_type k) const
 	{
 		namespace ublas = ::boost::numeric::ublas;
-
-		DCS_DEBUG_ASSERT( k >= 1 && k <= (this->input_order()+this->input_delay()) );
 
 		// Remeber:
 		// \phi = [ -y_{1}(t-1);
@@ -850,8 +858,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 	{
 		namespace ublas = ::boost::numeric::ublas;
 
-		DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
-
 		const size_type ny(this->num_outputs());
 
 		// Remember, for each output i=1,...,n_y:
@@ -880,8 +886,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 	private: matrix_type do_B(size_type k) const
 	{
 		namespace ublas = ::boost::numeric::ublas;
-
-		DCS_DEBUG_ASSERT( k >= 1 && k <= this->input_order() );
 
 		const size_type na(this->output_order());
 		const size_type nb(this->input_order());
@@ -914,8 +918,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 	{
 		namespace ublas = ::boost::numeric::ublas;
 
-		DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
-
 		// Remeber:
 		// \phi = [ -y(t-1);
 		//          -y(t-2);
@@ -946,8 +948,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 	private: vector_type do_u(size_type k) const
 	{
 		namespace ublas = ::boost::numeric::ublas;
-
-		DCS_DEBUG_ASSERT( k >= 1 && k <= (this->input_order()+this->input_delay()) );
 
 		// Remeber:
 		// \phi = [ -y(t-1);
@@ -1233,8 +1233,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 	{
 		namespace ublas = ::boost::numeric::ublas;
 
-		DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
-
 		const size_type ny(this->num_outputs());
 
 		// Remember, for each output i=1,...,n_y:
@@ -1263,8 +1261,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 	private: matrix_type do_B(size_type k) const
 	{
 		namespace ublas = ::boost::numeric::ublas;
-
-		DCS_DEBUG_ASSERT( k >= 1 && k <= this->input_order() );
 
 		const size_type na(this->output_order());
 		const size_type nb(this->input_order());
@@ -1297,8 +1293,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
     {
         namespace ublas = ::boost::numeric::ublas;
 
-        DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
-
         // Remeber:
         // \phi = [ -y(t-1);
         //          -y(t-2);
@@ -1328,8 +1322,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
     private: vector_type do_u(size_type k) const
     {
         namespace ublas = ::boost::numeric::ublas;
-
-        DCS_DEBUG_ASSERT( k >= 1 && k <= (this->input_order()+this->input_delay()) );
 
         // Remeber:
         // \phi = [ -y(t-1);
@@ -1577,8 +1569,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 	{
 		namespace ublas = ::boost::numeric::ublas;
 
-		DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
-
 		const size_type ny(this->num_outputs());
 
 		// Remember, for each output i=1,...,n_y:
@@ -1607,8 +1597,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 	private: matrix_type do_B(size_type k) const
 	{
 		namespace ublas = ::boost::numeric::ublas;
-
-		DCS_DEBUG_ASSERT( k >= 1 && k <= this->input_order() );
 
 		const size_type na(this->output_order());
 		const size_type nb(this->input_order());
@@ -1641,8 +1629,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
     {
         namespace ublas = ::boost::numeric::ublas;
 
-        DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
-
         // Remeber:
         // \phi = [ -y(t-1);
         //          -y(t-2);
@@ -1673,8 +1659,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 	private: vector_type do_u(size_type k) const
 	{
 		namespace ublas = ::boost::numeric::ublas;
-
-		DCS_DEBUG_ASSERT( k >= 1 && k <= (this->input_order()+this->input_delay()) );
 
 		// Remeber:
 		// \phi = [ -y(t-1);
@@ -1929,8 +1913,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 	{
 		namespace ublas = ::boost::numeric::ublas;
 
-		DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
-
 		const size_type ny(this->num_outputs());
 
 		// Remember, for each output i=1,...,n_y:
@@ -1959,8 +1941,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 	private: matrix_type do_B(size_type k) const
 	{
 		namespace ublas = ::boost::numeric::ublas;
-
-		DCS_DEBUG_ASSERT( k >= 1 && k <= this->input_order() );
 
 		const size_type na(this->output_order());
 		const size_type nb(this->input_order());
@@ -1993,8 +1973,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 	{
 		namespace ublas = ::boost::numeric::ublas;
 
-		DCS_DEBUG_ASSERT( k >= 1 && k <= this->output_order() );
-
 		// Remeber:
 		// \phi = [ -y(t-1);
 		//          -y(t-2);
@@ -2025,8 +2003,6 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 	private: vector_type do_u(size_type k) const
 	{
 		namespace ublas = ::boost::numeric::ublas;
-
-		DCS_DEBUG_ASSERT( k >= 1 && k <= (this->input_order()+this->input_delay()) );
 
 		// Remeber:
 		// \phi = [ -y(t-1);
