@@ -1023,9 +1023,7 @@ class lq_application_manager: public base_application_manager<TraitsT>
 
 
 	public: lq_application_manager()
-	: ts_(default_sampling_time),
-	  tc_(default_control_time),
-	  nx_(0),
+	: nx_(0),
 	  nu_(0),
 	  ny_(0),
 	  x_offset_(0),
@@ -1036,6 +1034,8 @@ class lq_application_manager: public base_application_manager<TraitsT>
 	  sysid_fail_count_(0),
 	  ewma_sf_(default_ewma_smoothing_factor)
 	{
+		this->sampling_time(default_sampling_time);
+		this->control_time(default_control_time);
 	}
 
 	public: void sysid_strategy(sysid_strategy_pointer const& p_strategy)
@@ -1051,11 +1051,6 @@ class lq_application_manager: public base_application_manager<TraitsT>
 	public: sysid_strategy_pointer sysid_strategy() const
 	{
 		return p_sysid_alg_;
-	}
-
-	public: void target_value(application_performance_category cat, real_type val)
-	{
-		tgt_map_[cat] = val;
 	}
 
 	protected: numeric_vector_type const& state_vector() const
@@ -1096,64 +1091,14 @@ class lq_application_manager: public base_application_manager<TraitsT>
 		return do_lq_control(A, B, C, D);
 	}
 
-	private: void do_sampling_time(uint_type val)
-	{
-		DCS_ASSERT(val > 0,
-				   DCS_EXCEPTION_THROW(::std::invalid_argument,
-									   "Invalid sampling time: non-positive value"));
-
-		ts_ = val;
-	}
-
-	private: uint_type do_sampling_time() const
-	{
-		return ts_;
-	}
-
-	private: void do_control_time(uint_type val)
-	{
-		DCS_ASSERT(val > 0,
-				   DCS_EXCEPTION_THROW(::std::invalid_argument,
-									   "Invalid control time: non-positive value"));
-
-		tc_ = val;
-	}
-
-	private: uint_type do_control_time() const
-	{
-		return tc_;
-	}
-
-	private: void do_app(app_pointer const& p_app)
-	{
-		p_app_ = p_app;
-	}
-
-	private: app_pointer do_app()
-	{
-		return p_app_;
-	}
-
-	private: app_pointer do_app() const
-	{
-		return p_app_;
-	}
-
 	private: void do_reset()
 	{
-		// pre: p_app != null
-		DCS_ASSERT(p_app_,
-				   DCS_EXCEPTION_THROW(::std::runtime_error,
-									   "Application is not set"));
 		// pre: p_sysid_alg_ != null
 		DCS_ASSERT(p_sysid_alg_,
 				   DCS_EXCEPTION_THROW(::std::runtime_error,
 									   "System identification strategy is not set"));
 
 		//[FIXME]
-		DCS_ASSERT(tgt_map_.size() == 1,
-				   DCS_EXCEPTION_THROW(::std::logic_error,
-									   "Currently, only one application performace category is handled"));
 		DCS_ASSERT(tgt_map_.size() == 1,
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Currently, only one application performace category is handled"));
