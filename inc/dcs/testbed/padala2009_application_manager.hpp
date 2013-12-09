@@ -201,7 +201,6 @@ class padala2009_application_manager: public base_application_manager<TraitsT>
 
 	private: void do_sample()
 	{
-		typedef typename sensor_type::observation_type obs_type;
 		typedef typename sensor_map::const_iterator sensor_iterator;
 
 		DCS_DEBUG_TRACE("(" << this << ") BEGIN Do SAMPLE - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << sysid_fail_count_ << "/" << ctl_fail_count_);
