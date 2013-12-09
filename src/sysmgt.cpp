@@ -210,6 +210,10 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
+		oss << "SLO value: " << opt_slo_value;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
 		oss << "Workload: " << opt_wkl;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
