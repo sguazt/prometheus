@@ -291,6 +291,7 @@ DCS_DEBUG_TRACE("Observed Normalized Output for Category " << cat << ": " << yhs
 					// 1. Skip control?
 					// 2. Use a data smoother (e.g., EWMA)?
 					// The original paper does not consider this case. So we choose option #1
+					DCS_DEBUG_TRACE("No observation collected during the last control interval -> Skip control");
 					skip_ctl = true;
 					break;
 				}
