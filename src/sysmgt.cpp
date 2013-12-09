@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
 			testbed::lqry_application_manager<traits_type> lqry_mgr(Q, R);
 			lqry_mgr.sysid_strategy(p_sysid_alg);
 			//lqry_mgr.target_value(testbed::response_time_application_performance, rt_q99*(1-0.20));
-			lqry_mgr.target_value(testbed::response_time_application_performance, opt_slo_value);
+//			lqry_mgr.target_value(testbed::response_time_application_performance, opt_slo_value);
 
 			p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >(lqry_mgr);
 #elif defined(DCS_TESTBED_USE_PADALA2009_APP_MGR)
@@ -330,13 +330,14 @@ int main(int argc, char *argv[])
 			testbed::padala2009_application_manager<traits_type> padala2009_mgr;
 			padala2009_mgr.sysid_strategy(p_sysid_alg);
 			//padala2009_mgr.target_value(testbed::response_time_application_performance, rt_q99*(1-0.20));
-			padala2009_mgr.target_value(testbed::response_time_application_performance, opt_slo_value);
+//			padala2009_mgr.target_value(testbed::response_time_application_performance, opt_slo_value);
 			padala2009_mgr.stability_factor(q);
 
 			p_mgr = boost::make_shared< testbed::padala2009_application_manager<traits_type> >(padala2009_mgr);
 #else
 # error Application Manager not recognized
 #endif
+			p_mgr->target_value(testbed::response_time_application_performance, opt_slo_value);
 			p_mgr->sampling_time(opt_ts);
 			p_mgr->control_time(opt_tc);
 		}
