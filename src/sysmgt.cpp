@@ -86,11 +86,11 @@ void usage(char const* progname)
 				<< " --slo-value <value>" << ::std::endl
 				<< "   The target value for the SLO metric." << ::std::endl
 				<< "   [default: '" << default_slo_value << "']." << ::std::endl
-				<< " --tc <time in millisecs>" << ::std::endl
-				<< "   Control time (in milliseconds)." << ::std::endl
+				<< " --tc <time in secs>" << ::std::endl
+				<< "   Control time (in seconds)." << ::std::endl
 				<< "   [default: " << default_control_time << "]." << ::std::endl
-				<< " --ts <time in millisecs>" << ::std::endl
-				<< "   Sampling time (in milliseconds)." << ::std::endl
+				<< " --ts <time in secs>" << ::std::endl
+				<< "   Sampling time (in seconds)." << ::std::endl
 				<< "   [default: " << default_sampling_time << "]." << ::std::endl
 				<< " --verbose" << ::std::endl
 				<< "   Show verbose messages." << ::std::endl
