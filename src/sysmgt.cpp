@@ -42,6 +42,8 @@
 #include <dcs/testbed/application.hpp>
 #include <dcs/testbed/application_managers.hpp>
 #include <dcs/testbed/base_application.hpp>
+#include <dcs/testbed/data_estimators.hpp>
+#include <dcs/testbed/data_smoothers.hpp>
 #include <dcs/testbed/system_experiment.hpp>
 #include <dcs/testbed/system_identification_strategies.hpp>
 //#include <dcs/testbed/system_managers.hpp>
@@ -66,14 +68,170 @@ namespace detail { namespace /*<unnamed>*/ {
 //	mean_aggregation
 //};
 
+enum data_estimator_category
+{
+	mean_estimator,
+	chen2000_ewma_quantile_estimator,
+	chen2000_ewsa_quantile_estimator,
+	jain1985_p2_algorithm_quantile_estimator,
+	welsh2003_ewma_quantile_estimator,
+	welsh2003_ewma_ext_quantile_estimator
+};
+
+enum data_smoother_category
+{
+	dummy_smoother,
+	brown_single_exponential_smoother,
+	brown_double_exponential_smoother,
+	holt_winters_double_exponential_smoother
+};
+
+
 const dcs::testbed::workload_category default_workload(dcs::testbed::olio_workload);
 const dcs::testbed::workload_generator_category default_workload_driver(dcs::testbed::rain_workload_generator);
 const ::std::string default_workload_driver_rain_path("/usr/local/opt/rain-workload-toolkit");
 //const ::std::string default_out_dat_file("./sysmgt-out.dat");
 const double default_sampling_time(1000);
 const double default_control_time(3*default_sampling_time);
-const double default_ewma_smooth_factor(0.9);
+const data_estimator_category default_data_estimator(mean_estimator);
+const double default_quantile_prob(0.99);
+const double default_chen2000_ewma_w(0.05);
+const double default_chen2000_ewsa_w(0.05);
+const double default_welsh2003_ewma_alpha(0.7);
+const data_smoother_category default_data_smoother(dummy_smoother);
+const double default_brown_single_exponential_alpha(0.7);
+const double default_brown_double_exponential_alpha(0.7);
+const double default_holt_winters_double_exponential_alpha(0.8);
+const double default_holt_winters_double_exponential_beta(0.3);
+const double default_holt_winters_double_exponential_delta(0.7);
 const double default_slo_value(0);
+
+
+template <typename CharT, typename CharTraitsT>
+inline
+::std::basic_istream<CharT,CharTraitsT>& operator>>(::std::basic_istream<CharT,CharTraitsT>& is, data_smoother_category& cat)
+{
+	::std::string s;
+	is >> s;
+	::dcs::string::to_lower(s);
+
+	if (!s.compare("brown_ses"))
+	{
+		cat = brown_single_exponential_smoother;
+	}
+	else if (!s.compare("dummy"))
+	{
+		cat = dummy_smoother;
+	}
+	else if (!s.compare("brown_des"))
+	{
+		cat = brown_double_exponential_smoother;
+	}
+	else if (!s.compare("holt_winters_des"))
+	{
+		cat = holt_winters_double_exponential_smoother;
+	}
+	else
+	{
+		DCS_EXCEPTION_THROW(::std::runtime_error,
+							"Unknown data smoother category");
+	}
+
+	return is;
+}
+
+template <typename CharT, typename CharTraitsT>
+inline
+::std::basic_istream<CharT,CharTraitsT>& operator>>(::std::basic_istream<CharT,CharTraitsT>& is, data_estimator_category& cat)
+{
+	::std::string s;
+	is >> s;
+	::dcs::string::to_lower(s);
+
+	if (!s.compare("mean"))
+	{
+		cat = mean_estimator;
+	}
+	else if (!s.compare("chen2000_ewma_quantile"))
+	{
+		cat = chen2000_ewma_quantile_estimator;
+	}
+	else if (!s.compare("chen2000_ewsa_quantile"))
+	{
+		cat = chen2000_ewsa_quantile_estimator;
+	}
+	else if (!s.compare("jain1985_p2_algorithm_quantile"))
+	{
+		cat = jain1985_p2_algorithm_quantile_estimator;
+	}
+	else if (!s.compare("welsh2003_ewma_quantile"))
+	{
+		cat = welsh2003_ewma_quantile_estimator;
+	}
+	else if (!s.compare("welsh2003_ewma_ext_quantile"))
+	{
+		cat = welsh2003_ewma_ext_quantile_estimator;
+	}
+	else
+	{
+		DCS_EXCEPTION_THROW(::std::runtime_error,
+							"Unknown data estimator category");
+	}
+
+	return is;
+}
+
+template <typename CharT, typename CharTraitsT>
+inline
+::std::basic_ostream<CharT,CharTraitsT>& operator>>(::std::basic_ostream<CharT,CharTraitsT>& os, data_smoother_category cat)
+{
+	switch (cat)
+	{
+		case detail::brown_single_exponential_smoother:
+			os << "brown_ses";
+			break;
+		case detail::brown_double_exponential_smoother:
+			os << "brown_des";
+			break;
+		case detail::dummy_smoother:
+			os << "dummy";
+			break;
+		case detail::holt_winters_double_exponential_smoother:
+			os << "holt_winters_des";
+			break;
+	}
+
+	return os;
+}
+
+template <typename CharT, typename CharTraitsT>
+inline
+::std::basic_ostream<CharT,CharTraitsT>& operator>>(::std::basic_ostream<CharT,CharTraitsT>& os, data_estimator_category cat)
+{
+	switch (cat)
+	{
+		case detail::mean_estimator:
+			os << "mean";
+			break;
+		case chen2000_ewma_quantile_estimator:
+				os << "chen2000_ewma_quantile";
+				break;
+		case chen2000_ewsa_quantile_estimator:
+				os << "chen2000_ewsa_quantile";
+				break;
+		case jain1985_p2_algorithm_quantile_estimator:
+				os << "jain1985_p2_algorithm_quantile";
+				break;
+		case welsh2003_ewma_quantile_estimator:
+				os << "welsh2003_ewma_quantile";
+				break;
+		case welsh2003_ewma_ext_quantile_estimator:
+				os << "welsh2003_ewma_ext_quantile";
+				break;
+	}
+
+	return os;
+}
 
 void usage(char const* progname)
 {
@@ -83,13 +241,46 @@ void usage(char const* progname)
 //				<< " --out-dat-file <file path>" << ::std::endl
 //				<< "   The path to the output data file." << ::std::endl
 //				<< "   [default: '" << default_out_dat_file << "']." << ::std::endl
+				<< " --data-estimator {'chen2000_ewma_quantile'|'chen2000_ewsa_quantile'|'jain1985_p2_algorithm_quantile'|'mean'|'welsh2003_ewma_quantile'|'welsh2003_ewma_ext_quantile'}" << ::std::endl
+				<< "   The name of the estimator to use to estimate summary statistics from observed data." << ::std::endl
+				<< "   [default: '" << default_data_estimator << "']." << ::std::endl
+				<< " --quantile-prob <value>" << ::std::endl
+				<< "   The probability value for the quantile-based data estimator." << ::std::endl
+				<< "   [default: '" << default_quantile_prob << "']." << ::std::endl
+				<< " --chen2000_ewma-w <value>" << ::std::endl
+				<< "   The w parameter for the (Chen,2000) EWMA quantile estimator." << ::std::endl
+				<< "   [default: '" << default_chen2000_ewma_w << "']." << ::std::endl
+				<< " --chen2000_ewsa-w <value>" << ::std::endl
+				<< "   The w parameter for the (Chen,2000) EWSA quantile estimator." << ::std::endl
+				<< "   [default: '" << default_chen2000_ewsa_w << "']." << ::std::endl
+				<< " --welsh2003_ewma-alpha <value>" << ::std::endl
+				<< "   The alpha parameter for the (Welsh,2003) EWMA quantile estimator." << ::std::endl
+				<< "   [default: '" << default_welsh2003_ewma_alpha << "']." << ::std::endl
+				<< " --data-smoother {'brown_ses'|'brown_des'|'dummy'|'holt_winters_des'}" << ::std::endl
+				<< "   The name of the smoother to use to smooth observed data." << ::std::endl
+				<< "   [default: '" << default_data_smoother << "']." << ::std::endl
+				<< " --brown_ses-alpha <value>" << ::std::endl
+				<< "   The smoothing factor parameter for the Brown Single Exponential data smoother." << ::std::endl
+				<< "   [default: '" << default_brown_single_exponential_alpha << "']." << ::std::endl
+				<< " --brown_des-alpha <value>" << ::std::endl
+				<< "   The smoothing factor parameter for the Brown Double Exponential data smoother." << ::std::endl
+				<< "   [default: '" << default_brown_double_exponential_alpha << "']." << ::std::endl
+				<< " --holt_winters_des-alpha <value>" << ::std::endl
+				<< "   The alpha parameter for the Holt-Winters Double Exponential data smoother." << ::std::endl
+				<< "   [default: '" << default_holt_winters_double_exponential_alpha << "']." << ::std::endl
+				<< " --holt_winters_des-beta <value>" << ::std::endl
+				<< "   The beta parameter for the Holt-Winters Double Exponential data smoother." << ::std::endl
+				<< "   [default: '" << default_holt_winters_double_exponential_beta << "']." << ::std::endl
+				<< " --holt_winters_des-delta <value>" << ::std::endl
+				<< "   The delta parameter for the Holt-Winters Double Exponential data smoother." << ::std::endl
+				<< "   [default: '" << default_holt_winters_double_exponential_delta << "']." << ::std::endl
 				<< " --slo-value <value>" << ::std::endl
 				<< "   The target value for the SLO metric." << ::std::endl
 				<< "   [default: '" << default_slo_value << "']." << ::std::endl
-				<< " --tc <time in secs>" << ::std::endl
+				<< " --tc <value>" << ::std::endl
 				<< "   Control time (in seconds)." << ::std::endl
 				<< "   [default: " << default_control_time << "]." << ::std::endl
-				<< " --ts <time in secs>" << ::std::endl
+				<< " --ts <value>" << ::std::endl
 				<< "   Sampling time (in seconds)." << ::std::endl
 				<< "   [default: " << default_sampling_time << "]." << ::std::endl
 				<< " --verbose" << ::std::endl
@@ -142,6 +333,17 @@ int main(int argc, char *argv[])
 
 	bool opt_help(false);
 //	std::string opt_out_dat_file;
+	detail::data_estimator_category opt_data_estimator;
+	real_type opt_quantile_prob(0);
+	real_type opt_chen2000_ewma_w(0);
+	real_type opt_chen2000_ewsa_w(0);
+	real_type opt_welsh2003_ewma_alpha(0);
+	detail::data_smoother_category opt_data_smoother;
+	real_type opt_brown_single_exponential_alpha(0);
+	real_type opt_brown_double_exponential_alpha(0);
+	real_type opt_holt_winters_double_exponential_alpha(0);
+	real_type opt_holt_winters_double_exponential_beta(0);
+	real_type opt_holt_winters_double_exponential_delta(0);
 	real_type opt_ts;
 	real_type opt_tc;
 	bool opt_verbose(false);
@@ -156,6 +358,17 @@ int main(int argc, char *argv[])
 	{
 		opt_help = dcs::cli::simple::get_option(argv, argv+argc, "--help");
 //		opt_out_dat_file = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--out-dat-file", detail::default_out_dat_file);
+		opt_data_estimator = dcs::cli::simple::get_option<detail::data_estimator_category>(argv, argv+argc, "--data-estimator", detail::default_data_estimator);
+		opt_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--quantile-prob", detail::default_quantile_prob);
+		opt_chen2000_ewma_w = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewma-w", detail::default_chen2000_ewma_w);
+		opt_chen2000_ewsa_w = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewsa-w", detail::default_chen2000_ewsa_w);
+		opt_welsh2003_ewma_alpha = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--welsh2003_ewma-alpha", detail::default_welsh2003_ewma_alpha);
+		opt_data_smoother = dcs::cli::simple::get_option<detail::data_smoother_category>(argv, argv+argc, "--data-smoother", detail::default_data_smoother);
+		opt_brown_single_exponential_alpha = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--brown_ses-alpha", detail::default_brown_single_exponential_alpha);
+		opt_brown_double_exponential_alpha = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--brown_des-alpha", detail::default_brown_double_exponential_alpha);
+		opt_holt_winters_double_exponential_alpha = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--holt_winters_des-alpha", detail::default_holt_winters_double_exponential_alpha);
+		opt_holt_winters_double_exponential_beta = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--holt_winters_des-beta", detail::default_holt_winters_double_exponential_beta);
+		opt_holt_winters_double_exponential_delta = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--holt_winters_des-delta", detail::default_holt_winters_double_exponential_delta);
 		opt_tc = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--tc", detail::default_control_time);
 		opt_ts = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--ts", detail::default_sampling_time);
 		opt_verbose = dcs::cli::simple::get_option(argv, argv+argc, "--verbose");
@@ -201,6 +414,50 @@ int main(int argc, char *argv[])
 //		oss << "Output data file: " << opt_out_dat_file;
 //		dcs::log_info(DCS_LOGGING_AT, oss.str());
 //		oss.str("");
+
+		oss << "Data estimator: " << opt_data_estimator;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Quantile estimator probability: " << opt_quantile_prob;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "(Chen,2000)'s EWMA quantile estimator w: " << opt_chen2000_ewma_w;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "(Chen,2000)'s EWSA quantile estimator w: " << opt_chen2000_ewsa_w;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "(Welsh,2003)'s EWMA quantile estimator alpha: " << opt_welsh2003_ewma_alpha;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Data smoother: " << opt_data_smoother;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Brown's single exponential smoother alpha: " << opt_brown_single_exponential_alpha;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Brown's double exponential smoother alpha: " << opt_brown_double_exponential_alpha;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Holt-Winters' double exponential smoother alpha: " << opt_holt_winters_double_exponential_alpha;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Holt-Winters' double exponential smoother beta: " << opt_holt_winters_double_exponential_beta;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Holt-Winters' double exponential smoother delta: " << opt_holt_winters_double_exponential_delta;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
 
 		oss << "Control time: " << opt_tc;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
@@ -295,6 +552,59 @@ int main(int argc, char *argv[])
 		}
 		p_drv->app(p_app);
 
+		// - Setup data estimator
+		boost::shared_ptr< testbed::base_estimator<real_type> > p_estimator;
+		switch (opt_data_estimator)
+		{
+			case detail::mean_estimator:
+				p_estimator = boost::make_shared< testbed::mean_estimator<real_type> >();
+				break;
+				case detail::chen2000_ewma_quantile_estimator:
+						p_estimator = boost::make_shared< testbed::chen2000_ewma_quantile_estimator<real_type> >(opt_quantile_prob, opt_chen2000_ewma_w);
+						break;
+				case detail::chen2000_ewsa_quantile_estimator:
+						p_estimator = boost::make_shared< testbed::chen2000_ewsa_quantile_estimator<real_type> >(opt_quantile_prob, opt_chen2000_ewsa_w);
+						break;
+				case detail::jain1985_p2_algorithm_quantile_estimator:
+						p_estimator = boost::make_shared< testbed::jain1985_p2_algorithm_quantile_estimator<real_type> >(opt_quantile_prob);
+						break;
+				case detail::welsh2003_ewma_quantile_estimator:
+						p_estimator = boost::make_shared< testbed::welsh2003_ewma_quantile_estimator<real_type> >(opt_quantile_prob, opt_welsh2003_ewma_alpha, false);
+						break;
+				case detail::welsh2003_ewma_ext_quantile_estimator:
+						p_estimator = boost::make_shared< testbed::welsh2003_ewma_quantile_estimator<real_type> >(opt_quantile_prob, opt_welsh2003_ewma_alpha, true);
+						break;
+			default:
+				DCS_EXCEPTION_THROW(std::runtime_error, "Unknown data estimator");
+		}
+
+		// - Setup data smoother
+		boost::shared_ptr< testbed::base_smoother<real_type> > p_smoother;
+		switch (opt_data_smoother)
+		{
+			case detail::brown_single_exponential_smoother:
+				p_smoother = boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(opt_brown_single_exponential_alpha);
+				break;
+			case detail::brown_double_exponential_smoother:
+				p_smoother = boost::make_shared< testbed::brown_double_exponential_smoother<real_type> >(opt_brown_double_exponential_alpha);
+				break;
+			case detail::dummy_smoother:
+				p_smoother = boost::make_shared< testbed::dummy_smoother<real_type> >();
+				break;
+			case detail::holt_winters_double_exponential_smoother:
+				if (opt_holt_winters_double_exponential_delta > 0)
+				{
+					p_smoother = boost::make_shared< testbed::holt_winters_double_exponential_smoother<real_type> >(opt_holt_winters_double_exponential_delta);
+				}
+				else
+				{
+					p_smoother = boost::make_shared< testbed::holt_winters_double_exponential_smoother<real_type> >(opt_holt_winters_double_exponential_alpha, opt_holt_winters_double_exponential_beta);
+				}
+				break;
+			default:
+				DCS_EXCEPTION_THROW(std::runtime_error, "Unknown data smoother");
+		}
+
 		// - Setup application manager
 		app_manager_pointer p_mgr;
 		//p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >();
@@ -342,6 +652,8 @@ int main(int argc, char *argv[])
 # error Application Manager not recognized
 #endif
 			p_mgr->target_value(testbed::response_time_application_performance, opt_slo_value);
+			p_mgr->data_estimator(testbed::response_time_application_performance, p_estimator);
+			p_mgr->data_smoother(testbed::response_time_application_performance, p_smoother);
 			p_mgr->sampling_time(opt_ts);
 			p_mgr->control_time(opt_tc);
 		}
