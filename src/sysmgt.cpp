@@ -225,7 +225,7 @@ int main(int argc, char *argv[])
 
 	typedef testbed::base_virtual_machine<traits_type> vm_type;
 	typedef boost::shared_ptr<vm_type> vm_pointer;
-	typedef vm_type::identifier_type vm_identifier_type;
+	//typedef vm_type::identifier_type vm_identifier_type;
 	typedef testbed::base_virtual_machine_manager<traits_type> vmm_type;
 	typedef boost::shared_ptr<vmm_type> vmm_pointer;
 	typedef vmm_type::identifier_type vmm_identifier_type;
