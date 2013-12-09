@@ -158,7 +158,8 @@ inline
 	switch (wkl_cat)
 	{
 		case olio_workload:
-			workload = "cloudstone";
+			//workload = "cloudstone";
+			workload = "olio";
 			break;
 		case rubis_workload:
 			workload = "rubis";
