@@ -329,6 +329,7 @@ DCS_DEBUG_TRACE("Observed Normalized Output for Category " << cat << ": " << yhs
 			bool ok(true);
 			try
 			{
+				//FIXME: currently, we handle only one performance category at time
 				numeric_vector_type new_yh;
 				target_iterator tgt_end_it = this->target_values().end();
 				for (target_iterator tgt_it = this->target_values().begin();
@@ -457,6 +458,17 @@ DCS_DEBUG_TRACE("phi=" << p_sysid_alg_->phi());//XXX
 					// Compute opt_u = (b_0 b_0^T + qI)^{-1}((yr - a_1 yh(t-1) - a_2 yh(k-2) - b_1^Tu(k-1))b_0 + q u(k-1))
 					//               = L R
 					opt_u = ublas::prod(L, R);
+
+					if (ublasx::any(opt_u, ::std::bind2nd(::std::less<real_type>(), 0)))
+					{
+						++ctl_fail_count_;
+
+						::std::ostringstream oss;
+						oss << "Control not applied: computed negative share '" << opt_u << "'";
+						::dcs::log_warn(DCS_LOGGING_AT, oss.str());
+
+						ok = false;
+					}
 				}
 				catch (::std::exception const& e)
 				{
@@ -487,33 +499,20 @@ DCS_DEBUG_TRACE("Applying optimal control");
 
 						real_type new_share = opt_u(v);
 
-						if (new_share >= 0)
+						if (::dcs::math::float_traits<real_type>::definitely_less(new_share, default_min_share))
 						{
-							if (::dcs::math::float_traits<real_type>::definitely_less(new_share, default_min_share))
-							{
-								::std::ostringstream oss;
-								oss << "Optimal share (" << new_share << ") too small; adjusted to " << default_min_share;
-								::dcs::log_warn(DCS_LOGGING_AT, oss.str());
-							}
-							if (::dcs::math::float_traits<real_type>::definitely_greater(new_share, default_max_share))
-							{
-								::std::ostringstream oss;
-								oss << "Optimal share (" << new_share << ") too big; adjusted to " << default_max_share;
-								::dcs::log_warn(DCS_LOGGING_AT, oss.str());
-							}
-
-							new_share = ::std::min(::std::max(new_share, default_min_share), default_max_share);
-						}
-						else
-						{
-							++ctl_fail_count_;
-
 							::std::ostringstream oss;
-							oss << "Control not applied: computed negative share (" << new_share << ") for VM '" << p_vm->id() << "'";
+							oss << "Optimal share (" << new_share << ") too small; adjusted to " << default_min_share;
 							::dcs::log_warn(DCS_LOGGING_AT, oss.str());
-
-							ok = false;
 						}
+						else if (::dcs::math::float_traits<real_type>::definitely_greater(new_share, default_max_share))
+						{
+							::std::ostringstream oss;
+							oss << "Optimal share (" << new_share << ") too big; adjusted to " << default_max_share;
+							::dcs::log_warn(DCS_LOGGING_AT, oss.str());
+						}
+
+						new_share = ::std::min(::std::max(new_share, default_min_share), default_max_share);
 
 DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << p_vm->cpu_share() << " - new-share: " << new_share);
 						p_vm->cpu_share(new_share);
@@ -573,7 +572,7 @@ template <typename T>
 const typename padala2009_application_manager<T>::real_type padala2009_application_manager<T>::default_control_time = 5;
 
 template <typename T>
-const typename padala2009_application_manager<T>::real_type padala2009_application_manager<T>::default_min_share = 0.20;
+const typename padala2009_application_manager<T>::real_type padala2009_application_manager<T>::default_min_share = 0.0;
 
 template <typename T>
 const typename padala2009_application_manager<T>::real_type padala2009_application_manager<T>::default_max_share = 1.00;
