@@ -505,14 +505,14 @@ DCS_DEBUG_TRACE("Applying optimal control");
 							oss << "Optimal share (" << new_share << ") too small; adjusted to " << default_min_share;
 							::dcs::log_warn(DCS_LOGGING_AT, oss.str());
 						}
-						else if (::dcs::math::float_traits<real_type>::definitely_greater(new_share, default_max_share))
-						{
-							::std::ostringstream oss;
-							oss << "Optimal share (" << new_share << ") too big; adjusted to " << default_max_share;
-							::dcs::log_warn(DCS_LOGGING_AT, oss.str());
-						}
+//						else if (::dcs::math::float_traits<real_type>::definitely_greater(new_share, default_max_share))
+//						{
+//							::std::ostringstream oss;
+//							oss << "Optimal share (" << new_share << ") too big; adjusted to " << default_max_share;
+//							::dcs::log_warn(DCS_LOGGING_AT, oss.str());
+//						}
 
-						new_share = ::std::min(::std::max(new_share, default_min_share), default_max_share);
+						new_share = /*::std::min(*/::std::max(new_share, default_min_share)/*, default_max_share)*/;
 
 DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << p_vm->cpu_share() << " - new-share: " << new_share);
 						p_vm->cpu_share(new_share);
