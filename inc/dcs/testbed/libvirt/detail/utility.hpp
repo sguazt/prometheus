@@ -116,12 +116,16 @@ inline
 	DCS_DEBUG_ASSERT( conn );
 
 	::std::string err_str;
-	virErrorPtr err = new virError();
-
-	int ret = virConnCopyLastError(conn, err);
-	switch (ret)
+//XXX: old style. Deprecated by virGestLastError
+//	virErrorPtr err = new virError();
+//
+//	int ret = virConnCopyLastError(conn, err);
+//	switch (ret)
+//[/XXX]
+	virErrorPtr err = virGetLastError();
+	switch (err->code)
 	{
-		case 0:
+		case VIR_ERR_OK:
 			// No error found
 			break;
 		case -1:
@@ -132,8 +136,10 @@ inline
 			break;
 	}
 
-	virResetError(err);
-	delete err;
+//[XXX]: old style. Deprecated by virGestLastError
+//	virResetError(err);
+//	delete err;
+//[/XXX]
 
 	return err_str;
 }
@@ -160,9 +166,15 @@ void disconnect(virConnectPtr conn)
 {
 	DCS_DEBUG_ASSERT( conn );
 
-	if (0 != virConnectClose(conn))
+	int ret = virConnectClose(conn);
+	if (ret < 0)
 	{
 		throw ::std::runtime_error(last_error(conn));
+	}
+	if (ret > 0)
+	{
+		//TODO
+		// One or more references are possible leaked after disconnect from the hypervisor
 	}
 }
 
