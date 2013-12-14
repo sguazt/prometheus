@@ -35,6 +35,7 @@
 
 
 #include <boost/shared_ptr.hpp>
+#include <boost/signals2.hpp>
 #include <dcs/assert.hpp>
 #include <dcs/exception.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
@@ -51,6 +52,7 @@ namespace dcs { namespace testbed {
 template <typename TraitsT>
 class base_application_manager
 {
+	private: typedef base_application_manager<TraitsT> self_type;
 	public: typedef TraitsT traits_type;
 	public: typedef typename traits_type::real_type real_type;
 	protected: typedef base_application<traits_type> app_type;
@@ -62,11 +64,20 @@ class base_application_manager
 	public: typedef ::boost::shared_ptr<data_smoother_type> data_smoother_pointer;
 	protected: typedef ::std::map<application_performance_category,data_estimator_pointer> data_estimator_map;
 	protected: typedef ::std::map<application_performance_category,data_smoother_pointer> data_smoother_map;
+	private: typedef ::boost::signals2::signal<void (self_type const&)> signal_type;
+	private: typedef ::boost::shared_ptr<signal_type> signal_pointer;
 
 
 	public: base_application_manager()
 	: ts_(1),
-	  tc_(1)
+	  tc_(1),
+	  p_rst_sig_(new signal_type()),
+	  p_smp_sig_(new signal_type()),
+	  p_ctl_sig_(new signal_type())
+	{
+	}
+
+	public: virtual ~base_application_manager()
 	{
 	}
 
@@ -190,6 +201,24 @@ class base_application_manager
 		return target_values_.at(cat);
 	}
 
+	public: template <typename FuncT>
+			void add_on_sample_handler(FuncT f)
+	{
+		p_smp_sig_->connect(f);
+	}
+
+	public: template <typename FuncT>
+			void add_on_control_handler(FuncT f)
+	{
+		p_ctl_sig_->connect(f);
+	}
+
+	public: template <typename FuncT>
+			void add_on_reset_handler(FuncT f)
+	{
+		p_rst_sig_->connect(f);
+	}
+
 	public: void reset()
 	{
 		DCS_ASSERT(p_app_,
@@ -197,24 +226,33 @@ class base_application_manager
 									   "Application is not set"));
 
 		this->do_reset();
+
+		// Emit signal
+		(*p_rst_sig_)(*this);
 	}
 
 	public: void sample()
 	{
 		this->do_sample();
+
+		// Emit signal
+		(*p_smp_sig_)(*this);
 	}
 
 	public: void control()
 	{
 		this->do_control();
+
+		// Emit signal
+		(*p_ctl_sig_)(*this);
 	}
 
-	protected: app_type& app_ptr()
+	protected: app_pointer app_ptr()
 	{
 		return p_app_;
 	}
 
-	protected: app_type& app_ptr() const
+	protected: app_pointer app_ptr() const
 	{
 		return p_app_;
 	}
@@ -262,6 +300,9 @@ class base_application_manager
 	private: target_value_map target_values_; ///< Mapping between application performance categories and target values
 	private: data_estimator_map estimators_; ///< Mapping between application performance categories and data estimator pointers
 	private: data_smoother_map smoothers_; ///< Mapping between application performance categories and data smoother pointers
+	private: signal_pointer p_rst_sig_; ///< Signal emitter for reset event
+	private: signal_pointer p_smp_sig_; ///< Signal emitter for sample event
+	private: signal_pointer p_ctl_sig_; ///< Signal emitter for control event
 };
 
 }} // Namespace dcs::testbed
