@@ -85,6 +85,18 @@ class base_virtual_machine
 		return do_vmm();
 	}
 
+	/// Get the CPU cap
+	public: real_type cpu_cap() const
+	{
+		return do_cpu_cap();
+	}
+
+	/// Set the CPU cap
+	public: void cpu_cap(real_type value)
+	{
+		do_cpu_cap(value);
+	}
+
 	/// Get the CPU share
 	public: real_type cpu_share() const
 	{
@@ -121,6 +133,10 @@ class base_virtual_machine
 	private: virtual vmm_pointer do_vmm() const = 0;
 
 	private: virtual vmm_pointer do_vmm() = 0;
+
+	private: virtual real_type do_cpu_cap() const = 0;
+
+	private: virtual void do_cpu_cap(real_type value) = 0;
 
 	private: virtual real_type do_cpu_share() const = 0;
 

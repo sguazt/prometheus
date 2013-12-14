@@ -213,7 +213,38 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		return static_cast<uint_type>(nvcpus);
 	}
 
-	private: void do_cpu_share(real_type share) {
+	private: void do_cpu_cap(real_type cap)
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		//FIXME: This is a Xen-related stuff. What for other hypervisors?
+		//FIXME: Actually we assume that weight is 256 (its default value)
+		detail::sched_param<int>(p_vmm_->connection(), p_dom_, "cap", cap, VIR_DOMAIN_AFFECT_CURRENT);
+	}
+
+	private: real_type do_cpu_cap() const
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		return detail::sched_param<int>(p_vmm_->connection(), p_dom_, "cap", VIR_DOMAIN_AFFECT_CURRENT);
+	}
+
+	private: void do_cpu_share(real_type share)
+	{
 		// pre: p_vmm_ != null
 		DCS_ASSERT(p_vmm_,
 				   DCS_EXCEPTION_THROW(::std::logic_error,
