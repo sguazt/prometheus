@@ -40,6 +40,7 @@
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_sensor.hpp>
 #include <dcs/testbed/base_virtual_machine.hpp>
+#include <string>
 
 
 namespace dcs { namespace testbed {
@@ -50,14 +51,45 @@ class base_application
 	public: typedef TraitsT traits_type;
 	public: typedef base_virtual_machine<traits_type> vm_type;
 	public: typedef ::boost::shared_ptr<vm_type> vm_pointer;
+//	public: typedef typename vm_type::identifier_type vm_identifier_type;
 	public: typedef base_sensor<traits_type> sensor_type;
 	public: typedef ::boost::shared_ptr<sensor_type> sensor_pointer;
 	public: typedef typename traits_type::real_type real_type;
 	public: typedef ::boost::function<bool (real_type x)> slo_checker_type;
+	public: typedef unsigned long identifier_type;
 
+
+	private: static identifier_type next_id_;
+
+
+	public: static identifier_type make_id()
+	{
+		return next_id_++;
+	}
+
+
+	public: base_application()
+	: id_(make_id())
+	{
+	}
 
 	public: virtual ~base_application()
 	{
+	}
+
+	public: identifier_type id() const
+	{
+		return id_;
+	}
+
+	public: void name(::std::string const& val)
+	{
+		name_ = val;
+	}
+
+	public: ::std::string name() const
+	{
+		return name_;
 	}
 
 	public: ::std::size_t num_vms() const
@@ -69,6 +101,11 @@ class base_application
 	{
 		return do_vms();
 	}
+
+//	public: vm_pointer vm(vm_identifier_type id) const
+//	{
+//		return do_vm(id);
+//	}
 
 	public: void register_sensor(application_performance_category cat, sensor_pointer const& p_sens)
 	{
@@ -116,7 +153,14 @@ class base_application
 	private: virtual void do_slo(application_performance_category cat, slo_checker_type const& checker) = 0;
 
 	private: virtual bool do_slo(application_performance_category cat, real_type val) const = 0;
+
+
+	private: identifier_type id_; ///< The unique identifier
+	private: ::std::string name_; ///< The mnemonic name of this application
 }; // base_application
+
+template <typename T>
+typename base_application<T>::identifier_type base_application<T>::next_id_ = 0;
 
 }} // Namespace dcs::testbed
 
