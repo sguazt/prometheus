@@ -56,6 +56,8 @@ class application: public base_application<TraitsT>
 	public: typedef typename base_type::sensor_pointer sensor_pointer;
 	public: typedef typename base_type::slo_checker_type slo_checker_type;
 	public: typedef typename base_type::real_type real_type;
+//	private: typedef typename base_type::vm_type::identifier_type vm _identifier_type;
+//	private: typedef ::std::map<vm_identifier_type,vm_pointer> vm_container;
 	private: typedef ::std::vector<vm_pointer> vm_container;
 	private: typedef ::std::map<application_performance_category,sensor_pointer> sensor_map;
 	private: typedef ::std::map<application_performance_category,slo_checker_type> slo_checker_map;
@@ -67,28 +69,46 @@ class application: public base_application<TraitsT>
 
 	public: template <typename IterT>
 			application(IterT vm_first, IterT vm_last)
-	: vms_(vm_first, vm_last)
+	: vms_(vm_first,vm_last)
 	{
+//		while (vm_first != vm_last)
+//		{
+//			vms_[*(vm_first)->id()] = *vm_first;
+//			++vm_first;
+//		}
 	}
-
-//	public: vm_pointer vm(size_type pos)
-//	{
-//		DCS_ASSERT(pos < vms_.size(),
-//				   DCS_EXCEPTION_THROW(::std::invalid_argument,
-//									   "Invalid number of VM"));
-//
-//		return vms_.at(pos);
-//	}
 
 	private: ::std::size_t do_num_vms() const
 	{
 		return vms_.size();
 	}
 
-	private: vm_container do_vms() const
+	private: ::std::vector<vm_pointer> do_vms() const
 	{
+//		::std::vector<vm_pointer> vms(vms_.size());
+//
+//		::std::size_t i(0);
+//		typename vm_container::const_iterator end_it(vms_.end());
+//		for (typename vm_container::const_iterator it = vms_.begin();
+//			 it != end_it;
+//			 ++it)
+//		{
+//			vms[i] = *it;
+//			++i;
+//		}
+//
+//		return vms;
 		return vms_;
 	}
+
+//	private: vm_pointer do_vm(vm_identifier_type id) const
+//	{
+//		DCS_ASSERT(vms_.count(id) > 0,
+//				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+//									   "Invalid VM identifier"));
+//
+//		return vms_.at(id);
+//	}
 
 	private: void do_register_sensor(application_performance_category cat, sensor_pointer const& p_sens)
 	{
