@@ -514,6 +514,8 @@ DCS_DEBUG_TRACE("Applying optimal control");
 
 						new_share = /*::std::min(*/::std::max(new_share, default_min_share)/*, default_max_share)*/;
 
+//						u_.push_back(new_share);
+
 DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << p_vm->cpu_share() << " - new-share: " << new_share);
 						p_vm->cpu_share(new_share);
 
@@ -545,17 +547,23 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 			++ctl_skip_count_;
 		}
 
-		// Reset measures
-		out_observations_.clear();
-
 		DCS_DEBUG_TRACE("(" << this << ") END Do CONTROL - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << sysid_fail_count_ << "/" << ctl_fail_count_);
 	}
+
+//	private: ::std::vector<real_type> do_control_inputs() const
+//	{
+//		return u_;
+//	}
+
+//	private: ::std::vector<real_type> do_control_outputs() const
+//	{
+//		return y_;
+//	}
 
 
 	private: real_type q_; ///< The stability factor
 	private: sensor_map out_sensors_; ///< Sensor map for the application outputs
 	private: sysid_strategy_pointer p_sysid_alg_;
-	private: observation_map out_observations_; ///< Application output observations collected in the last control interval, mapped by application performance category
 //	private: performance_measure_map yr_; ///< The output vector to be tracked , mapped by application performance category
 	private: ::std::size_t ctl_count_; ///< Number of times control function has been invoked
 	private: ::std::size_t ctl_skip_count_; ///< Number of times control has been skipped
