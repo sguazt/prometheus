@@ -38,6 +38,7 @@
 #include <dcs/debug.hpp>
 #include <dcs/logging.hpp>
 #include <dcs/testbed/base_virtual_machine.hpp>
+#include <dcs/testbed/base_sensor.hpp>
 #include <dcs/testbed/libvirt/detail/utility.hpp>
 #include <dcs/testbed/libvirt/sensors.hpp>
 #include <dcs/testbed/virtual_machine_performance_category.hpp>
@@ -148,7 +149,6 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 
 		// Connect to libvirtd daemon
 		p_dom_ = detail::connect_domain(p_vmm_->connection(), name_);
-		p_cpu_sens_ = ::boost::make_shared< cpu_utilization_sensor<traits_type> >(p_vmm_->connection(), p_dom_);
 	}
 
 	private: ::std::string do_name() const
@@ -254,24 +254,12 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		return share > 0 ? share : 1; //Note: cap == 0 ==> No upper cap
 	}
 
-	private: sensor_pointer do_sensor(virtual_machine_performance_category cat)
-	{
-		switch (cat)
-		{
-			case cpu_util_virtual_machine_performance:
-				return p_cpu_sens_;
-				break;
-		}
-
-		DCS_EXCEPTION_THROW(::std::runtime_error, "Sensor not available");
-	}
-
 	private: sensor_pointer do_sensor(virtual_machine_performance_category cat) const
 	{
 		switch (cat)
 		{
 			case cpu_util_virtual_machine_performance:
-				return p_cpu_sens_;
+				return ::boost::make_shared< cpu_utilization_sensor<traits_type> >(p_vmm_->connection(), p_dom_);
 				break;
 		}
 
@@ -282,7 +270,6 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 	private: ::std::string name_;
 	private: vmm_impl_pointer p_vmm_;
 	private: ::virDomainPtr p_dom_;
-	private: sensor_pointer p_cpu_sens_;
 }; // virtual_machine
 
 }}} // Namespace dcs::testbed::libvirt
