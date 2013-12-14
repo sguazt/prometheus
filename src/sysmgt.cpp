@@ -40,10 +40,12 @@
 #include <dcs/logging.hpp>
 #include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application.hpp>
+#include <dcs/testbed/application_experiment.hpp>
 #include <dcs/testbed/application_managers.hpp>
 #include <dcs/testbed/base_application.hpp>
 #include <dcs/testbed/data_estimators.hpp>
 #include <dcs/testbed/data_smoothers.hpp>
+#include <dcs/testbed/experiment_stats_gatherer.hpp>
 #include <dcs/testbed/system_experiment.hpp>
 #include <dcs/testbed/system_identification_strategies.hpp>
 //#include <dcs/testbed/system_managers.hpp>
@@ -660,7 +662,11 @@ int main(int argc, char *argv[])
 		p_mgr->app(p_app);
 
 		// Add to main experiment
-		sys_exp.add_app(p_app, p_drv, p_mgr);
+		sys_exp.add_app_experiment(::boost::make_shared< testbed::application_experiment<traits_type> >(p_app, p_drv, p_mgr));
+
+		// Set experiment trackers
+		testbed::utility::experiment_stats_gatherer<traits_type> exp_stats;
+		exp_stats.track(sys_exp);
 
 
 		//sys_exp.logger(...);
