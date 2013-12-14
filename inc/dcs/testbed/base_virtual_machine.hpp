@@ -34,6 +34,9 @@
 #define DCS_TESTBED_BASE_VIRTUAL_MACHINE_HPP
 
 
+#include <boost/smart_ptr.hpp>
+#include <dcs/testbed/base_sensor.hpp>
+#include <dcs/testbed/virtual_machine_performance_category.hpp>
 #include <string>
 
 
@@ -52,6 +55,7 @@ class base_virtual_machine
 	public: typedef typename traits_type::uint_type uint_type;
 	public: typedef ::std::string identifier_type;
 	public: typedef base_virtual_machine_manager<traits_type>* vmm_pointer;
+	public: typedef ::boost::shared_ptr< base_sensor<traits_type> > sensor_pointer;
 
 
 	public: virtual ~base_virtual_machine()
@@ -105,6 +109,11 @@ class base_virtual_machine
 		return do_num_vcpus();
 	}
 
+	public: sensor_pointer sensor(virtual_machine_performance_category cat) const
+	{
+		return do_sensor(cat);
+	}
+
 	private: virtual ::std::string do_name() const = 0;
 
 	private: virtual identifier_type do_id() const = 0;
@@ -120,6 +129,8 @@ class base_virtual_machine
 	private: virtual uint_type do_max_num_vcpus() const = 0;
 
 	private: virtual uint_type do_num_vcpus() const = 0;
+
+	public: virtual sensor_pointer do_sensor(virtual_machine_performance_category cat) const = 0;
 }; // base_virtual_machine
 
 }} // Namespace dcs::testbed
