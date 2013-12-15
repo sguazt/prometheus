@@ -45,7 +45,9 @@
 #include <dcs/testbed/base_application_manager.hpp>
 #include <dcs/testbed/base_workload_driver.hpp>
 #include <dcs/testbed/detail/runnable.hpp>
+#include <map>
 #include <stdexcept>
+#include <vector>
 
 
 namespace dcs { namespace testbed {
@@ -207,6 +209,17 @@ class application_experiment
 	{
 	}
 
+	public: ~application_experiment()
+	{
+		try
+		{
+			restore_app_state();
+		}
+		catch (...)
+		{
+		}
+	}
+
 	public: identifier_type id() const
 	{
 		return id_;
@@ -285,6 +298,8 @@ class application_experiment
 
 		const unsigned long zzz_time(5);
 
+		save_app_state();
+
 		p_mgr_->app(p_app_);
 		p_mgr_->reset();
 		p_drv_->app(p_app_);
@@ -335,6 +350,8 @@ class application_experiment
 
 		p_drv_->stop();
 
+		restore_app_state();
+
 		(*p_sto_sig_)(*this);
 	}
 
@@ -368,6 +385,56 @@ class application_experiment
 		return p_mgr_;
 	}
 
+	private: void save_app_state()
+	{
+		if (!p_app_)
+		{
+			return;
+		}
+
+		typedef typename app_type::vm_pointer vm_pointer;
+		typedef ::std::vector<vm_pointer> vm_container;
+		typedef typename vm_container::const_iterator vm_iterator;
+		vm_container vms = this->app().vms();
+		vm_iterator vm_end_it = vms.end();
+		for (vm_iterator vm_it = vms.begin();
+			 vm_it != vm_end_it;
+			 ++vm_it)
+		{
+			vm_pointer p_vm(*vm_it);
+
+			// check: p_vm != null
+			DCS_DEBUG_ASSERT( p_vm );
+
+			vm_states_[p_vm->id()] = p_vm->cpu_share();
+		}
+	}
+
+	private: void restore_app_state()
+	{
+		if (!p_app_)
+		{
+			return;
+		}
+
+		typedef typename app_type::vm_pointer vm_pointer;
+		typedef ::std::vector<vm_pointer> vm_container;
+		typedef typename vm_container::const_iterator vm_iterator;
+		vm_container vms = this->app().vms();
+		vm_iterator vm_end_it = vms.end();
+		for (vm_iterator vm_it = vms.begin();
+			 vm_it != vm_end_it;
+			 ++vm_it)
+		{
+			vm_pointer p_vm(*vm_it);
+
+			// check: p_vm != null
+			DCS_DEBUG_ASSERT( p_vm );
+
+			p_vm->cpu_share(vm_states_.at(p_vm->id()));
+		}
+	}
+
 
 	private: const identifier_type id_; ///< The unique experiment identifier
 	private: app_pointer p_app_; ///< Pointer to the application
@@ -375,6 +442,7 @@ class application_experiment
 	private: manager_pointer p_mgr_; ///< Pointer to the application manager
 	private: signal_pointer p_sta_sig_;
 	private: signal_pointer p_sto_sig_;
+	private: ::std::map<typename app_type::vm_type::identifier_type,real_type> vm_states_;
 }; // application_experiment
 
 template <typename T>
