@@ -224,9 +224,16 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
+		const int nvcpus(this->max_num_vcpus());
+
 		//FIXME: This is a Xen-related stuff. What for other hypervisors?
 		//FIXME: Actually we assume that weight is 256 (its default value)
-		detail::sched_param<int>(p_vmm_->connection(), p_dom_, "cap", cap, VIR_DOMAIN_AFFECT_CURRENT);
+		int kap = cap;
+		if (kap > (nvcpus*100))
+		{
+			kap = 0; //Note: cap == 0 ==> No upper cap
+		}
+		detail::sched_param<int>(p_vmm_->connection(), p_dom_, "cap", kap, VIR_DOMAIN_AFFECT_CURRENT);
 	}
 
 	private: real_type do_cpu_cap() const
@@ -240,7 +247,14 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
-		return detail::sched_param<int>(p_vmm_->connection(), p_dom_, "cap", VIR_DOMAIN_AFFECT_CURRENT);
+		const int nvcpus(this->max_num_vcpus());
+		int kap = detail::sched_param<int>(p_vmm_->connection(), p_dom_, "cap", VIR_DOMAIN_AFFECT_CURRENT);
+		if (kap == 0)
+		{
+			kap = nvcpus*100;
+		}
+
+		return kap;
 	}
 
 	private: void do_cpu_share(real_type share)
@@ -254,7 +268,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
-		int nvcpus(this->max_num_vcpus());
+		const int nvcpus(this->max_num_vcpus());
 
 		//FIXME: This is a Xen-related stuff. What for other hypervisors?
 		//FIXME: Actually we assume that weight is 256 (its default value)
@@ -276,7 +290,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		int cap(0);
 		cap = detail::sched_param<int>(p_vmm_->connection(), p_dom_, "cap", VIR_DOMAIN_AFFECT_CURRENT);
 
-		int nvcpus(this->max_num_vcpus());
+		const int nvcpus(this->max_num_vcpus());
 
 		//FIXME: This is a Xen-related stuff. What for other hypervisors?
 		//FIXME: Actually we assume that weight is 256 (its default value)
