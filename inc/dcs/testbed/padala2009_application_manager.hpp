@@ -67,6 +67,7 @@
 #include <boost/numeric/ublasx/operation/isfinite.hpp>
 #include <boost/smart_ptr.hpp>
 #include <cstddef>
+#include <ctime>
 #include <dcs/assert.hpp>
 //#include <dcs/control/analysis/controllability.hpp>
 //#include <dcs/control/analysis/detectability.hpp>
@@ -80,6 +81,7 @@
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
 #include <dcs/testbed/system_identification_strategies.hpp>
+#include <fstream>
 #ifdef DCS_TESTBED_EXP_PADALA2009_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
 # include <functional>
 #endif // DCS_TESTBED_EXP_PADALA2009_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
@@ -158,6 +160,11 @@ class padala2009_application_manager: public base_application_manager<TraitsT>
 		return q_;
 	}
 
+	public: void export_data_to(::std::string const& fname)
+	{
+		dat_fname_ = fname;
+	}
+
 	private: void do_reset()
 	{
 		// pre: p_sysid_alg_ != null
@@ -197,6 +204,11 @@ class padala2009_application_manager: public base_application_manager<TraitsT>
 				   = ctl_fail_count_
 				   = sysid_fail_count_
 				   = 0;
+
+		if (!dat_fname_.empty())
+		{
+			p_dat_ofs_ = ::boost::make_shared< ::std::ofstream >(dat_fname_.c_str());
+		}
 	}
 
 	private: void do_sample()
@@ -547,6 +559,46 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 			++ctl_skip_count_;
 		}
 
+		if (p_dat_ofs_)
+		{
+			*p_dat_ofs_ << ::std::time(0) << ",";
+			vm_iterator vm_end_it = vms.end();
+			for (vm_iterator vm_it = vms.begin();
+				 vm_it != vm_end_it;
+				 ++vm_it)
+			{
+				vm_pointer p_vm(*vm_it);
+
+				// check: p_vm != null
+				DCS_DEBUG_ASSERT( p_vm );
+
+				if (vm_it != vms.begin())
+				{
+					*p_dat_ofs_ << ",";
+				}
+				*p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share();
+			}
+			*p_dat_ofs_ << ",";
+			target_iterator tgt_end_it = this->target_values().end();
+			for (target_iterator tgt_it = this->target_values().begin();
+			tgt_it != tgt_end_it;
+			++tgt_it)
+			{
+				const application_performance_category cat(tgt_it->first);
+
+				if (tgt_it != this->target_values().begin())
+				{
+					*p_dat_ofs_ << ",";
+				}
+				const real_type yn = this->data_estimator(cat).estimate();
+				const real_type yr = tgt_it->second;
+				const real_type y = yr*yn;
+				*p_dat_ofs_ << y << "," << yn << "," << yr;
+			}
+			*p_dat_ofs_ << "," << ctl_count_ << "," << ctl_skip_count_ << "," << sysid_fail_count_ << "," << ctl_fail_count_;
+			*p_dat_ofs_ << ::std::endl;
+		}
+
 		DCS_DEBUG_TRACE("(" << this << ") END Do CONTROL - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << sysid_fail_count_ << "/" << ctl_fail_count_);
 	}
 
@@ -569,6 +621,8 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 	private: ::std::size_t ctl_skip_count_; ///< Number of times control has been skipped
 	private: ::std::size_t ctl_fail_count_; ///< Number of times control has failed
 	private: ::std::size_t sysid_fail_count_; ///< Number of times system identification has failed
+	private: ::std::string dat_fname_;
+	private: ::boost::shared_ptr< ::std::ofstream > p_dat_ofs_;
 //	private: numeric_vector_type u_; ///< Current values for inputs
 //	private: numeric_vector_type y_; ///< Current (normalized) values for outputs
 }; // padala2009_application_manager
