@@ -648,6 +648,7 @@ int main(int argc, char *argv[])
 			//padala2009_mgr.target_value(testbed::response_time_application_performance, rt_q99*(1-0.20));
 //			padala2009_mgr.target_value(testbed::response_time_application_performance, opt_slo_value);
 			padala2009_mgr.stability_factor(q);
+			padala2009_mgr.export_data_to("padala2009.dat");
 
 			p_mgr = boost::make_shared< testbed::padala2009_application_manager<traits_type> >(padala2009_mgr);
 #else
