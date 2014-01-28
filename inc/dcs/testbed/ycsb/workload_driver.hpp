@@ -122,7 +122,7 @@ template <typename WklIterT, typename ArgIterT>
 	}
 
 	args.push_back("-cp");
-	args.push_back(ycsb_home + "/core/target/classes:" + ycsb_home + "/" + workload + "/target/classes");
+	args.push_back(ycsb_home + "/core/target/core-0.1.4.jar:" + ycsb_home + "/" + workload + "/target/cassandra-binding-0.1.4.jar"); //FIXME: add a parameter for this stuff
 	args.push_back("com.yahoo.ycsb.Client");
 	if (load_phase)
 	{
