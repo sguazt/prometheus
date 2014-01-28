@@ -96,6 +96,8 @@ inline
 template <typename WklIterT, typename ArgIterT>
 ::std::vector< ::std::string > make_ycsb_args(workload_category wkl_cat,
 											  ::std::string const& ycsb_home,
+											  ::std::string const& ycsb_wkl_class,
+											  ::std::string const& classpath,
 											  bool load_phase,
 											  WklIterT first_wkl,
 											  WklIterT last_wkl,
@@ -104,36 +106,62 @@ template <typename WklIterT, typename ArgIterT>
 {
 	::std::vector< ::std::string > args(first_arg, last_arg);
 
-	::std::string workload;
-	::std::string workload_cls;
-	switch (wkl_cat)
+	::std::string java_cp;
+	if (!classpath.empty())
 	{
-		case cassandra_workload: //TODO: handle different version of the same workload
-			workload = "cassandra";
-			workload_cls = "CassandraClient7";
-//java -cp build/ycsb.jar:db/cassandra-0.7/lib/* com.yahoo.ycsb.Client -load -s -db com.yahoo.ycsb.db.CassandraClient7 -P workloads/workloada -P settings_load.dat 
-			break;
-		default:
+		if (!java_cp.empty())
 		{
-			::std::ostringstream oss;
-			oss << "Workload '" << to_string(wkl_cat) << "' not handled";
-			DCS_EXCEPTION_THROW(::std::invalid_argument, oss.str());
+			java_cp += ":";
 		}
+		java_cp += classpath;
 	}
-
-	args.push_back("-cp");
-	args.push_back(ycsb_home + "/core/target/core-0.1.4.jar:" + ycsb_home + "/" + workload + "/target/cassandra-binding-0.1.4.jar"); //FIXME: add a parameter for this stuff
+	if (!ycsb_home.empty())
+	{
+		if (!java_cp.empty())
+		{
+			java_cp += ":";
+		}
+		java_cp += ycsb_home;
+	}
+	if (!java_cp.empty())
+	{
+		args.push_back("-cp");
+		args.push_back(java_cp);
+	}
 	args.push_back("com.yahoo.ycsb.Client");
 	if (load_phase)
 	{
+		// Load phase
 		args.push_back("-load");
 	}
 	else
 	{
+		// Transaction phase
 		args.push_back("-t");
 	}
 	args.push_back("-db");
-	args.push_back("com.yahoo.ycsb.db." + workload_cls);
+	if (!ycsb_wkl_class.empty())
+	{
+		args.push_back(ycsb_wkl_class);
+	}
+	else
+	{
+		std::string wkl_class;
+		switch (wkl_cat)
+		{
+			case cassandra_workload:
+				wkl_class = "com.yahoo.ycsb.db.CassandraClient7";
+				break;
+			default:
+			{
+				::std::ostringstream oss;
+				oss << "Workload '" << to_string(wkl_cat) << "' not handled";
+				DCS_EXCEPTION_THROW(::std::invalid_argument, oss.str());
+			}
+		}
+		args.push_back(wkl_class);
+	}
+
 	args.push_back("-s");
 	while (first_wkl != last_wkl)
 	{
@@ -148,6 +176,8 @@ template <typename WklIterT, typename ArgIterT>
 template <typename WklIterT>
 ::std::vector< ::std::string > make_ycsb_args(workload_category wkl_cat,
 											  ::std::string const& ycsb_home,
+											  ::std::string const& ycsb_wkl_class,
+											  ::std::string const& classpath,
 											  bool load_phase,
 											  WklIterT first_wkl,
 											  WklIterT last_wkl)
@@ -155,13 +185,16 @@ template <typename WklIterT>
 	::std::vector< ::std::string > java_args;
 	//java_args.push_back("-s");
 
-	return make_ycsb_args(wkl_cat, ycsb_home, load_phase, first_wkl, last_wkl, java_args.begin(), java_args.end());
+	return make_ycsb_args(wkl_cat, ycsb_home, ycsb_wkl_class, classpath, load_phase, first_wkl, last_wkl, java_args.begin(), java_args.end());
 }
 
 template <typename WklIterT>
-::std::vector< ::std::string > make_ycsb_args(workload_category wkl_cat, bool load_phase, WklIterT first_wkl, WklIterT last_wkl)
+::std::vector< ::std::string > make_ycsb_args(workload_category wkl_cat,
+											  bool load_phase,
+											  WklIterT first_wkl,
+											  WklIterT last_wkl)
 {
-	return make_ycsb_args(wkl_cat, ".", load_phase, first_wkl, last_wkl);
+	return make_ycsb_args(wkl_cat, ".", "", "", load_phase, first_wkl, last_wkl);
 }
 
 inline
@@ -170,8 +203,8 @@ inline
 	::std::string workload;
 	switch (wkl_cat)
 	{
-		case cassandra_workload: //TODO: handle different version of the same workload
-			workload = "cassandra_0_7";
+		case cassandra_workload:
+			workload = "cassandra";
 			break;
 		default:
 		{
@@ -186,7 +219,7 @@ inline
 //				DCS_EXCEPTION_THROW( ::std::runtime_error,
 //									 "Unable to create a name for the YCSB status file" ));
 
-	return path + "/ycsb-status-" + workload + "-001-" + suffix + ".log";
+	return path + "/ycsb-status-" + workload + "-" + suffix + ".log";
 }
 
 } // Namespace <unnamed>
@@ -234,7 +267,7 @@ class workload_driver: public base_workload_driver<TraitsT>
 							WklIterT first_wkl,
 							WklIterT last_wkl)
 	: cmd_(detail::make_java_command()),
-	  args_(detail::make_ycsb_args(wkl_cat, false, first_wkl, last_wkl)),
+	  args_(detail::make_ycsb_args(wkl_cat, "", "", false, first_wkl, last_wkl)),
 	  status_path_(detail::make_ycsb_status_file_path(wkl_cat)),
 	  ready_(false),
 	  monitor_thread_active_(false),
@@ -245,27 +278,31 @@ class workload_driver: public base_workload_driver<TraitsT>
 
 	public: template <typename WklIterT>
 			workload_driver(workload_category wkl_cat,
-							::std::string const& ycsb_home,
-							WklIterT first_wkl,
-							WklIterT last_wkl)
-	: cmd_(detail::make_java_command()),
-	  args_(detail::make_ycsb_args(wkl_cat, ycsb_home, false, first_wkl, last_wkl)),
-	  status_path_(detail::make_ycsb_status_file_path(wkl_cat)),
-	  ready_(false),
-	  monitor_thread_active_(false),
-	  logger_thread_active_(false),
-	  status_dumper_thread_active_(false)
-	{
-	}
-
-	public: template <typename WklIterT>
-			workload_driver(workload_category wkl_cat,
-							::std::string const& ycsb_home,
 							WklIterT first_wkl,
 							WklIterT last_wkl,
+							::std::string const& ycsb_home,
+							::std::string const& ycsb_wkl_class,
+							::std::string const& ycsb_classpath)
+	: cmd_(detail::make_java_command()),
+	  args_(detail::make_ycsb_args(wkl_cat, ycsb_home, ycsb_wkl_class, ycsb_classpath, false, first_wkl, last_wkl)),
+	  status_path_(detail::make_ycsb_status_file_path(wkl_cat)),
+	  ready_(false),
+	  monitor_thread_active_(false),
+	  logger_thread_active_(false),
+	  status_dumper_thread_active_(false)
+	{
+	}
+
+	public: template <typename WklIterT>
+			workload_driver(workload_category wkl_cat,
+							WklIterT first_wkl,
+							WklIterT last_wkl,
+							::std::string const& ycsb_home,
+							::std::string const& ycsb_wkl_class,
+							::std::string const& ycsb_classpath,
 							::std::string const& java_home)
 	: cmd_(detail::make_java_command(java_home)),
-	  args_(detail::make_ycsb_args(wkl_cat, ycsb_home, false, first_wkl, last_wkl)),
+	  args_(detail::make_ycsb_args(wkl_cat, ycsb_home, ycsb_wkl_class, ycsb_classpath, false, first_wkl, last_wkl)),
 	  status_path_(detail::make_ycsb_status_file_path(wkl_cat)),
 	  ready_(false),
 	  monitor_thread_active_(false),
@@ -279,11 +316,13 @@ class workload_driver: public base_workload_driver<TraitsT>
 							WklIterT first_wkl,
 							WklIterT last_wkl,
 							::std::string const& ycsb_home,
+							::std::string const& ycsb_wkl_class,
+							::std::string const& ycsb_classpath,
 							::std::string const& java_home,
 							ArgsIterT first_arg,
 							ArgsIterT last_arg)
 	: cmd_(detail::make_java_command(java_home)),
-	  args_(detail::make_ycsb_args(wkl_cat, ycsb_home, false, first_wkl, last_wkl, first_arg, last_arg)),
+	  args_(detail::make_ycsb_args(wkl_cat, ycsb_home, ycsb_wkl_class, ycsb_classpath, false, first_wkl, last_wkl, first_arg, last_arg)),
 	  status_path_(detail::make_ycsb_status_file_path(wkl_cat)),
 	  ready_(false),
 	  monitor_thread_active_(false),
@@ -725,6 +764,7 @@ struct status_dumper_runnable
 
 					::std::getline(is, line);
 
+DCS_DEBUG_TRACE("READ FROM ERROR: " << line);//XXX
 					ofs << line << ::std::endl;
 				}
 
