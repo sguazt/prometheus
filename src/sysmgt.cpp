@@ -92,6 +92,8 @@ enum data_smoother_category
 const dcs::testbed::workload_category default_workload(dcs::testbed::olio_workload);
 const dcs::testbed::workload_generator_category default_workload_driver(dcs::testbed::rain_workload_generator);
 const ::std::string default_workload_driver_rain_path("/usr/local/opt/rain-workload-toolkit");
+const ::std::string default_workload_driver_ycsb_path("/usr/local/opt/YCSB");
+const ::std::string default_workload_ycsb_prop_path("workloads/workloada");
 //const ::std::string default_out_dat_file("./sysmgt-out.dat");
 const double default_sampling_time(1000);
 const double default_control_time(3*default_sampling_time);
@@ -106,6 +108,7 @@ const double default_brown_double_exponential_alpha(0.7);
 const double default_holt_winters_double_exponential_alpha(0.8);
 const double default_holt_winters_double_exponential_beta(0.3);
 const double default_holt_winters_double_exponential_delta(0.7);
+const std::string default_slo_metric_str("rt");
 const double default_slo_value(0);
 
 
@@ -276,6 +279,9 @@ void usage(char const* progname)
 				<< " --holt_winters_des-delta <value>" << ::std::endl
 				<< "   The delta parameter for the Holt-Winters Double Exponential data smoother." << ::std::endl
 				<< "   [default: '" << default_holt_winters_double_exponential_delta << "']." << ::std::endl
+				<< " --slo-metric <name>" << ::std::endl
+				<< "   The SLO metric. Possible values are: 'rt' (response time), 'tput' (throughput)" << ::std::endl
+				<< "   [default: '" << default_slo_metric_str << "']." << ::std::endl
 				<< " --slo-value <value>" << ::std::endl
 				<< "   The target value for the SLO metric." << ::std::endl
 				<< "   [default: '" << default_slo_value << "']." << ::std::endl
@@ -295,12 +301,33 @@ void usage(char const* progname)
 				<< "   The workload to generate. Possible values are: 'olio', 'rubis'." << ::std::endl
 				<< "   [default: '" << ::dcs::testbed::to_string(default_workload) << "']." << ::std::endl
 				<< " --wkl-driver <name>" << ::std::endl
-				<< "   The workload driver to use. Possible values are: 'rain'." << ::std::endl
+				<< "   The workload driver to use. Possible values are: 'rain', 'ycsb'." << ::std::endl
 				<< "   [default: '" << ::dcs::testbed::to_string(default_workload_driver) << "']." << ::std::endl
 				<< " --wkl-driver-rain-path <name>" << ::std::endl
 				<< "   The full path to the RAIN workload driver." << ::std::endl
 				<< "   [default: '" << default_workload_driver_rain_path << "']." << ::std::endl
+				<< " --wkl-driver-ycsb-path <name>" << ::std::endl
+				<< "   The full path to the YCSB workload driver." << ::std::endl
+				<< "   [default: '" << default_workload_driver_ycsb_path << "']." << ::std::endl
+				<< " --wkl-ycsb-prop-path <name>" << ::std::endl
+				<< "   The full path to a YCSB workload property file." << ::std::endl
+				<< "   Repeat this option as many times as is the number of property files you want to use." << ::std::endl
+				<< "   [default: '" << default_workload_ycsb_prop_path << "']." << ::std::endl
 				<< ::std::endl;
+}
+
+::dcs::testbed::application_performance_category make_slo_metric(std::string const& s)
+{
+	if (!s.compare("rt") || !s.compare("response-time"))
+	{
+		return ::dcs::testbed::response_time_application_performance;
+	}
+	if (!s.compare("tput") || !s.compare("throughput"))
+	{
+		return ::dcs::testbed::throughput_application_performance;
+	}
+
+	DCS_EXCEPTION_THROW(::std::logic_error, "Unknown SLO metric");
 }
 
 template <typename RealT>
@@ -321,6 +348,24 @@ struct rt_slo_checker
 	private: RealT check_val_;
 };
 
+template <typename RealT>
+struct tput_slo_checker
+{
+	tput_slo_checker(RealT min_val, RealT rel_tol=0.05)
+	: min_val_(min_val),
+	  check_val_(min_val_*(1+rel_tol))
+	{
+	}
+
+	bool operator()(RealT val)
+	{
+		return ::dcs::math::float_traits<RealT>::approximately_greater_equal(val, check_val_);
+	}
+
+	private: RealT min_val_;
+	private: RealT check_val_;
+};
+
 }} // Namespace detail::<unnamed>
 
 
@@ -335,25 +380,29 @@ int main(int argc, char *argv[])
 
 	bool opt_help(false);
 //	std::string opt_out_dat_file;
-	detail::data_estimator_category opt_data_estimator;
-	real_type opt_quantile_prob(0);
-	real_type opt_chen2000_ewma_w(0);
-	real_type opt_chen2000_ewsa_w(0);
-	real_type opt_welsh2003_ewma_alpha(0);
-	detail::data_smoother_category opt_data_smoother;
 	real_type opt_brown_single_exponential_alpha(0);
 	real_type opt_brown_double_exponential_alpha(0);
+	real_type opt_chen2000_ewma_w(0);
+	real_type opt_chen2000_ewsa_w(0);
+	detail::data_estimator_category opt_data_estimator;
+	detail::data_smoother_category opt_data_smoother;
 	real_type opt_holt_winters_double_exponential_alpha(0);
 	real_type opt_holt_winters_double_exponential_beta(0);
 	real_type opt_holt_winters_double_exponential_delta(0);
+	real_type opt_quantile_prob(0);
+	testbed::application_performance_category opt_slo_metric;
+	real_type opt_slo_value(0);
+	std::string opt_str;
 	real_type opt_ts;
 	real_type opt_tc;
 	bool opt_verbose(false);
+	std::vector<std::string> opt_vm_uris;
+	real_type opt_welsh2003_ewma_alpha(0);
 	testbed::workload_category opt_wkl;
 	testbed::workload_generator_category opt_wkl_driver;
 	std::string opt_wkl_driver_rain_path;
-	std::vector<std::string> opt_vm_uris;
-	real_type opt_slo_value(0);
+	std::string opt_wkl_driver_ycsb_path;
+	std::vector<std::string> opt_wkl_ycsb_prop_paths;
 
 	// Parse command line options
 	try
@@ -378,6 +427,10 @@ int main(int argc, char *argv[])
 		opt_wkl = dcs::cli::simple::get_option<testbed::workload_category>(argv, argv+argc, "--wkl", detail::default_workload);
 		opt_wkl_driver = dcs::cli::simple::get_option<testbed::workload_generator_category>(argv, argv+argc, "--wkl-driver", detail::default_workload_driver);
 		opt_wkl_driver_rain_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-rain-path", detail::default_workload_driver_rain_path);
+		opt_wkl_driver_ycsb_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-ycsb-path", detail::default_workload_driver_ycsb_path);
+		opt_wkl_ycsb_prop_paths = dcs::cli::simple::get_options<std::string>(argv, argv+argc, "--wkl-ycsb-prop-path", detail::default_workload_ycsb_prop_path);
+		opt_str = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--slo-metric", detail::default_slo_metric_str);
+		opt_slo_metric = detail::make_slo_metric(opt_str);
 		opt_slo_value = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--slo-value", detail::default_slo_value);
 	}
 	catch (std::exception const& e)
@@ -469,6 +522,10 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
+		oss << "SLO metric: " << opt_slo_metric;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
 		oss << "SLO value: " << opt_slo_value;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
@@ -482,6 +539,10 @@ int main(int argc, char *argv[])
 		oss.str("");
 
 		oss << "Workload driver RAIN path: " << opt_wkl_driver_rain_path;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Workload driver YCSB path: " << opt_wkl_driver_ycsb_path;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 	}
@@ -537,7 +598,15 @@ int main(int argc, char *argv[])
 			vms.push_back(p_vm);
 		}
 		app_pointer p_app = boost::make_shared< testbed::application<traits_type> >(vms.begin(), vms.end());
-		p_app->slo(testbed::response_time_application_performance, detail::rt_slo_checker<real_type>(opt_slo_value));
+		switch (opt_slo_metric)
+		{
+			case testbed::response_time_application_performance:
+				p_app->slo(testbed::response_time_application_performance, detail::rt_slo_checker<real_type>(opt_slo_value));
+				break;
+			case testbed::throughput_application_performance:
+				p_app->slo(testbed::throughput_application_performance, detail::tput_slo_checker<real_type>(opt_slo_value));
+				break;
+		}
 
 		// - Setup workload driver
 		app_driver_pointer p_drv;
@@ -546,8 +615,16 @@ int main(int argc, char *argv[])
 			case testbed::rain_workload_generator:
 				{
 					boost::shared_ptr< testbed::rain::workload_driver<traits_type> > p_drv_impl = boost::make_shared< testbed::rain::workload_driver<traits_type> >(opt_wkl, opt_wkl_driver_rain_path);
-					p_app->register_sensor(testbed::response_time_application_performance, p_drv_impl->sensor(testbed::response_time_application_performance));
+					p_app->register_sensor(opt_slo_metric, p_drv_impl->sensor(opt_slo_metric));
 					//p_drv = boost::make_shared< testbed::rain::workload_driver<traits_type> >(drv_impl);
+					p_drv = p_drv_impl;
+				}
+				break;
+			case testbed::ycsb_workload_generator:
+				{
+					boost::shared_ptr< testbed::ycsb::workload_driver<traits_type> > p_drv_impl = boost::make_shared< testbed::ycsb::workload_driver<traits_type> >(opt_wkl, opt_wkl_driver_ycsb_path, opt_wkl_ycsb_prop_paths.begin(), opt_wkl_ycsb_prop_paths.end());
+					p_app->register_sensor(opt_slo_metric, p_drv_impl->sensor(opt_slo_metric));
+					//p_drv = boost::make_shared< testbed::ycsb::workload_driver<traits_type> >(drv_impl);
 					p_drv = p_drv_impl;
 				}
 				break;
@@ -654,9 +731,9 @@ int main(int argc, char *argv[])
 #else
 # error Application Manager not recognized
 #endif
-			p_mgr->target_value(testbed::response_time_application_performance, opt_slo_value);
-			p_mgr->data_estimator(testbed::response_time_application_performance, p_estimator);
-			p_mgr->data_smoother(testbed::response_time_application_performance, p_smoother);
+			p_mgr->target_value(opt_slo_metric, opt_slo_value);
+			p_mgr->data_estimator(opt_slo_metric, p_estimator);
+			p_mgr->data_smoother(opt_slo_metric, p_smoother);
 			p_mgr->sampling_time(opt_ts);
 			p_mgr->control_time(opt_tc);
 		}

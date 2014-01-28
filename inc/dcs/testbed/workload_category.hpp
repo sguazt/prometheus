@@ -46,6 +46,7 @@ namespace dcs { namespace testbed {
 
 enum workload_category
 {
+	cassandra_workload, ///< Workload for the Apache Cassandra project
 	olio_workload, ///< Workload for the Apache Olio project
 	rubis_workload ///< Workload for the RUBiS project
 };
@@ -59,7 +60,11 @@ inline
 	is >> s;
 	::dcs::string::to_lower(s);
 
-	if (!s.compare("olio") || !s.compare("cloudstone"))
+	if (!s.compare("cassandra"))
+	{
+		wkl_cat = cassandra_workload;
+	}
+	else if (!s.compare("olio") || !s.compare("cloudstone"))
 	{
 		wkl_cat = olio_workload;
 	}
@@ -82,6 +87,9 @@ inline
 {
 	switch (wkl_cat)
 	{
+		case cassandra_workload:
+			os << "cassandra";
+			break;
 		case olio_workload:
 			os << "olio";
 			break;

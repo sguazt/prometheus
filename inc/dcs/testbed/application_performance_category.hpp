@@ -37,7 +37,8 @@ namespace dcs { namespace testbed {
 
 enum application_performance_category
 {
-	response_time_application_performance
+	response_time_application_performance,
+	throughput_application_performance
 };
 
 }} // Namespace dcs::testbed

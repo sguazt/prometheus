@@ -315,9 +315,13 @@ class workload_driver: public base_workload_driver<TraitsT>
 		{
 			case response_time_application_performance:
 				return ::boost::make_shared< response_time_sensor<traits_type> >(metrics_path_);
+			default:
+				break;
 		}
 
-		DCS_EXCEPTION_THROW(::std::runtime_error, "Unknown sensor category");
+		::std::ostringstream oss;
+		oss << "Application performance metric '" << cat << "' not handled";
+		DCS_EXCEPTION_THROW(::std::invalid_argument, oss.str());
 	}
 
 	private: void ready(bool val)

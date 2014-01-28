@@ -46,7 +46,8 @@ namespace dcs { namespace testbed {
 
 enum workload_generator_category
 {
-	rain_workload_generator ///< Workload generator based on the RAIN project
+	rain_workload_generator, ///< Workload generator based on the RAIN project
+	ycsb_workload_generator ///< Workload generator based on the YCSB project
 };
 
 
@@ -61,6 +62,10 @@ inline
 	if (!s.compare("rain"))
 	{
 		wkl_gen_cat = rain_workload_generator;
+	}
+	else if (!s.compare("ycsb"))
+	{
+		wkl_gen_cat = ycsb_workload_generator;
 	}
 	else
 	{
@@ -79,6 +84,9 @@ inline
 	{
 		case rain_workload_generator:
 			os << "rain";
+			break;
+		case ycsb_workload_generator:
+			os << "ycsb";
 			break;
 	}
 
