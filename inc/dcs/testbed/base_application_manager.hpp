@@ -187,6 +187,22 @@ class base_application_manager
 		return *(smoothers_.at(cat));
 	}
 
+	public: ::std::vector<application_performance_category> target_metrics() const
+	{
+		typedef typename ::std::map<application_performance_category,real_type>::const_iterator iterator;
+
+		::std::vector<application_performance_category> metrics;
+		const iterator end_it = target_values_.end();
+		for (iterator it = target_values_.begin();
+			 it != end_it;
+			 ++it)
+		{
+			metrics.push_back(it->first);
+		}
+
+		return metrics;
+	}
+
 	public: void target_value(application_performance_category cat, real_type val)
 	{
 		target_values_[cat] = val;

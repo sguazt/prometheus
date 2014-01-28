@@ -102,8 +102,14 @@ class experiment_stats_gatherer: public base_experiment_tracker<TraitsT>
 		}
 
 		//FIXME: application performance category is hard-coded
-		app_perfs_summary_[exp.id()][response_time_application_performance] = summary_accumulator_type();
-		app_perfs_quantile_[exp.id()][response_time_application_performance] = quantile_accumulator_type(::boost::accumulators::tag::extended_p_square::probabilities = probs);
+		::std::vector<application_performance_category> metrics = exp.manager().target_metrics();
+		for (::std::size_t i = 0; i < metrics.size(); ++i)
+		{
+			application_performance_category metric = metrics[i];
+
+			app_perfs_summary_[exp.id()][metric] = summary_accumulator_type();
+			app_perfs_quantile_[exp.id()][metric] = quantile_accumulator_type(::boost::accumulators::tag::extended_p_square::probabilities = probs);
+		}
 	}
 
 	private: void do_on_app_sample(app_experiment_type const& exp)
@@ -131,8 +137,14 @@ class experiment_stats_gatherer: public base_experiment_tracker<TraitsT>
 		}
 
 		//FIXME: application performance category is hard-coded
-		app_perfs_summary_[exp.id()][response_time_application_performance](exp.manager().data_estimator(response_time_application_performance).estimate());
-		app_perfs_quantile_[exp.id()][response_time_application_performance](exp.manager().data_estimator(response_time_application_performance).estimate());
+		::std::vector<application_performance_category> metrics = exp.manager().target_metrics();
+		for (::std::size_t i = 0; i < metrics.size(); ++i)
+		{
+			application_performance_category metric = metrics[i];
+
+			app_perfs_summary_[exp.id()][metric](exp.manager().data_estimator(metric).estimate());
+			app_perfs_quantile_[exp.id()][metric](exp.manager().data_estimator(metric).estimate());
+		}
 	}
 
 	private: void do_on_app_stop(app_experiment_type const& exp)
