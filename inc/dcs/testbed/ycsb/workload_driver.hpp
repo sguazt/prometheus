@@ -122,7 +122,7 @@ template <typename WklIterT, typename ArgIterT>
 	}
 
 	args.push_back("-cp");
-	args.push_back(ycsb_home + "/core/src/main:" + ycsb_home + "/" + workload + "/target/classes");
+	args.push_back(ycsb_home + "/core/target/classes:" + ycsb_home + "/" + workload + "/target/classes");
 	args.push_back("com.yahoo.ycsb.Client");
 	if (load_phase)
 	{
