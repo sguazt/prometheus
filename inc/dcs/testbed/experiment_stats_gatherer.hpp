@@ -2,7 +2,6 @@
 #define DCS_TESTBED_UTILITY_EXPERIMENT_STATS_GATHERER_HPP
 
 
-#include <boost/array.hpp>
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics/extended_p_square.hpp>
 #include <boost/accumulators/statistics/mean.hpp>
@@ -85,7 +84,7 @@ class experiment_stats_gatherer: public base_experiment_tracker<TraitsT>
 		typedef ::std::vector<vm_pointer> vm_container;
 		typedef typename vm_container::const_iterator vm_iterator;
 
-		::boost::array<real_type,6> probs = {0.25, 0.50, 0.75, 0.90, 0.95, 0.99};
+		real_type probs[] = {0.25, 0.50, 0.75, 0.90, 0.95, 0.99};
 
 		vm_container vms = exp.app().vms();
 
