@@ -123,6 +123,7 @@ template <typename WklIterT, typename ArgIterT>
 
 	args.push_back("-cp");
 	args.push_back(ycsb_home + "/core/src/main:" + ycsb_home + "/" + workload + "/target/classes");
+	args.push_back("com.yahoo.ycsb.Client");
 	if (load_phase)
 	{
 		args.push_back("-load");
@@ -131,7 +132,6 @@ template <typename WklIterT, typename ArgIterT>
 	{
 		args.push_back("-t");
 	}
-	args.push_back("com.yahoo.ycsb.Client");
 	args.push_back("-db");
 	args.push_back("com.yahoo.ycsb.db." + workload_cls);
 	args.push_back("-s");
