@@ -486,7 +486,7 @@ class workload_driver: public base_workload_driver<TraitsT>
 		// Run a new process
 		proc_.command(cmd_);
 		proc_.asynch(true);
-		proc_.run(args_.begin(), args_.end(), false, true);
+		proc_.run(args_.begin(), args_.end(), false, true, true);
 		if (proc_.status() != ::dcs::system::running_process_status)
 		{
 			::std::ostringstream oss;
