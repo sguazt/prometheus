@@ -590,10 +590,10 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 				{
 					*p_dat_ofs_ << ",";
 				}
-				const real_type yn = this->data_estimator(cat).estimate();
+				const real_type yh = this->data_estimator(cat).estimate();
 				const real_type yr = tgt_it->second;
-				const real_type y = yr*yn;
-				*p_dat_ofs_ << y << "," << yn << "," << yr;
+				const real_type yn = yh/yr;
+				*p_dat_ofs_ << yh << "," << yn << "," << yr;
 			}
 			*p_dat_ofs_ << "," << ctl_count_ << "," << ctl_skip_count_ << "," << sysid_fail_count_ << "," << ctl_fail_count_;
 			*p_dat_ofs_ << ::std::endl;
