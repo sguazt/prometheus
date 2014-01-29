@@ -296,7 +296,9 @@ class application_experiment
 
 //		typedef typename monitor_container::iterator monitor_iterator;
 
-		const unsigned long zzz_time(5);
+		const unsigned long zzz_time = 5;
+
+		running_ = true;
 
 		save_app_state();
 
@@ -320,7 +322,7 @@ class application_experiment
 
 		::boost::thread_group mgr_thd_grp;
 		::boost::mutex mgr_mtx;
-		bool mgr_run(false);
+		bool mgr_run = false;
 		while (!p_drv_->done())
 		{
 			if (!mgr_run && p_drv_->ready())
@@ -353,6 +355,8 @@ class application_experiment
 		restore_app_state();
 
 		(*p_sto_sig_)(*this);
+
+		running_ = false;
 	}
 
 	protected: app_pointer app_ptr()
@@ -387,7 +391,7 @@ class application_experiment
 
 	private: void save_app_state()
 	{
-		if (!p_app_)
+		if (!p_app_ || !running_)
 		{
 			return;
 		}
@@ -412,7 +416,7 @@ class application_experiment
 
 	private: void restore_app_state()
 	{
-		if (!p_app_)
+		if (!p_app_ || !running_)
 		{
 			return;
 		}
@@ -443,6 +447,7 @@ class application_experiment
 	private: signal_pointer p_sta_sig_;
 	private: signal_pointer p_sto_sig_;
 	private: ::std::map<typename app_type::vm_type::identifier_type,real_type> vm_states_;
+	private: bool running_;
 }; // application_experiment
 
 template <typename T>
