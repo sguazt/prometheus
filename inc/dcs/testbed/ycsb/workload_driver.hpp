@@ -752,7 +752,7 @@ struct status_dumper_runnable
 		p_drv_->status_dumper_thread_active(true);
 
 		::std::istream& is = p_drv_->process().error_stream();
-		if (!is.good())
+		if (is.good())
 		{
 			::std::ofstream ofs(p_drv_->status_file_path().c_str());
 
@@ -764,7 +764,8 @@ struct status_dumper_runnable
 
 					::std::getline(is, line);
 
-DCS_DEBUG_TRACE("READ FROM ERROR: " << line);//XXX
+					DCS_DEBUG_TRACE("READ FROM ERROR: " << line);//XXX
+
 					ofs << line << ::std::endl;
 				}
 
