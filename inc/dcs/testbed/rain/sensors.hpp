@@ -117,7 +117,7 @@ class response_time_sensor: public base_sensor<TraitsT>
 		}
 
 		// Collect all available metrics entries
-		while (ifs_.good())
+		while (ifs_.good() && ifs_.is_open())
 		{
 			fpos_ = ifs_.tellg();
 
