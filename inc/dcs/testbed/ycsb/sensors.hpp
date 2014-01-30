@@ -208,8 +208,12 @@ class throughput_sensor: public base_sensor<TraitsT>
 				}
 			}
 
-			DCS_DEBUG_TRACE("Found observation: " << obs_ts << ", " << obs_nops);
-			obs_.push_back(observation_type(obs_ts, noname_op, obs_ts > 0.0 ? obs_nops/obs_ts : 0.0));
+			if (obs_ts > 0)
+			{
+				DCS_DEBUG_TRACE("Found observation: " << obs_ts << ", " << obs_nops);
+
+				obs_.push_back(observation_type(obs_ts, noname_op, obs_nops/obs_ts));
+			}
 		}
 
 		DCS_DEBUG_TRACE("END Do Sense");
