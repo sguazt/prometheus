@@ -204,6 +204,7 @@ class application_experiment
 	  p_app_(p_app),
 	  p_drv_(p_drv),
 	  p_mgr_(p_mgr),
+	  restore_state_(true),
 	  p_sta_sig_(new signal_type()),
 	  p_sto_sig_(new signal_type())
 	{
@@ -268,6 +269,16 @@ class application_experiment
 	public: manager_type const& manager() const
 	{
 		return *p_mgr_;
+	}
+
+	public: void restore_state(bool value)
+	{
+		restore_state_ = value;
+	}
+
+	public: bool restore_state() const
+	{
+		return restore_state_;
 	}
 
 	public: template <typename FuncT>
@@ -391,7 +402,7 @@ class application_experiment
 
 	private: void save_app_state()
 	{
-		if (!p_app_ || !running_)
+		if (!restore_state_ || !p_app_ || !running_)
 		{
 			return;
 		}
@@ -416,7 +427,7 @@ class application_experiment
 
 	private: void restore_app_state()
 	{
-		if (!p_app_ || !running_)
+		if (!restore_state_ || !p_app_ || !running_)
 		{
 			return;
 		}
@@ -444,6 +455,7 @@ class application_experiment
 	private: app_pointer p_app_; ///< Pointer to the application
 	private: driver_pointer p_drv_; ///< Pointer to the application driver
 	private: manager_pointer p_mgr_; ///< Pointer to the application manager
+	private: bool restore_state_; ///< Tell if the state of the application should or should not be restored after experiment's completion
 	private: signal_pointer p_sta_sig_;
 	private: signal_pointer p_sto_sig_;
 	private: ::std::map<typename app_type::vm_type::identifier_type,real_type> vm_states_;

@@ -89,29 +89,31 @@ enum data_smoother_category
 };
 
 
-const dcs::testbed::workload_category default_workload(dcs::testbed::olio_workload);
-const dcs::testbed::workload_generator_category default_workload_driver(dcs::testbed::rain_workload_generator);
+const dcs::testbed::workload_category default_workload = dcs::testbed::olio_workload;
+const dcs::testbed::workload_generator_category default_workload_driver = dcs::testbed::rain_workload_generator;
 const ::std::string default_workload_driver_rain_path("/usr/local/opt/rain-workload-toolkit");
 const ::std::string default_workload_driver_ycsb_path("/usr/local/opt/YCSB");
 const ::std::string default_workload_ycsb_prop_path("workloads/workloada");
 const ::std::string default_workload_ycsb_classpath;
 const ::std::string default_workload_ycsb_db_class;
 //const ::std::string default_out_dat_file("./sysmgt-out.dat");
-const double default_sampling_time(1000);
-const double default_control_time(3*default_sampling_time);
-const data_estimator_category default_data_estimator(mean_estimator);
-const double default_quantile_prob(0.99);
-const double default_chen2000_ewma_w(0.05);
-const double default_chen2000_ewsa_w(0.05);
-const double default_welsh2003_ewma_alpha(0.7);
-const data_smoother_category default_data_smoother(dummy_smoother);
-const double default_brown_single_exponential_alpha(0.7);
-const double default_brown_double_exponential_alpha(0.7);
-const double default_holt_winters_double_exponential_alpha(0.8);
-const double default_holt_winters_double_exponential_beta(0.3);
-const double default_holt_winters_double_exponential_delta(0.7);
+const double default_sampling_time = 1000;
+const double default_control_time = 3*default_sampling_time;
+const data_estimator_category default_data_estimator = mean_estimator;
+const double default_quantile_prob = 0.99;
+const double default_chen2000_ewma_w = 0.05;
+const double default_chen2000_ewsa_w = 0.05;
+const double default_welsh2003_ewma_alpha = 0.7;
+const data_smoother_category default_data_smoother = dummy_smoother;
+const double default_brown_single_exponential_alpha = 0.7;
+const double default_brown_double_exponential_alpha = 0.7;
+const double default_holt_winters_double_exponential_alpha = 0.8;
+const double default_holt_winters_double_exponential_beta = 0.3;
+const double default_holt_winters_double_exponential_delta = 0.7;
 const std::string default_slo_metric_str("rt");
-const double default_slo_value(0);
+const double default_slo_value = 0;
+const bool default_no_restore_vms = false;
+const bool default_verbose = false;
 
 
 template <typename CharT, typename CharTraitsT>
@@ -281,6 +283,9 @@ void usage(char const* progname)
 				<< " --holt_winters_des-delta <value>" << ::std::endl
 				<< "   The delta parameter for the Holt-Winters Double Exponential data smoother." << ::std::endl
 				<< "   [default: '" << default_holt_winters_double_exponential_delta << "']." << ::std::endl
+				<< " --no-restore-vms" << ::std::endl
+				<< "   Don't restore the resource allocations of all VMS after experiment's completion" << ::std::endl
+				<< "   [default: " << (default_no_restore_vms ? "enabled" : "disabled") << "]." << ::std::endl
 				<< " --slo-metric <name>" << ::std::endl
 				<< "   The SLO metric. Possible values are: 'rt' (response time), 'tput' (throughput)" << ::std::endl
 				<< "   [default: '" << default_slo_metric_str << "']." << ::std::endl
@@ -295,7 +300,7 @@ void usage(char const* progname)
 				<< "   [default: " << default_sampling_time << "]." << ::std::endl
 				<< " --verbose" << ::std::endl
 				<< "   Show verbose messages." << ::std::endl
-				<< "   [default: disabled]." << ::std::endl
+				<< "   [default: " << (default_verbose ? "enabled" : "disabled") << "]." << ::std::endl
 				<< " --vm-uri <URI>" << ::std::endl
 				<< "   The VM URI to connect." << ::std::endl
 				<< "   Repeat this option as many times as is the number of your VMs." << ::std::endl
@@ -386,26 +391,26 @@ int main(int argc, char *argv[])
 	typedef unsigned int uint_type;
 	typedef testbed::traits<real_type,uint_type> traits_type;
 
-	bool opt_help(false);
+	bool opt_help = false;
 //	std::string opt_out_dat_file;
-	real_type opt_brown_single_exponential_alpha(0);
-	real_type opt_brown_double_exponential_alpha(0);
-	real_type opt_chen2000_ewma_w(0);
-	real_type opt_chen2000_ewsa_w(0);
+	real_type opt_brown_single_exponential_alpha = 0;
+	real_type opt_brown_double_exponential_alpha = 0;
+	real_type opt_chen2000_ewma_w = 0;
+	real_type opt_chen2000_ewsa_w = 0;
 	detail::data_estimator_category opt_data_estimator;
 	detail::data_smoother_category opt_data_smoother;
-	real_type opt_holt_winters_double_exponential_alpha(0);
-	real_type opt_holt_winters_double_exponential_beta(0);
-	real_type opt_holt_winters_double_exponential_delta(0);
-	real_type opt_quantile_prob(0);
+	real_type opt_holt_winters_double_exponential_alpha = 0;
+	real_type opt_holt_winters_double_exponential_beta = 0;
+	real_type opt_holt_winters_double_exponential_delta = 0;
+	real_type opt_quantile_prob = 0;
 	testbed::application_performance_category opt_slo_metric;
-	real_type opt_slo_value(0);
+	real_type opt_slo_value = 0;
 	std::string opt_str;
 	real_type opt_ts;
 	real_type opt_tc;
-	bool opt_verbose(false);
+	bool opt_verbose = detail::default_verbose;
 	std::vector<std::string> opt_vm_uris;
-	real_type opt_welsh2003_ewma_alpha(0);
+	real_type opt_welsh2003_ewma_alpha = 0;
 	testbed::workload_category opt_wkl;
 	testbed::workload_generator_category opt_wkl_driver;
 	std::string opt_wkl_driver_rain_path;
@@ -413,6 +418,7 @@ int main(int argc, char *argv[])
 	std::vector<std::string> opt_wkl_ycsb_prop_paths;
 	std::string opt_wkl_ycsb_classpath;
 	std::string opt_wkl_ycsb_db_class;
+	bool opt_no_restore_vms = detail::default_no_restore_vms;
 
 	// Parse command line options
 	try
@@ -444,6 +450,7 @@ int main(int argc, char *argv[])
 		opt_str = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--slo-metric", detail::default_slo_metric_str);
 		opt_slo_metric = detail::make_slo_metric(opt_str);
 		opt_slo_value = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--slo-value", detail::default_slo_value);
+		opt_no_restore_vms = dcs::cli::simple::get_option(argv, argv+argc, "--no-restore-vms");
 	}
 	catch (std::exception const& e)
 	{
@@ -534,11 +541,19 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
+		oss << "Don't restore VMs resource allocations: " << std::boolalpha << opt_no_restore_vms;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
 		oss << "SLO metric: " << opt_slo_metric;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
 		oss << "SLO value: " << opt_slo_value;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Verbose output: " << std::boolalpha << opt_verbose;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
@@ -780,7 +795,9 @@ int main(int argc, char *argv[])
 		p_mgr->app(p_app);
 
 		// Add to main experiment
-		sys_exp.add_app_experiment(::boost::make_shared< testbed::application_experiment<traits_type> >(p_app, p_drv, p_mgr));
+		boost::shared_ptr< testbed::application_experiment<traits_type> > p_app_exp = boost::make_shared< testbed::application_experiment<traits_type> >(p_app, p_drv, p_mgr);
+		p_app_exp->restore_state(!opt_no_restore_vms);
+		sys_exp.add_app_experiment(p_app_exp);
 
 		// Set experiment trackers
 		testbed::utility::experiment_stats_gatherer<traits_type> exp_stats;
