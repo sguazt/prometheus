@@ -44,6 +44,7 @@
 #include <dcs/debug.hpp>
 #include <dcs/macro.hpp>
 #include <dcs/testbed/detail/quantile.hpp>
+#include <limits>
 #include <vector>
 
 
@@ -56,15 +57,26 @@ class base_estimator
 	protected: typedef ::std::vector<value_type> data_container;
 
 
+	public: base_estimator()
+	: n_(0)
+	{
+	}
+
 	public: void collect(value_type val)
 	{
 		this->do_collect(::std::vector<value_type>(1, val));
+
+		++n_;
 	}
 
 	public: template <typename IterT>
 			void collect(IterT first, IterT last)
 	{
-		this->do_collect(::std::vector<value_type>(first, last));
+		const ::std::vector<value_type> data(first, last);
+
+		this->do_collect(data);
+
+		n_ += data.size();
 	}
 
 	public: value_type estimate() const
@@ -76,23 +88,68 @@ class base_estimator
 	{
 		this->do_reset();
 
-		// post: <# collected observations> == 0
-		DCS_ASSERT(this->count() == 0,
-				   DCS_EXCEPTION_THROW(::std::logic_error,
-									   "Number of collected observations greater than zero after reset"));
+//		// post: <# collected observations> == 0
+//		DCS_ASSERT(this->count() == 0,
+//				   DCS_EXCEPTION_THROW(::std::logic_error,
+//									   "Number of collected observations greater than zero after reset"));
+
+		n_ = 0;
 	}
 
 	// Return the number of collected observations after the last reset
 	public: ::std::size_t count() const
 	{
-		return this->do_count();
+//		return this->do_count();
+		return n_;
 	}
 
 	private: virtual void do_collect(data_container const& data) = 0; 
 	private: virtual value_type do_estimate() const = 0;
 	private: virtual void do_reset() = 0;
-	private: virtual ::std::size_t do_count() const = 0;
+//	private: virtual ::std::size_t do_count() const = 0;
+
+
+	private: ::std::size_t n_;
 };
+
+template <typename ValueT>
+class most_recently_observed_estimator: public base_estimator<ValueT>
+{
+	private: typedef base_estimator<ValueT> base_type;
+	public: typedef typename base_type::value_type value_type;
+	private: typedef typename base_type::data_container data_container;
+	private: typedef ::boost::accumulators::accumulator_set<value_type,
+															::boost::accumulators::stats< ::boost::accumulators::tag::mean > > accumulator_type;
+
+
+	public: most_recently_observed_estimator()
+	: mro_(::std::numeric_limits<value_type>::quiet_NaN())
+	{
+	}
+
+	private: void do_collect(data_container const& data)
+	{
+		mro_ = data.back();
+	}
+
+	private: value_type do_estimate() const
+	{
+		return mro_;
+	}
+
+	private: void do_reset()
+	{
+		mro_ = ::std::numeric_limits<value_type>::quiet_NaN();
+	}
+
+//	private: ::std::size_t do_count() const
+//	{
+//		return ::boost::accumulators::count(acc_);
+//	}
+
+
+	private: value_type mro_;
+}; // most_recently_observed_estimator
 
 template <typename ValueT>
 class mean_estimator: public base_estimator<ValueT>
@@ -104,7 +161,7 @@ class mean_estimator: public base_estimator<ValueT>
 															::boost::accumulators::stats< ::boost::accumulators::tag::mean > > accumulator_type;
 
 
-	public: explicit mean_estimator()
+	public: mean_estimator()
 	: acc_()
 	{
 	}
@@ -132,10 +189,10 @@ class mean_estimator: public base_estimator<ValueT>
 		acc_ = accumulator_type();
 	}
 
-	private: ::std::size_t do_count() const
-	{
-		return ::boost::accumulators::count(acc_);
-	}
+//	private: ::std::size_t do_count() const
+//	{
+//		return ::boost::accumulators::count(acc_);
+//	}
 
 
 	private: accumulator_type acc_;
@@ -188,10 +245,10 @@ class jain1985_p2_algorithm_quantile_estimator: public base_estimator<ValueT>
 		acc_ = accumulator_type(::boost::accumulators::quantile_probability = prob_);
 	}
 
-	private: ::std::size_t do_count() const
-	{
-		return ::boost::accumulators::count(acc_);
-	}
+//	private: ::std::size_t do_count() const
+//	{
+//		return ::boost::accumulators::count(acc_);
+//	}
 
 
 	private: value_type prob_;
@@ -275,10 +332,10 @@ class welsh2003_ewma_quantile_estimator: public base_estimator<ValueT>
 		ewma_ = 0;
 	}
 
-	private: ::std::size_t do_count() const
-	{
-		return data_.size();
-	}
+//	private: ::std::size_t do_count() const
+//	{
+//		return data_.size();
+//	}
 
 
 	private: value_type prob_;
@@ -356,10 +413,10 @@ class chen2000_ewma_quantile_estimator: public base_estimator<ValueT>
 		ewma_ = 0;
 	}
 
-	private: ::std::size_t do_count() const
-	{
-		return data_.size();
-	}
+//	private: ::std::size_t do_count() const
+//	{
+//		return data_.size();
+//	}
 
 
 	private: value_type prob_;
@@ -477,10 +534,10 @@ class chen2000_ewsa_quantile_estimator: public base_estimator<ValueT>
 		s_ = f_ = r_ = c_ = ::std::numeric_limits<value_type>::quiet_NaN();
 	}
 
-	private: ::std::size_t do_count() const
-	{
-		return data_.size();
-	}
+//	private: ::std::size_t do_count() const
+//	{
+//		return data_.size();
+//	}
 
 
 	private: value_type prob_;

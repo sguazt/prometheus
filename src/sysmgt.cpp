@@ -76,6 +76,7 @@ enum data_estimator_category
 	chen2000_ewma_quantile_estimator,
 	chen2000_ewsa_quantile_estimator,
 	jain1985_p2_algorithm_quantile_estimator,
+	most_recently_observed_estimator,
 	welsh2003_ewma_quantile_estimator,
 	welsh2003_ewma_ext_quantile_estimator
 };
@@ -161,6 +162,10 @@ inline
 	{
 		cat = mean_estimator;
 	}
+	else if (!s.compare("mro"))
+	{
+		cat = most_recently_observed_estimator;
+	}
 	else if (!s.compare("chen2000_ewma_quantile"))
 	{
 		cat = chen2000_ewma_quantile_estimator;
@@ -222,6 +227,9 @@ inline
 		case detail::mean_estimator:
 			os << "mean";
 			break;
+		case detail::most_recently_observed_estimator:
+			os << "mro";
+			break;
 		case chen2000_ewma_quantile_estimator:
 				os << "chen2000_ewma_quantile";
 				break;
@@ -250,8 +258,16 @@ void usage(char const* progname)
 //				<< " --out-dat-file <file path>" << ::std::endl
 //				<< "   The path to the output data file." << ::std::endl
 //				<< "   [default: '" << default_out_dat_file << "']." << ::std::endl
-				<< " --data-estimator {'chen2000_ewma_quantile'|'chen2000_ewsa_quantile'|'jain1985_p2_algorithm_quantile'|'mean'|'welsh2003_ewma_quantile'|'welsh2003_ewma_ext_quantile'}" << ::std::endl
+				<< " --data-estimator <name>" << ::std::endl
 				<< "   The name of the estimator to use to estimate summary statistics from observed data." << ::std::endl
+				<< "   Possible values are:" << ::std::endl
+				<< "   - 'chen2000_ewma_quantile': quantile estimation according to the EWMA method by (Chen et al., 2000)" << ::std::endl
+				<< "   - 'chen2000_ewsa_quantile': quantile estimation according to the EWSA method by (Chen et al., 2000)" << ::std::endl
+				<< "   - 'jain1985_p2_algorithm_quantile': quantile estimation according to the P^2 algorithm by (Jain et al., 1985)" << ::std::endl
+				<< "   - 'mean': sample mean" << ::std::endl
+				<< "   - 'mro': most recently observed data" << ::std::endl
+				<< "   - 'welsh2003_ewma_quantile': quantile estimation according to the EWMA method by (Welsh et al., 2003)" << ::std::endl
+				<< "   - 'welsh2003_ewma_ext_quantile': quantile estimation according to the extended EWMA method by (Welsh et al., 2003)" << ::std::endl
 				<< "   [default: '" << default_data_estimator << "']." << ::std::endl
 				<< " --quantile-prob <value>" << ::std::endl
 				<< "   The probability value for the quantile-based data estimator." << ::std::endl
@@ -690,24 +706,27 @@ int main(int argc, char *argv[])
 		boost::shared_ptr< testbed::base_estimator<real_type> > p_estimator;
 		switch (opt_data_estimator)
 		{
+			case detail::chen2000_ewma_quantile_estimator:
+					p_estimator = boost::make_shared< testbed::chen2000_ewma_quantile_estimator<real_type> >(opt_quantile_prob, opt_chen2000_ewma_w);
+					break;
+			case detail::chen2000_ewsa_quantile_estimator:
+					p_estimator = boost::make_shared< testbed::chen2000_ewsa_quantile_estimator<real_type> >(opt_quantile_prob, opt_chen2000_ewsa_w);
+					break;
+			case detail::jain1985_p2_algorithm_quantile_estimator:
+					p_estimator = boost::make_shared< testbed::jain1985_p2_algorithm_quantile_estimator<real_type> >(opt_quantile_prob);
+					break;
 			case detail::mean_estimator:
 				p_estimator = boost::make_shared< testbed::mean_estimator<real_type> >();
 				break;
-				case detail::chen2000_ewma_quantile_estimator:
-						p_estimator = boost::make_shared< testbed::chen2000_ewma_quantile_estimator<real_type> >(opt_quantile_prob, opt_chen2000_ewma_w);
-						break;
-				case detail::chen2000_ewsa_quantile_estimator:
-						p_estimator = boost::make_shared< testbed::chen2000_ewsa_quantile_estimator<real_type> >(opt_quantile_prob, opt_chen2000_ewsa_w);
-						break;
-				case detail::jain1985_p2_algorithm_quantile_estimator:
-						p_estimator = boost::make_shared< testbed::jain1985_p2_algorithm_quantile_estimator<real_type> >(opt_quantile_prob);
-						break;
-				case detail::welsh2003_ewma_quantile_estimator:
-						p_estimator = boost::make_shared< testbed::welsh2003_ewma_quantile_estimator<real_type> >(opt_quantile_prob, opt_welsh2003_ewma_alpha, false);
-						break;
-				case detail::welsh2003_ewma_ext_quantile_estimator:
-						p_estimator = boost::make_shared< testbed::welsh2003_ewma_quantile_estimator<real_type> >(opt_quantile_prob, opt_welsh2003_ewma_alpha, true);
-						break;
+			case detail::most_recently_observed_estimator:
+				p_estimator = boost::make_shared< testbed::most_recently_observed_estimator<real_type> >();
+				break;
+			case detail::welsh2003_ewma_quantile_estimator:
+					p_estimator = boost::make_shared< testbed::welsh2003_ewma_quantile_estimator<real_type> >(opt_quantile_prob, opt_welsh2003_ewma_alpha, false);
+					break;
+			case detail::welsh2003_ewma_ext_quantile_estimator:
+					p_estimator = boost::make_shared< testbed::welsh2003_ewma_quantile_estimator<real_type> >(opt_quantile_prob, opt_welsh2003_ewma_alpha, true);
+					break;
 			default:
 				DCS_EXCEPTION_THROW(std::runtime_error, "Unknown data estimator");
 		}
