@@ -274,6 +274,7 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 				const real_type c = vms[i]->cpu_share();
 
 				cress[cat].push_back(c-uh);
+DCS_DEBUG_TRACE("VM " << vms[i]->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << cress.at(cat).at(i));//XXX
 			}
 			else
 			{
@@ -308,6 +309,7 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 							rgains[cat] = (yh-yr)/yr;
 							break;
 					}
+DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << " - R: " << yr << " -> Rgain(k+1): " << rgains.at(cat));//XXX
 				}
 				else
 				{
@@ -346,6 +348,7 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 					const real_type deltac = p_fuzzy_eng_->getOutputValue(deltac_fuzzy_var_name);
 
 					deltacs[i] = deltac;
+DCS_DEBUG_TRACE("VM " << vms[i]->id() << " -> DeltaC(k+1): " << deltacs.at(i));//XXX
 				}
 
 				ok = true;
@@ -379,6 +382,7 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << p_vm->cpu_share() << " - new-share: " << new_share);
 
 					p_vm->cpu_share(new_share);
+DCS_DEBUG_TRACE("VM " << vms[i]->id() << " -> C(k+1): " << new_share);//XXX
 				}
 DCS_DEBUG_TRACE("Optimal control applied");//XXX
 			}
