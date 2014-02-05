@@ -205,12 +205,12 @@ class base_application_manager
 		app_smoothers_[cat] = p_smoother;
 	}
 
-	public: data_smoother_pointer data_smoother(application_performance_category cat)
+	public: data_smoother_type& data_smoother(application_performance_category cat)
 	{
 		return *(app_smoothers_[cat]);
 	}
 
-	public: data_smoother_pointer data_smoother(application_performance_category cat) const
+	public: data_smoother_type const& data_smoother(application_performance_category cat) const
 	{
 		// pre: exists(smoothers_[cat]) && smoothers_[cat] != null
 		DCS_ASSERT(app_smoothers_.count(cat) > 0 && app_smoothers_.at(cat),
@@ -229,12 +229,12 @@ class base_application_manager
 		vm_smoothers_[cat] = p_smoother;
 	}
 
-	public: data_smoother_pointer data_smoother(virtual_machine_performance_category cat)
+	public: data_smoother_type& data_smoother(virtual_machine_performance_category cat)
 	{
 		return *(vm_smoothers_[cat]);
 	}
 
-	public: data_smoother_pointer data_smoother(virtual_machine_performance_category cat) const
+	public: data_smoother_type const& data_smoother(virtual_machine_performance_category cat) const
 	{
 		// pre: exists(vm_smoothers_[cat]) && vm_smoothers_[cat] != null
 		DCS_ASSERT(vm_smoothers_.count(cat) > 0 && vm_smoothers_.at(cat),
