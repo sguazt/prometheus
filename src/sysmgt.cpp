@@ -827,7 +827,10 @@ int main(int argc, char *argv[])
 		{
 			case detail::albano2013_app_manager:
 				{
+					const real_type beta = 0.9;
+
 					testbed::albano2013_application_manager<traits_type> albano2013_mgr;
+					albano2013_mgr.smoothing_factor(beta);
 					albano2013_mgr.export_data_to("albano2013.dat");
 
 					p_mgr = boost::make_shared< testbed::albano2013_application_manager<traits_type> >(albano2013_mgr);

@@ -45,9 +45,21 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 
 
 	public: albano2013_application_manager()
-	: p_fuzzy_eng_(new fl::Engine())
+	: beta_(0.9),
+	  p_fuzzy_eng_(new fl::Engine())
 	{
 		init();
+	}
+
+	public: void smoothing_factor(real_type value)
+	{
+		beta_ = value;
+		this->data_smoother(cpu_util_virtual_machine_performance, ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
+	}
+
+	public: real_type smoothing_factor() const
+	{
+		return beta_;
 	}
 
 	public: void export_data_to(::std::string const& fname)
@@ -57,6 +69,9 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 
 	private: void init()
 	{
+		this->data_estimator(cpu_util_virtual_machine_performance, boost::make_shared< testbed::mean_estimator<real_type> >());
+		this->data_smoother(cpu_util_virtual_machine_performance, ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
+
 		DCS_DEBUG_ASSERT( p_fuzzy_eng_ );
 
 		fl::InputVariable* p_iv = 0;
@@ -151,6 +166,11 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 		// Reset fuzzy controller
 		p_fuzzy_eng_->restart();
 
+		// Reset Cres estimator and smoother
+		this->data_estimator(cpu_util_virtual_machine_performance).reset();
+		this->data_smoother(cpu_util_virtual_machine_performance).reset();
+
+		// Reset output data file
 		if (!dat_fname_.empty())
 		{
 			p_dat_ofs_ = ::boost::make_shared< ::std::ofstream >(dat_fname_.c_str());
@@ -418,12 +438,13 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 	}
 
 
+	private: real_type beta_; ///< The EWMA smoothing factor for Cres
+	private: ::boost::shared_ptr<fl::Engine> p_fuzzy_eng_; ///< The fuzzy control engine
 	private: ::std::size_t ctl_count_; ///< Number of times control function has been invoked
 	private: ::std::size_t ctl_skip_count_; ///< Number of times control has been skipped
 	private: ::std::size_t ctl_fail_count_; ///< Number of times control has failed
 	private: in_sensor_map in_sensors_;
 	private: out_sensor_map out_sensors_;
-	private: ::boost::shared_ptr<fl::Engine> p_fuzzy_eng_;
 	private: ::std::string dat_fname_;
 	private: ::boost::shared_ptr< ::std::ofstream > p_dat_ofs_;
 }; // albano2013_application_manager
