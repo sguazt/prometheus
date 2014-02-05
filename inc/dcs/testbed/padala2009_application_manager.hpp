@@ -563,12 +563,12 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 		if (p_dat_ofs_)
 		{
 			*p_dat_ofs_ << ::std::time(0) << ",";
-			vm_iterator vm_end_it = vms.end();
-			for (vm_iterator vm_it = vms.begin();
+			const vm_citerator vm_end_it = vms.end();
+			for (vm_citerator vm_it = vms.begin();
 				 vm_it != vm_end_it;
 				 ++vm_it)
 			{
-				vm_pointer p_vm(*vm_it);
+				const vm_pointer p_vm(*vm_it);
 
 				// check: p_vm != null
 				DCS_DEBUG_ASSERT( p_vm );
@@ -580,7 +580,7 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 				*p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share();
 			}
 			*p_dat_ofs_ << ",";
-			target_iterator tgt_end_it = this->target_values().end();
+			const target_iterator tgt_end_it = this->target_values().end();
 			for (target_iterator tgt_it = this->target_values().begin();
 			tgt_it != tgt_end_it;
 			++tgt_it)

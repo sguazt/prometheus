@@ -42,6 +42,7 @@
 #include <dcs/testbed/base_application.hpp>
 #include <dcs/testbed/data_estimators.hpp>
 #include <dcs/testbed/data_smoothers.hpp>
+#include <dcs/testbed/virtual_machine_performance_category.hpp>
 #include <stdexcept>
 #include <map>
 #include <vector>
@@ -62,8 +63,10 @@ class base_application_manager
 	public: typedef ::boost::shared_ptr<app_type> app_pointer;
 	public: typedef ::boost::shared_ptr<data_estimator_type> data_estimator_pointer;
 	public: typedef ::boost::shared_ptr<data_smoother_type> data_smoother_pointer;
-	protected: typedef ::std::map<application_performance_category,data_estimator_pointer> data_estimator_map;
-	protected: typedef ::std::map<application_performance_category,data_smoother_pointer> data_smoother_map;
+	protected: typedef ::std::map<application_performance_category,data_estimator_pointer> app_data_estimator_map;
+	protected: typedef ::std::map<virtual_machine_performance_category,data_estimator_pointer> vm_data_estimator_map;
+	protected: typedef ::std::map<application_performance_category,data_smoother_pointer> app_data_smoother_map;
+	protected: typedef ::std::map<virtual_machine_performance_category,data_smoother_pointer> vm_data_smoother_map;
 	private: typedef ::boost::signals2::signal<void (self_type const&)> signal_type;
 	private: typedef ::boost::shared_ptr<signal_type> signal_pointer;
 
@@ -140,27 +143,57 @@ class base_application_manager
 				   DCS_EXCEPTION_THROW(::std::invalid_argument,
 									   "Invalid pointer to data estimator"));
 
-        estimators_[cat] = p_estimator;
+        app_estimators_[cat] = p_estimator;
 	}
 
 	public: data_estimator_type& data_estimator(application_performance_category cat)
 	{
-		// pre: exists(estimators_[cat]) && estimators_[cat] != null
-		DCS_ASSERT(estimators_.count(cat) > 0 && estimators_.at(cat),
+		// pre: exists(app_estimators_[cat]) && app_estimators_[cat] != null
+		DCS_ASSERT(app_estimators_.count(cat) > 0 && app_estimators_.at(cat),
 				   DCS_EXCEPTION_THROW(::std::invalid_argument,
 									   "Invalid category for data estimator"));
 
-		return *(estimators_[cat]);
+		return *(app_estimators_[cat]);
 	}
 
 	public: data_estimator_type const& data_estimator(application_performance_category cat) const
 	{
-		// pre: exists(estimators_[cat]) && estimators_[cat] != null
-		DCS_ASSERT(estimators_.count(cat) > 0 && estimators_.at(cat),
+		// pre: exists(app_estimators_[cat]) && app_estimators_[cat] != null
+		DCS_ASSERT(app_estimators_.count(cat) > 0 && app_estimators_.at(cat),
 				   DCS_EXCEPTION_THROW(::std::invalid_argument,
 									   "Invalid category for data estimator"));
 
-		return *(estimators_.at(cat));
+		return *(app_estimators_.at(cat));
+	}
+
+	public: void data_estimator(virtual_machine_performance_category cat, data_estimator_pointer const& p_estimator)
+	{
+		// pre: p_estimator != null
+		DCS_ASSERT(p_estimator,
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Invalid pointer to data estimator"));
+
+        vm_estimators_[cat] = p_estimator;
+	}
+
+	public: data_estimator_type& data_estimator(virtual_machine_performance_category cat)
+	{
+		// pre: exists(vm_estimators_[cat]) && vm_estimators_[cat] != null
+		DCS_ASSERT(vm_estimators_.count(cat) > 0 && vm_estimators_.at(cat),
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Invalid category for data estimator"));
+
+		return *(vm_estimators_[cat]);
+	}
+
+	public: data_estimator_type const& data_estimator(virtual_machine_performance_category cat) const
+	{
+		// pre: exists(vm_estimators_[cat]) && vm_estimators_[cat] != null
+		DCS_ASSERT(vm_estimators_.count(cat) > 0 && vm_estimators_.at(cat),
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Invalid category for data estimator"));
+
+		return *(vm_estimators_.at(cat));
 	}
 
 	public: void data_smoother(application_performance_category cat, data_smoother_pointer const& p_smoother)
@@ -169,22 +202,46 @@ class base_application_manager
 		DCS_ASSERT(p_smoother,
 				   DCS_EXCEPTION_THROW(::std::invalid_argument, "Invalid pointer to data smoother"));
 
-		smoothers_[cat] = p_smoother;
+		app_smoothers_[cat] = p_smoother;
 	}
 
 	public: data_smoother_pointer data_smoother(application_performance_category cat)
 	{
-		return *(smoothers_[cat]);
+		return *(app_smoothers_[cat]);
 	}
 
 	public: data_smoother_pointer data_smoother(application_performance_category cat) const
 	{
 		// pre: exists(smoothers_[cat]) && smoothers_[cat] != null
-		DCS_ASSERT(smoothers_.count(cat) > 0 && smoothers_.at(cat),
+		DCS_ASSERT(app_smoothers_.count(cat) > 0 && app_smoothers_.at(cat),
 				   DCS_EXCEPTION_THROW(::std::invalid_argument,
 									   "Invalid category for data smoothers"));
 
-		return *(smoothers_.at(cat));
+		return *(app_smoothers_.at(cat));
+	}
+
+	public: void data_smoother(virtual_machine_performance_category cat, data_smoother_pointer const& p_smoother)
+	{
+		// pre: p_estimator != null
+		DCS_ASSERT(p_smoother,
+				   DCS_EXCEPTION_THROW(::std::invalid_argument, "Invalid pointer to data smoother"));
+
+		vm_smoothers_[cat] = p_smoother;
+	}
+
+	public: data_smoother_pointer data_smoother(virtual_machine_performance_category cat)
+	{
+		return *(vm_smoothers_[cat]);
+	}
+
+	public: data_smoother_pointer data_smoother(virtual_machine_performance_category cat) const
+	{
+		// pre: exists(vm_smoothers_[cat]) && vm_smoothers_[cat] != null
+		DCS_ASSERT(vm_smoothers_.count(cat) > 0 && vm_smoothers_.at(cat),
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Invalid category for data smoothers"));
+
+		return *(vm_smoothers_.at(cat));
 	}
 
 	public: ::std::vector<application_performance_category> target_metrics() const
@@ -273,24 +330,24 @@ class base_application_manager
 		return p_app_;
 	}
 
-	protected: data_estimator_map& data_estimators()
+	protected: app_data_estimator_map& app_data_estimators()
 	{
-		return estimators_;
+		return app_estimators_;
 	}
 
-	protected: data_estimator_map const& data_estimators() const
+	protected: app_data_estimator_map const& app_data_estimators() const
 	{
-		return estimators_;
+		return app_estimators_;
 	}
 
-	protected: data_smoother_map& data_smoothers()
+	protected: app_data_smoother_map& app_data_smoothers()
 	{
-		return smoothers_;
+		return app_smoothers_;
 	}
 
-	protected: data_smoother_map const& data_smoothers() const
+	protected: app_data_smoother_map const& app_data_smoothers() const
 	{
-		return smoothers_;
+		return app_smoothers_;
 	}
 
 	protected: target_value_map& target_values()
@@ -314,8 +371,10 @@ class base_application_manager
 	private: real_type tc_; ///< Control time (in ms)
 	private: app_pointer p_app_; ///< Pointer to the managed application
 	private: target_value_map target_values_; ///< Mapping between application performance categories and target values
-	private: data_estimator_map estimators_; ///< Mapping between application performance categories and data estimator pointers
-	private: data_smoother_map smoothers_; ///< Mapping between application performance categories and data smoother pointers
+	private: app_data_estimator_map app_estimators_; ///< Mapping between application performance categories and data estimator pointers
+	private: vm_data_estimator_map vm_estimators_; ///< Mapping between VM performance categories and data estimator pointers
+	private: app_data_smoother_map app_smoothers_; ///< Mapping between application performance categories and data smoother pointers
+	private: vm_data_smoother_map vm_smoothers_; ///< Mapping between VM performance categories and data smoother pointers
 	private: signal_pointer p_rst_sig_; ///< Signal emitter for reset event
 	private: signal_pointer p_smp_sig_; ///< Signal emitter for sample event
 	private: signal_pointer p_ctl_sig_; ///< Signal emitter for control event

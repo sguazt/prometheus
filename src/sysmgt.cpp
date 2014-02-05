@@ -7,7 +7,7 @@
  *
  * <hr/>
  *
- * Copyright (C) 2012       Marco Guazzone
+ * Copyright (C) 2012-2014  Marco Guazzone
  *                          [Distributed Computing System (DCS) Group,
  *                           Computer Science Institute,
  *                           Department of Science and Technological Innovation,
@@ -89,6 +89,13 @@ enum data_smoother_category
 	holt_winters_double_exponential_smoother
 };
 
+enum app_manager_category
+{
+	albano2013_app_manager,
+	padala2009_app_manager/*,
+	rao2012_app_manager*/
+};
+
 
 const dcs::testbed::workload_category default_workload = dcs::testbed::olio_workload;
 const dcs::testbed::workload_generator_category default_workload_driver = dcs::testbed::rain_workload_generator;
@@ -115,6 +122,7 @@ const std::string default_slo_metric_str("rt");
 const double default_slo_value = 0;
 const bool default_no_restore_vms = false;
 const bool default_verbose = false;
+const app_manager_category default_app_manager = padala2009_app_manager;
 
 
 template <typename CharT, typename CharTraitsT>
@@ -148,6 +156,29 @@ inline
 	}
 
 	return is;
+}
+
+template <typename CharT, typename CharTraitsT>
+inline
+::std::basic_ostream<CharT,CharTraitsT>& operator>>(::std::basic_ostream<CharT,CharTraitsT>& os, data_smoother_category cat)
+{
+	switch (cat)
+	{
+		case brown_single_exponential_smoother:
+			os << "brown_ses";
+			break;
+		case brown_double_exponential_smoother:
+			os << "brown_des";
+			break;
+		case dummy_smoother:
+			os << "dummy";
+			break;
+		case holt_winters_double_exponential_smoother:
+			os << "holt_winters_des";
+			break;
+	}
+
+	return os;
 }
 
 template <typename CharT, typename CharTraitsT>
@@ -197,37 +228,14 @@ inline
 
 template <typename CharT, typename CharTraitsT>
 inline
-::std::basic_ostream<CharT,CharTraitsT>& operator>>(::std::basic_ostream<CharT,CharTraitsT>& os, data_smoother_category cat)
-{
-	switch (cat)
-	{
-		case detail::brown_single_exponential_smoother:
-			os << "brown_ses";
-			break;
-		case detail::brown_double_exponential_smoother:
-			os << "brown_des";
-			break;
-		case detail::dummy_smoother:
-			os << "dummy";
-			break;
-		case detail::holt_winters_double_exponential_smoother:
-			os << "holt_winters_des";
-			break;
-	}
-
-	return os;
-}
-
-template <typename CharT, typename CharTraitsT>
-inline
 ::std::basic_ostream<CharT,CharTraitsT>& operator>>(::std::basic_ostream<CharT,CharTraitsT>& os, data_estimator_category cat)
 {
 	switch (cat)
 	{
-		case detail::mean_estimator:
+		case mean_estimator:
 			os << "mean";
 			break;
-		case detail::most_recently_observed_estimator:
+		case most_recently_observed_estimator:
 			os << "mro";
 			break;
 		case chen2000_ewma_quantile_estimator:
@@ -250,6 +258,48 @@ inline
 	return os;
 }
 
+template <typename CharT, typename CharTraitsT>
+inline
+::std::basic_istream<CharT,CharTraitsT>& operator>>(::std::basic_istream<CharT,CharTraitsT>& is, app_manager_category& cat)
+{
+	::std::string s;
+	is >> s;
+	::dcs::string::to_lower(s);
+
+	if (!s.compare("albano2013"))
+	{
+		cat = albano2013_app_manager;
+	}
+	else if (!s.compare("padala2009"))
+	{
+		cat = padala2009_app_manager;
+	}
+	else
+	{
+		DCS_EXCEPTION_THROW(::std::runtime_error,
+							"Unknown application manager category");
+	}
+
+	return is;
+}
+
+template <typename CharT, typename CharTraitsT>
+inline
+::std::basic_ostream<CharT,CharTraitsT>& operator>>(::std::basic_ostream<CharT,CharTraitsT>& os, app_manager_category cat)
+{
+	switch (cat)
+	{
+		case albano2013_app_manager:
+			os << "albano2013";
+			break;
+		case padala2009_app_manager:
+			os << "padala2009";
+			break;
+	}
+
+	return os;
+}
+
 void usage(char const* progname)
 {
 	::std::cerr << "Usage: " << progname << " [options]" << ::std::endl
@@ -258,6 +308,12 @@ void usage(char const* progname)
 //				<< " --out-dat-file <file path>" << ::std::endl
 //				<< "   The path to the output data file." << ::std::endl
 //				<< "   [default: '" << default_out_dat_file << "']." << ::std::endl
+				<< " --app-manager <name>" << ::std::endl
+				<< "   The name of the application manager to use to manage applications." << ::std::endl
+				<< "   Possible values are:" << ::std::endl
+				<< "   - 'albano2013': the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
+				<< "   - 'padala2009': the LQ controller described in (Padala et al., 2009)" << ::std::endl
+				<< "   [default: '" << default_app_manager << "']." << ::std::endl
 				<< " --data-estimator <name>" << ::std::endl
 				<< "   The name of the estimator to use to estimate summary statistics from observed data." << ::std::endl
 				<< "   Possible values are:" << ::std::endl
@@ -409,6 +465,7 @@ int main(int argc, char *argv[])
 
 	bool opt_help = false;
 //	std::string opt_out_dat_file;
+	detail::app_manager_category opt_app_manager;
 	real_type opt_brown_single_exponential_alpha = 0;
 	real_type opt_brown_double_exponential_alpha = 0;
 	real_type opt_chen2000_ewma_w = 0;
@@ -441,6 +498,7 @@ int main(int argc, char *argv[])
 	{
 		opt_help = dcs::cli::simple::get_option(argv, argv+argc, "--help");
 //		opt_out_dat_file = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--out-dat-file", detail::default_out_dat_file);
+		opt_app_manager = dcs::cli::simple::get_option<detail::app_manager_category>(argv, argv+argc, "--app-manager", detail::default_app_manager);
 		opt_data_estimator = dcs::cli::simple::get_option<detail::data_estimator_category>(argv, argv+argc, "--data-estimator", detail::default_data_estimator);
 		opt_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--quantile-prob", detail::default_quantile_prob);
 		opt_chen2000_ewma_w = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewma-w", detail::default_chen2000_ewma_w);
@@ -504,6 +562,10 @@ int main(int argc, char *argv[])
 //		oss << "Output data file: " << opt_out_dat_file;
 //		dcs::log_info(DCS_LOGGING_AT, oss.str());
 //		oss.str("");
+
+		oss << "Application manager: " << opt_app_manager;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
 
 		oss << "Data estimator: " << opt_data_estimator;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
@@ -761,56 +823,73 @@ int main(int argc, char *argv[])
 		// - Setup application manager
 		app_manager_pointer p_mgr;
 		//p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >();
+		switch (opt_app_manager)
 		{
-#if defined(DCS_TESTBED_USE_LQRY_APP_MGR)
-			const std::size_t na(2);
-			const std::size_t nb(2);
-			const std::size_t nk(1);
-			const std::size_t ny(1);
-			const std::size_t nu(nt);
-			const real_type ff(0.98);
-			const real_type rho(1);
+			case detail::albano2013_app_manager:
+				{
+					testbed::albano2013_application_manager<traits_type> albano2013_mgr;
+					albano2013_mgr.export_data_to("albano2013.dat");
 
-			sysid_strategy_pointer p_sysid_alg = boost::make_shared< testbed::rls_ff_arx_miso_proxy<traits_type> >(na, nb, nk, ny, nu, ff);
-			ublas::matrix<real_type> Q = ublas::identity_matrix<real_type>(ny);
+					p_mgr = boost::make_shared< testbed::albano2013_application_manager<traits_type> >(albano2013_mgr);
+				}
+				break;
+//TODO
+#if 0
+			case detail::guazzone2012_app_manager:
+				{
+					const std::size_t na(2);
+					const std::size_t nb(2);
+					const std::size_t nk(1);
+					const std::size_t ny(1);
+					const std::size_t nu(nt);
+					const real_type ff(0.98);
+					const real_type rho(1);
+
+					sysid_strategy_pointer p_sysid_alg = boost::make_shared< testbed::rls_ff_arx_miso_proxy<traits_type> >(na, nb, nk, ny, nu, ff);
+					ublas::matrix<real_type> Q = ublas::identity_matrix<real_type>(ny);
 #if defined(DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS) && DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS == 'Y'
-			ublas::matrix<real_type> R = rho*ublas::identity_matrix<real_type>(nu,nu);
+					ublas::matrix<real_type> R = rho*ublas::identity_matrix<real_type>(nu,nu);
 #else // DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS
 # error TODO: Set matrix R with proper size
 #endif // DCS_TESTBED_EXP_LQ_APP_MGR_USE_ALT_SS
-			testbed::lqry_application_manager<traits_type> lqry_mgr(Q, R);
-			lqry_mgr.sysid_strategy(p_sysid_alg);
-			//lqry_mgr.target_value(testbed::response_time_application_performance, rt_q99*(1-0.20));
-//			lqry_mgr.target_value(testbed::response_time_application_performance, opt_slo_value);
+					testbed::lqry_application_manager<traits_type> lqry_mgr(Q, R);
+					lqry_mgr.sysid_strategy(p_sysid_alg);
+					//lqry_mgr.target_value(testbed::response_time_application_performance, rt_q99*(1-0.20));
+					//lqry_mgr.target_value(testbed::response_time_application_performance, opt_slo_value);
 
-			p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >(lqry_mgr);
-#elif defined(DCS_TESTBED_USE_PADALA2009_APP_MGR)
-			const std::size_t na(2);
-			const std::size_t nb(2);
-			const std::size_t nk(1);
-			const std::size_t ny(1);
-			const std::size_t nu(nt);
-			const real_type ff(0.98);
-			const real_type q(2);
+					p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >(lqry_mgr);
+				}
+				break;
+#endif // 0
+			case detail::padala2009_app_manager:
+				{
+					const std::size_t na(2);
+					const std::size_t nb(2);
+					const std::size_t nk(1);
+					const std::size_t ny(1);
+					const std::size_t nu(nt);
+					const real_type ff(0.98);
+					const real_type q(2);
 
-			sysid_strategy_pointer p_sysid_alg = boost::make_shared< testbed::rls_ff_arx_miso_proxy<traits_type> >(na, nb, nk, ny, nu, ff);
-			testbed::padala2009_application_manager<traits_type> padala2009_mgr;
-			padala2009_mgr.sysid_strategy(p_sysid_alg);
-			//padala2009_mgr.target_value(testbed::response_time_application_performance, rt_q99*(1-0.20));
-//			padala2009_mgr.target_value(testbed::response_time_application_performance, opt_slo_value);
-			padala2009_mgr.stability_factor(q);
-			padala2009_mgr.export_data_to("padala2009.dat");
+					sysid_strategy_pointer p_sysid_alg = boost::make_shared< testbed::rls_ff_arx_miso_proxy<traits_type> >(na, nb, nk, ny, nu, ff);
+					testbed::padala2009_application_manager<traits_type> padala2009_mgr;
+					padala2009_mgr.sysid_strategy(p_sysid_alg);
+					//padala2009_mgr.target_value(testbed::response_time_application_performance, rt_q99*(1-0.20));
+					//padala2009_mgr.target_value(testbed::response_time_application_performance, opt_slo_value);
+					padala2009_mgr.stability_factor(q);
+					padala2009_mgr.export_data_to("padala2009.dat");
 
-			p_mgr = boost::make_shared< testbed::padala2009_application_manager<traits_type> >(padala2009_mgr);
-#else
-# error Application Manager not recognized
-#endif
-			p_mgr->target_value(opt_slo_metric, opt_slo_value);
-			p_mgr->data_estimator(opt_slo_metric, p_estimator);
-			p_mgr->data_smoother(opt_slo_metric, p_smoother);
-			p_mgr->sampling_time(opt_ts);
-			p_mgr->control_time(opt_tc);
+					p_mgr = boost::make_shared< testbed::padala2009_application_manager<traits_type> >(padala2009_mgr);
+				}
+				break;
+			default:
+				DCS_EXCEPTION_THROW(std::runtime_error, "Unknown application manager");
 		}
+		p_mgr->target_value(opt_slo_metric, opt_slo_value);
+		p_mgr->data_estimator(opt_slo_metric, p_estimator);
+		p_mgr->data_smoother(opt_slo_metric, p_smoother);
+		p_mgr->sampling_time(opt_ts);
+		p_mgr->control_time(opt_tc);
 		p_mgr->app(p_app);
 
 		// Add to main experiment
