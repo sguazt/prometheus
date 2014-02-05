@@ -34,6 +34,7 @@
 #define DCS_TESTBED_APPLICATION_MANAGERS_HPP
 
 
+#include <dcs/testbed/albano2013_application_manager.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
 #include <dcs/testbed/lq_application_manager.hpp>
 #include <dcs/testbed/padala2009_application_manager.hpp>
