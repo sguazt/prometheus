@@ -74,12 +74,12 @@ class cpu_utilization_sensor: public base_sensor<TraitsT>
 	{
 	}
 
-	public: void normalize_obs(bool value)
+	public: void normalized(bool value)
 	{
 		norm_ = value;
 	}
 
-	public: bool normalize_obs() const
+	public: bool normalized() const
 	{
 		return norm_;
 	}
