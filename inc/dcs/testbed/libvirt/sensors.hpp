@@ -69,8 +69,19 @@ class cpu_utilization_sensor: public base_sensor<TraitsT>
 	: p_conn_(p_conn),
 	  p_dom_(p_dom),
 	  cpu_util_(0),
-	  first_(true)
+	  first_(true),
+	  norm_(true)
 	{
+	}
+
+	public: void normalize_obs(bool value)
+	{
+		norm_ = value;
+	}
+
+	public: bool normalize_obs() const
+	{
+		return norm_;
 	}
 
 	private: void do_sense()
@@ -113,8 +124,16 @@ class cpu_utilization_sensor: public base_sensor<TraitsT>
 		{
 			::boost::uint64_t ns_elapsed = (cur_time_.tv_sec-prev_time_.tv_sec)*1.0e9+(cur_time_.tv_nsec-prev_time_.tv_nsec);
 			::boost::uint64_t ns_used = cur_node_info_.cpuTime-prev_node_info_.cpuTime;
-//::std::cerr << "DEBUG> %CPU: " << (ns_used/ns_elapsed) << ::std::endl;
+
 			cpu_util_ = static_cast<double>(ns_used/static_cast<long double>(ns_elapsed));
+
+			if (norm_)
+			{
+				int nvcpus = detail::num_vcpus(p_conn_, p_dom_, VIR_DOMAIN_VCPU_MAXIMUM);
+
+				cpu_util_ /= static_cast<double>(nvcpus);
+			}
+DCS_DEBUG_TRACE("nsec-used: " << ns_used << " - nsec-elaps: " << ns_elapsed << " --> UTIL: " << static_cast<double>(ns_used/static_cast<long double>(ns_elapsed)));//XXX
 		}
 	}
 
@@ -148,6 +167,7 @@ class cpu_utilization_sensor: public base_sensor<TraitsT>
 	private: ::virDomainPtr p_dom_;
 	private: real_type cpu_util_;
 	private: bool first_;
+	private: bool norm_;
 	private: ::timespec prev_time_;
 	private: ::timespec cur_time_;
 	private: ::virDomainInfo prev_node_info_;
