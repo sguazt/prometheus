@@ -305,7 +305,6 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		{
 			case cpu_util_virtual_machine_performance:
 				return ::boost::make_shared< cpu_utilization_sensor<traits_type> >(p_vmm_->connection(), p_dom_);
-				break;
 		}
 
 		DCS_EXCEPTION_THROW(::std::runtime_error, "Sensor not available");

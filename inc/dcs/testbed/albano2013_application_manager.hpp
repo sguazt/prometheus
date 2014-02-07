@@ -70,6 +70,7 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 	private: void init()
 	{
 		this->data_estimator(cpu_util_virtual_machine_performance, boost::make_shared< testbed::mean_estimator<real_type> >());
+
 		this->data_smoother(cpu_util_virtual_machine_performance, ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
 
 		DCS_DEBUG_ASSERT( p_fuzzy_eng_ );
