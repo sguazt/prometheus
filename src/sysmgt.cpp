@@ -30,7 +30,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <boost/numeric/ublas/banded.hpp>
+//#include <boost/numeric/ublas/banded.hpp>
 #include <boost/smart_ptr.hpp>
 #include <cstddef>
 #include <cstdlib>
@@ -42,6 +42,7 @@
 #include <dcs/testbed/application.hpp>
 #include <dcs/testbed/application_experiment.hpp>
 #include <dcs/testbed/application_managers.hpp>
+#include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application.hpp>
 #include <dcs/testbed/data_estimators.hpp>
 #include <dcs/testbed/data_smoothers.hpp>
@@ -51,6 +52,7 @@
 //#include <dcs/testbed/system_managers.hpp>
 #include <dcs/testbed/traits.hpp>
 #include <dcs/testbed/virtual_machine_managers.hpp>
+#include <dcs/testbed/virtual_machine_performance_category.hpp>
 #include <dcs/testbed/virtual_machines.hpp>
 #include <dcs/testbed/workload_category.hpp>
 #include <dcs/testbed/workload_drivers.hpp>
@@ -105,7 +107,7 @@ const ::std::string default_workload_ycsb_prop_path("workloads/workloada");
 const ::std::string default_workload_ycsb_classpath;
 const ::std::string default_workload_ycsb_db_class;
 //const ::std::string default_out_dat_file("./sysmgt-out.dat");
-const double default_sampling_time = 1000;
+const double default_sampling_time = 10;
 const double default_control_time = 3*default_sampling_time;
 const data_estimator_category default_data_estimator = mean_estimator;
 const double default_quantile_prob = 0.99;
@@ -377,7 +379,7 @@ void usage(char const* progname)
 				<< "   The VM URI to connect." << ::std::endl
 				<< "   Repeat this option as many times as is the number of your VMs." << ::std::endl
 				<< " --wkl <name>" << ::std::endl
-				<< "   The workload to generate. Possible values are: 'olio', 'rubis'." << ::std::endl
+				<< "   The workload to generate. Possible values are: 'cassandra', 'olio', 'rubis'." << ::std::endl
 				<< "   [default: '" << ::dcs::testbed::to_string(default_workload) << "']." << ::std::endl
 				<< " --wkl-driver <name>" << ::std::endl
 				<< "   The workload driver to use. Possible values are: 'rain', 'ycsb'." << ::std::endl
@@ -457,7 +459,7 @@ struct tput_slo_checker
 int main(int argc, char *argv[])
 {
 	namespace testbed = ::dcs::testbed;
-	namespace ublas = ::boost::numeric::ublas;
+	//namespace ublas = ::boost::numeric::ublas;
 
 	typedef double real_type;
 	typedef unsigned int uint_type;
@@ -492,6 +494,7 @@ int main(int argc, char *argv[])
 	std::string opt_wkl_ycsb_classpath;
 	std::string opt_wkl_ycsb_db_class;
 	bool opt_no_restore_vms = detail::default_no_restore_vms;
+
 
 	// Parse command line options
 	try
@@ -721,8 +724,10 @@ int main(int argc, char *argv[])
 			}
 
 			vm_pointer p_vm(p_vmm->vm(uri));
+
 			// check: p_vm != null
 			DCS_DEBUG_ASSERT( p_vm );
+
 			vms.push_back(p_vm);
 		}
 		app_pointer p_app = boost::make_shared< testbed::application<traits_type> >(vms.begin(), vms.end());
