@@ -105,11 +105,16 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 		p_ov->setDefaultValue(fl::nan);
 		p_ov->setLockValidOutput(false);
 		//p_ov->setLockValidRange(false);
-		p_ov->addTerm(new fl::Ramp("BUP", 0.1, 0.2));
-		p_ov->addTerm(new fl::Triangle("UP", 0.05, 0.10, 0.20));
+//		p_ov->addTerm(new fl::Ramp("BUP", 0.1, 0.2));
+//		p_ov->addTerm(new fl::Triangle("UP", 0.05, 0.10, 0.20));
+//		p_ov->addTerm(new fl::Triangle("STY", -0.10, 0.0, 0.10));
+//		p_ov->addTerm(new fl::Triangle("DWN", -0.20, -0.1, -0.05));
+//		p_ov->addTerm(new fl::Ramp("BDW", -0.1, -0.2));
+		p_ov->addTerm(new fl::Triangle("BDW", -0.30, -0.20, -0.10));
+		p_ov->addTerm(new fl::Triangle("DWN", -0.20, -0.125, -0.05));
 		p_ov->addTerm(new fl::Triangle("STY", -0.10, 0.0, 0.10));
-		p_ov->addTerm(new fl::Triangle("DWN", -0.20, -0.1, -0.05));
-		p_ov->addTerm(new fl::Ramp("BDW", -0.1, -0.2));
+		p_ov->addTerm(new fl::Triangle("UP", 0.05, 0.125, 0.20));
+		p_ov->addTerm(new fl::Triangle("BUP", 0.10, 0.20, 0.30));
 		p_fuzzy_eng_->addOutputVariable(p_ov);
 
 		fl::RuleBlock* p_rules = new fl::RuleBlock();
