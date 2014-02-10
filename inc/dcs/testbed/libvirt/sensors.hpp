@@ -133,7 +133,7 @@ class cpu_utilization_sensor: public base_sensor<TraitsT>
 
 				cpu_util_ /= static_cast<double>(nvcpus);
 			}
-DCS_DEBUG_TRACE("nsec-used: " << ns_used << " - nsec-elaps: " << ns_elapsed << " --> UTIL: " << static_cast<double>(ns_used/static_cast<long double>(ns_elapsed)));//XXX
+DCS_DEBUG_TRACE("nsec-used: " << ns_used << " - nsec-elaps: " << ns_elapsed << " --> UTIL: " << cpu_util_);//XXX
 		}
 	}
 
