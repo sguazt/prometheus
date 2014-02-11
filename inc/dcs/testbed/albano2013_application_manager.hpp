@@ -1,3 +1,27 @@
+/**
+ * \file dcs/testbed/albano2013_application_manager.hpp
+ *
+ * \brief Application manager based on the work by (Albano et al., 2013)
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ *
+ * <hr/>
+ *
+ * Copyright 2014   Marco Guazzone (marco.guazzone@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #ifndef DCS_TESTBED_ALBANO2013_APPLICATION_MANAGER_HPP
 #define DCS_TESTBED_ALBANO2013_APPLICATION_MANAGER_HPP
 
@@ -23,6 +47,19 @@
 
 namespace dcs { namespace testbed {
 
+/**
+ * \brief Application Manager based on the work by (Albano et al., 2013)
+ *
+ * This class implements the Fuzzy-Q&E fuzzy controller proposed in [1].
+ *
+ * References:
+ * -# L. Albano, C. Anglano, M. Canonico, and M. Guazzone,
+ *    "Fuzzy-Q&E: achieving QoS guarantees and energy savings for cloud applications with fuzzy control,"
+ *    Proc. of the 3rd International Conference on Cloud and Green Computing (CGC 2013), 2013. 
+ * .
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class albano2013_application_manager: public base_application_manager<TraitsT>
 {
@@ -104,12 +141,6 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 		p_ov->setDefuzzifier(new fl::Centroid());
 		p_ov->setDefaultValue(fl::nan);
 		p_ov->setLockValidOutput(false);
-		//p_ov->setLockValidRange(false);
-//		p_ov->addTerm(new fl::Ramp("BUP", 0.1, 0.2));
-//		p_ov->addTerm(new fl::Triangle("UP", 0.05, 0.10, 0.20));
-//		p_ov->addTerm(new fl::Triangle("STY", -0.10, 0.0, 0.10));
-//		p_ov->addTerm(new fl::Triangle("DWN", -0.20, -0.1, -0.05));
-//		p_ov->addTerm(new fl::Ramp("BDW", -0.1, -0.2));
 		p_ov->addTerm(new fl::Triangle("BDW", -0.30, -0.20, -0.10));
 		p_ov->addTerm(new fl::Triangle("DWN", -0.20, -0.125, -0.05));
 		p_ov->addTerm(new fl::Triangle("STY", -0.10, 0.0, 0.10));
@@ -122,18 +153,16 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 		p_rules->setConjunction(new fl::Minimum());
 		p_rules->setDisjunction(new fl::Maximum());
 		p_rules->setActivation(new fl::AlgebraicProduct());
-		p_rules->addRule(fl::Rule::parse("if Cres is LOW and Rgain is LOW then DeltaC is BUP", p_fuzzy_eng_.get()));
-		p_rules->addRule(fl::Rule::parse("if Cres is LOW and Rgain is FINE then DeltaC is UP", p_fuzzy_eng_.get()));
-		p_rules->addRule(fl::Rule::parse("if Cres is LOW and Rgain is HIGH then DeltaC is UP", p_fuzzy_eng_.get()));
-		p_rules->addRule(fl::Rule::parse("if Cres is FINE and Rgain is LOW then DeltaC is UP", p_fuzzy_eng_.get()));
-		p_rules->addRule(fl::Rule::parse("if Cres is FINE and Rgain is FINE then DeltaC is STY", p_fuzzy_eng_.get()));
-		p_rules->addRule(fl::Rule::parse("if Cres is FINE and Rgain is HIGH then DeltaC is DWN", p_fuzzy_eng_.get()));
-		p_rules->addRule(fl::Rule::parse("if Cres is HIGH and Rgain is LOW then DeltaC is STY", p_fuzzy_eng_.get()));
-		p_rules->addRule(fl::Rule::parse("if Cres is HIGH and Rgain is FINE then DeltaC is DWN", p_fuzzy_eng_.get()));
-		p_rules->addRule(fl::Rule::parse("if Cres is HIGH and Rgain is HIGH then DeltaC is BDW", p_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is LOW and " + rgain_fuzzy_var_name + " is LOW then " + deltac_fuzzy_var_name + " is BUP", p_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is LOW and " + rgain_fuzzy_var_name + " is FINE then " + deltac_fuzzy_var_name + " is UP", p_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is LOW and " + rgain_fuzzy_var_name + " is HIGH then " + deltac_fuzzy_var_name + " is UP", p_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is FINE and " + rgain_fuzzy_var_name + " is LOW then " + deltac_fuzzy_var_name + " is UP", p_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is FINE and " + rgain_fuzzy_var_name + " is FINE then " + deltac_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is FINE and " + rgain_fuzzy_var_name + " is HIGH then " + deltac_fuzzy_var_name + " is DWN", p_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is HIGH and " + rgain_fuzzy_var_name + " is LOW then " + deltac_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is HIGH and " + rgain_fuzzy_var_name + " is FINE then " + deltac_fuzzy_var_name + " is DWN", p_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is HIGH and " + rgain_fuzzy_var_name + " is HIGH then " + deltac_fuzzy_var_name + " is BDW", p_fuzzy_eng_.get()));
 		p_fuzzy_eng_->addRuleBlock(p_rules);
-
-		//p_fuzzy_eng_->configure("Minimum", "Maximum", "AlgebraicProduct", "AlgebraicSum", "Centroid");
 	}
 
 	private: void do_reset()
