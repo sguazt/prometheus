@@ -125,6 +125,16 @@ class brown_single_exponential_smoother: public base_smoother<ValueT>
 	{
 	}
 
+	public: void alpha(value_type value)
+	{
+		alpha_ = value;
+	}
+
+	public: value_type alpha() const
+	{
+		return alpha_;
+	}
+
 	private: value_type do_smooth(data_container const& data)
 	{
 		typedef typename data_container::const_iterator data_iterator;
