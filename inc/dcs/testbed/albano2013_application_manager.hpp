@@ -209,6 +209,26 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 		if (!dat_fname_.empty())
 		{
 			p_dat_ofs_ = ::boost::make_shared< ::std::ofstream >(dat_fname_.c_str());
+
+			const ::std::size_t nvms = this->app().num_vms();
+			for (::std::size_t i = 0; i < nvms; ++i)
+			{
+				if (i > 0)
+				{
+					*p_dat_ofs_ << ",";
+				}
+				*p_dat_ofs_ << "\"Cap_{" << i << "}\",\"Share_{" << i << "}\"";
+			}
+			for (target_iterator tgt_it = this->target_values().begin();
+				 tgt_it != tgt_end_it;
+				 ++tgt_it)
+			{
+				const application_performance_category cat = tgt_it->first;
+
+				*p_dat_ofs_ << ",\"y_{" << cat << "}\",\"yn_{" << cat << "}\",\"r_{" << cat << "}\"";
+			}
+			*p_dat_ofs_ << ",\"# Controls\",\"# Skip Controls\",\"# Fail Controls\"";
+			*p_dat_ofs_ << ::std::endl;
 		}
 	}
 
@@ -291,7 +311,7 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 
 		++ctl_count_;
 
-		bool skip_ctrl = false;
+		bool skip_ctl = false;
 
 		::std::map<virtual_machine_performance_category,::std::vector<real_type> > cress;
 		::std::map<application_performance_category,real_type> rgains;
@@ -315,12 +335,12 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << " - Performance Category: " << cat << "
 			{
 				// No observation collected during the last control interval
 				DCS_DEBUG_TRACE("No input observation collected during the last control interval -> Skip control");
-				skip_ctrl = true;
+				skip_ctl = true;
 				break;
 			}
 		}
 
-		if (!skip_ctrl)
+		if (!skip_ctl)
 		{
 			const target_iterator tgt_end_it = this->target_values().end();
 			for (target_iterator tgt_it = this->target_values().begin();
@@ -350,7 +370,7 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 				{
 					// No observation collected during the last control interval
 					DCS_DEBUG_TRACE("No output observation collected during the last control interval -> Skip control");
-					skip_ctrl = true;
+					skip_ctl = true;
 					break;
 				}
 #ifdef DCSXX_TESTBED_EXP_APP_MGR_RESET_ESTIMATION_EVERY_INTERVAL
@@ -358,7 +378,7 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 #endif // DCSXX_TESTBED_EXP_APP_MGR_RESET_ESTIMATION_EVERY_INTERVAL
 			}
 		}
-        if (!skip_ctrl)
+        if (!skip_ctl)
         {
 			//FIXME: actually we only handle SISO systems
 			DCS_ASSERT(cress.size() == 1 && rgains.size() == 1,
