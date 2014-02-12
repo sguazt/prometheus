@@ -536,8 +536,8 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Y(k): " << y << " - R
 			const real_type de = Kde*des.begin()->second;
 
 			// Update input scaling factors
-			Ke_ = (1-gamma_)*Ke_ + gamma*e;
-			Kde_ = (1-gamma_)*Kde_ - gamma*de;
+			Ke_ = (1-gamma_)*Ke_ + gamma_*e;
+			Kde_ = (1-gamma_)*Kde_ - gamma_*de;
 
 			// Perform fuzzy control
 			bool ok = false;
@@ -668,10 +668,10 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 
 
 	private: real_type gamma_; ///< The EWMA smoothing factor for Cres
-	private: ::boost::shared_ptr< ::fl::Engine > p_rc_fuzzy_eng_; ///< The fuzzy resource control engine
-	private: ::boost::shared_ptr< ::fl::Engine > p_sfc_fuzzy_eng_; ///< The fuzzy scaling factor control engine
 	private: real_type Ke_;
 	private: real_type Kde_;
+	private: ::boost::shared_ptr< ::fl::Engine > p_rc_fuzzy_eng_; ///< The fuzzy resource control engine
+	private: ::boost::shared_ptr< ::fl::Engine > p_sfc_fuzzy_eng_; ///< The fuzzy scaling factor control engine
 	private: ::std::map<application_performance_category,real_type> es_; ///< The e(k) variable, grouped by application performance category
 	private: ::std::size_t ctl_count_; ///< Number of times control function has been invoked
 	private: ::std::size_t ctl_skip_count_; ///< Number of times control has been skipped

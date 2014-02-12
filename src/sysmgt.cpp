@@ -94,8 +94,8 @@ enum data_smoother_category
 enum app_manager_category
 {
 	albano2013_app_manager,
-	padala2009_app_manager/*,
-	rao2012_app_manager*/
+	padala2009_app_manager,
+	rao2013_app_manager
 };
 
 
@@ -276,6 +276,10 @@ inline
 	{
 		cat = padala2009_app_manager;
 	}
+	else if (!s.compare("rao2013"))
+	{
+		cat = rao2013_app_manager;
+	}
 	else
 	{
 		DCS_EXCEPTION_THROW(::std::runtime_error,
@@ -297,6 +301,9 @@ inline
 		case padala2009_app_manager:
 			os << "padala2009";
 			break;
+		case rao2013_app_manager:
+			os << "rao2013";
+			break;
 	}
 
 	return os;
@@ -315,6 +322,7 @@ void usage(char const* progname)
 				<< "   Possible values are:" << ::std::endl
 				<< "   - 'albano2013': the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
 				<< "   - 'padala2009': the LQ controller described in (Padala et al., 2009)" << ::std::endl
+				<< "   - 'rao2013': the fuzzy controller described in (Rao et al., 2013)" << ::std::endl
 				<< "   [default: '" << default_app_manager << "']." << ::std::endl
 				<< " --data-estimator <name>" << ::std::endl
 				<< "   The name of the estimator to use to estimate summary statistics from observed data." << ::std::endl
@@ -888,6 +896,17 @@ int main(int argc, char *argv[])
 					padala2009_mgr.export_data_to("padala2009.dat");
 
 					p_mgr = boost::make_shared< testbed::padala2009_application_manager<traits_type> >(padala2009_mgr);
+				}
+				break;
+			case detail::rao2013_app_manager:
+				{
+					const real_type gamma = 0.8;
+
+					testbed::rao2013_application_manager<traits_type> rao2013_mgr;
+					rao2013_mgr.discount_factor(gamma);
+					rao2013_mgr.export_data_to("rao2013.dat");
+
+					p_mgr = boost::make_shared< testbed::rao2013_application_manager<traits_type> >(rao2013_mgr);
 				}
 				break;
 			default:
