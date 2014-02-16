@@ -157,7 +157,7 @@ class base_sinusoidal_signal_generator: public base_signal_generator<ValueT>
 }; // base_sinusoidal_signal_generator
 
 template <typename VT, typename UT>
-const VT base_sinusoidal_signal_generator<VT,UT>::double_pi_ = static_cast<VT>(3.1415926535897932384626433832795029L);
+const VT base_sinusoidal_signal_generator<VT,UT>::double_pi_ = 2.0*static_cast<VT>(3.1415926535897932384626433832795029L);
 
 }} // Namespace detail::<unnamed>
 
@@ -195,7 +195,8 @@ class sinusoidal_signal_generator: public detail::base_sinusoidal_signal_generat
 			u[i] = ::std::min(::std::max(u[i], this->lb_[i]), this->ub_[i]);
 
 			// Increment k_
-			this->k_[i] = (this->k_[i]+1) % (2*this->p_[i]);
+			//this->k_[i] = (this->k_[i]+1) % (2*this->p_[i]);
+			this->k_[i] = (this->k_[i]+1) % this->p_[i];
 		}
 
 		return u;
@@ -289,7 +290,8 @@ class sinusoidal_mesh_signal_generator: public detail::base_sinusoidal_signal_ge
 		// Increment k_
 		for (::std::size_t i = 0; i < n; ++i)
 		{
-			this->k_[i] = (this->k_[i]+1) % (2*this->p_[i]);
+			//this->k_[i] = (this->k_[i]+1) % (2*this->p_[i]);
+			this->k_[i] = (this->k_[i]+1) % this->p_[i];
 			if (this->k_[i] > 0)
 			{
 				break;
