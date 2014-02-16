@@ -603,7 +603,7 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Y(k): " << y << " - R
 					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << p_vm->cpu_share() << " - new-share: " << u);
 
 					p_vm->cpu_share(u);
-DCS_DEBUG_TRACE("VM " << vms[i]->id() << " -> U(k+1): " << u);//XXX
+DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Alpha: " << alpha << ", DeltaU: " << du << ", K_{DeltaU}: " << Kdu << " -> U(k+1): " << u);//XXX
 				}
 DCS_DEBUG_TRACE("Optimal control applied");//XXX
 			}
