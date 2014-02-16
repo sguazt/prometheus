@@ -157,7 +157,7 @@ class system_identification
 		typedef ::std::vector<vm_pointer> vm_container;
 		typedef typename vm_container::const_iterator vm_iterator;
 		typedef typename signal_generator_type::vector_type share_container;
-		typedef typename vm_type::identifier_type vm_identifier_type;
+		//typedef typename vm_type::identifier_type vm_identifier_type;
 		typedef typename app_type::sensor_type sensor_type;
 		typedef typename app_type::sensor_pointer sensor_pointer;
 

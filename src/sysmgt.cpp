@@ -1,5 +1,5 @@
 /**
- * \file sysexp.hpp
+ * \file sysmgt.hpp
  *
  * \brief Driver for performing system experiments
  *

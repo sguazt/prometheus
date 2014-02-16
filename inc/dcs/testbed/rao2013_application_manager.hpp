@@ -329,7 +329,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 	private: void do_reset()
 	{
 		typedef typename base_type::target_value_map::const_iterator target_iterator;
-		typedef typename app_type::vm_pointer vm_pointer;
+		//typedef typename app_type::vm_pointer vm_pointer;
 
 		// Reset output sensors
 		out_sensors_.clear();
@@ -385,7 +385,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 
 	private: void do_sample()
 	{
-		typedef typename in_sensor_map::const_iterator in_sensor_iterator;
+		//typedef typename in_sensor_map::const_iterator in_sensor_iterator;
 		typedef typename out_sensor_map::const_iterator out_sensor_iterator;
 		typedef ::std::vector<typename sensor_type::observation_type> obs_container;
 		typedef typename obs_container::const_iterator obs_iterator;

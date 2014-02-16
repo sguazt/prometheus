@@ -253,6 +253,93 @@ void usage(char const* progname)
 				<< "   - square" << ::std::endl
 				<< "   - uniform" << ::std::endl
 				<< "   [default: '" << default_signal_category << "']." << ::std::endl
+				<< " --sig-upper-bound <value>" << std::endl
+				<< "   The signal upper bound." << std::endl
+				<< "   [default: " << default_signal_common_upper_bound << "]." << std::endl
+				<< " --sig-lower-bound <value>" << std::endl
+				<< "   The signal lower bound." << std::endl
+				<< "   [default: " << default_signal_common_lower_bound << "]." << std::endl
+				<< " --sig-constant-val <value>" << std::endl
+				<< "   The value for the constant signal." << std::endl
+				<< "   [default: " << default_signal_const_val << "]." << std::endl
+				<< " --sig-sawtooth-low <value>" << std::endl
+				<< "   The lower value for the sawtooth signal." << std::endl
+				<< "   [default: " << default_signal_sawtooth_low << "]." << std::endl
+				<< " --sig-sawtooth-high <value>" << std::endl
+				<< "   The higher value for the sawtooth signal." << std::endl
+				<< "   [default: " << default_signal_sawtooth_high << "]." << std::endl
+				<< " --sig-sawtooth-incr <value>" << std::endl
+				<< "   The increment value for the sawtooth signal." << std::endl
+				<< "   [default: " << default_signal_sawtooth_incr << "]." << std::endl
+				<< " --sig-sine-ampl <value>" << std::endl
+				<< "   The amplitude value for the sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_sine_amplitude << "]." << std::endl
+				<< " --sig-sine-freq <value>" << std::endl
+				<< "   The frequency value for the sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_sine_frequency << "]." << std::endl
+				<< " --sig-sine-phase <value>" << std::endl
+				<< "   The phase value for the sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_sine_phase << "]." << std::endl
+				<< " --sig-sine-bias <value>" << std::endl
+				<< "   The bias (offset) value for the sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_sine_bias << "]." << std::endl
+				<< " --sig-sine-mesh-ampl <value>" << std::endl
+				<< "   The amplitude value for the mesh sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_sine_mesh_amplitude << "]." << std::endl
+				<< " --sig-sine-mesh-freq <value>" << std::endl
+				<< "   The frequency value for the mesh sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_sine_mesh_frequency << "]." << std::endl
+				<< " --sig-sine-mesh-phase <value>" << std::endl
+				<< "   The phase value for the mesh sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_sine_mesh_phase << "]." << std::endl
+				<< " --sig-sine-mesh-bias <value>" << std::endl
+				<< "   The bias (offset) value for the mesh sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_sine_mesh_bias << "]." << std::endl
+				<< " --sig-half-sine-ampl <value>" << std::endl
+				<< "   The amplitude value for the half-sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_half_sine_amplitude << "]." << std::endl
+				<< " --sig-half-sine-freq <value>" << std::endl
+				<< "   The frequency value for the half-sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_half_sine_frequency << "]." << std::endl
+				<< " --sig-half-sine-phase <value>" << std::endl
+				<< "   The phase value for the half-sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_half_sine_phase << "]." << std::endl
+				<< " --sig-half-sine-bias <value>" << std::endl
+				<< "   The bias (offset) value for the half-sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_half_sine_bias << "]." << std::endl
+				<< " --sig-half-sine-mesh-ampl <value>" << std::endl
+				<< "   The amplitude value for the mesh half-sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_half_sine_mesh_amplitude << "]." << std::endl
+				<< " --sig-half-sine-mesh-freq <value>" << std::endl
+				<< "   The frequency value for the mesh half-sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_half_sine_mesh_frequency << "]." << std::endl
+				<< " --sig-half-sine-mesh-phase <value>" << std::endl
+				<< "   The phase value for the mesh half-sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_half_sine_mesh_phase << "]." << std::endl
+				<< " --sig-half-sine-mesh-bias <value>" << std::endl
+				<< "   The bias (offset) value for the mesh half-sinusoidal signal." << std::endl
+				<< "   [default: " << default_signal_half_sine_mesh_bias << "]." << std::endl
+				<< " --sig-square-low <value>" << std::endl
+				<< "   The lower value for the square signal." << std::endl
+				<< "   [default: " << default_signal_square_low << "]." << std::endl
+				<< " --sig-square-high <value>" << std::endl
+				<< "   The higher value for the square signal." << std::endl
+				<< "   [default: " << default_signal_square_high << "]." << std::endl
+				<< " --sig-uniform-min <value>" << std::endl
+				<< "   The minimum value for the uniform signal." << std::endl
+				<< "   [default: " << default_signal_uniform_min << "]." << std::endl
+				<< " --sig-uniform-max <value>" << std::endl
+				<< "   The maximum value for the uniform signal." << std::endl
+				<< "   [default: " << default_signal_uniform_max << "]." << std::endl
+				<< " --sig-gaussian-mean <value>" << std::endl
+				<< "   The mean value for the Gaussian signal." << std::endl
+				<< "   [default: " << default_signal_gaussian_mean << "]." << std::endl
+				<< " --sig-gaussian-sd <value>" << std::endl
+				<< "   The standard deviation value for the Gaussian signal." << std::endl
+				<< "   [default: " << default_signal_gaussian_sd << "]." << std::endl
+				<< " --slo-metric <name>" << ::std::endl
+				<< "   The SLO metric. Possible values are: 'rt' (response time), 'tput' (throughput)" << ::std::endl
+				<< "   [default: '" << default_slo_metric_str << "']." << ::std::endl
 				<< " --ts <time in secs>" << ::std::endl
 				<< "   Sampling time (in seconds)." << ::std::endl
 				<< "   [default: " << default_sampling_time << "]." << ::std::endl
