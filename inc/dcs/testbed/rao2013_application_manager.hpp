@@ -139,6 +139,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 					break;
 				case 1: // e(k)
 					p_iv->setName(e_fuzzy_var_name);
+					break;
 			}
 			p_iv->setRange(-1, 1);
 			p_iv->addTerm(new ::fl::Ramp("NL", -1, -two_third));
@@ -154,7 +155,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 		p_ov = new ::fl::OutputVariable();
 		p_ov->setEnabled(true);
 		p_ov->setName(du_fuzzy_var_name);
-		p_iv->setRange(-1, 1);
+		p_ov->setRange(-1, 1);
 		p_ov->fuzzyOutput()->setAccumulation(new ::fl::AlgebraicSum());
 		p_ov->setDefuzzifier(new ::fl::Centroid());
 		p_ov->setDefaultValue(::fl::nan);
@@ -238,6 +239,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 					break;
 				case 1: // e(k)
 					p_iv->setName(e_fuzzy_var_name);
+					break;
 			}
 			p_iv->setRange(-1, 1);
 			p_iv->addTerm(new ::fl::Ramp("NL", -1, -two_third));
@@ -253,7 +255,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 		p_ov = new ::fl::OutputVariable();
 		p_ov->setEnabled(true);
 		p_ov->setName(alpha_fuzzy_var_name);
-		p_iv->setRange(-1, 1);
+		p_ov->setRange(-1, 1);
 		p_ov->fuzzyOutput()->setAccumulation(new ::fl::AlgebraicSum());
 		p_ov->setDefuzzifier(new ::fl::Centroid());
 		p_ov->setDefaultValue(::fl::nan);
