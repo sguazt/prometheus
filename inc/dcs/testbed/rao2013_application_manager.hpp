@@ -509,7 +509,14 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 						}
 						break;
 				}
-				des[cat] = e-es_.at(cat);
+				if (es_.count(cat) > 0)
+				{
+					des[cat] = e-es_.at(cat);
+				}
+				else
+				{
+					des[cat] = e;
+				}
 				es_[cat] = e;
 DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Y(k): " << y << " - R: " << r << " -> E(k+1): " << es_.at(cat) << " - DeltaE(k+1): " << des.at(cat));//XXX
 			}
