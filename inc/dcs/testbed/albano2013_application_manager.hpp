@@ -32,7 +32,6 @@
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
 #include <dcs/logging.hpp>
-#include <dcs/macro.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
 #include <dcs/testbed/virtual_machine_performance_category.hpp>
