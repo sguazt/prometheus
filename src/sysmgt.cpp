@@ -111,9 +111,13 @@ const double default_sampling_time = 10;
 const double default_control_time = 3*default_sampling_time;
 const data_estimator_category default_data_estimator = mean_estimator;
 const double default_quantile_prob = 0.99;
+const double default_jain1985_p2_quantile_prob = default_quantile_prob;
 const double default_chen2000_ewma_w = 0.05;
+const double default_chen2000_ewma_quantile_prob = default_quantile_prob;
 const double default_chen2000_ewsa_w = 0.05;
+const double default_chen2000_ewsa_quantile_prob = default_quantile_prob;
 const double default_welsh2003_ewma_alpha = 0.7;
+const double default_welsh2003_ewma_quantile_prob = default_quantile_prob;
 const data_smoother_category default_data_smoother = dummy_smoother;
 const double default_brown_single_exponential_alpha = 0.7;
 const double default_brown_double_exponential_alpha = 0.7;
@@ -335,18 +339,30 @@ void usage(char const* progname)
 				<< "   - 'welsh2003_ewma_quantile': quantile estimation according to the EWMA method by (Welsh et al., 2003)" << ::std::endl
 				<< "   - 'welsh2003_ewma_ext_quantile': quantile estimation according to the extended EWMA method by (Welsh et al., 2003)" << ::std::endl
 				<< "   [default: '" << default_data_estimator << "']." << ::std::endl
-				<< " --quantile-prob <value>" << ::std::endl
-				<< "   The probability value for the quantile-based data estimator." << ::std::endl
-				<< "   [default: '" << default_quantile_prob << "']." << ::std::endl
+//				<< " --quantile-prob <value>" << ::std::endl
+//				<< "   The probability value for the quantile-based data estimator." << ::std::endl
+//				<< "   [default: '" << default_quantile_prob << "']." << ::std::endl
+				<< " --chen2000_ewma-quantile <value>" << ::std::endl
+				<< "   The probability value for the (Chen el al.,2000) EWMA quantile estimator." << ::std::endl
+				<< "   [default: '" << default_chen2000_ewma_quantile_prob << "']." << ::std::endl
 				<< " --chen2000_ewma-w <value>" << ::std::endl
-				<< "   The w parameter for the (Chen,2000) EWMA quantile estimator." << ::std::endl
+				<< "   The w parameter for the (Chen el al.,2000) EWMA quantile estimator." << ::std::endl
 				<< "   [default: '" << default_chen2000_ewma_w << "']." << ::std::endl
+				<< " --chen2000_ewsa-quantile <value>" << ::std::endl
+				<< "   The probability value for the (Chen el al.,2000) EWSA quantile estimator." << ::std::endl
+				<< "   [default: '" << default_chen2000_ewsa_quantile_prob << "']." << ::std::endl
 				<< " --chen2000_ewsa-w <value>" << ::std::endl
-				<< "   The w parameter for the (Chen,2000) EWSA quantile estimator." << ::std::endl
+				<< "   The w parameter for the (Chen el al.,2000) EWSA quantile estimator." << ::std::endl
 				<< "   [default: '" << default_chen2000_ewsa_w << "']." << ::std::endl
+				<< " --jain1985_p2-quantile <value>" << ::std::endl
+				<< "   The probability value for the (Jain et al.,1985) P^2 quantile estimator." << ::std::endl
+				<< "   [default: '" << default_jain1985_p2_quantile_prob << "']." << ::std::endl
 				<< " --welsh2003_ewma-alpha <value>" << ::std::endl
-				<< "   The alpha parameter for the (Welsh,2003) EWMA quantile estimator." << ::std::endl
+				<< "   The alpha parameter for the (Welsh el al.,2003) EWMA quantile estimator." << ::std::endl
 				<< "   [default: '" << default_welsh2003_ewma_alpha << "']." << ::std::endl
+				<< " --welsh2003_ewma-quantile <value>" << ::std::endl
+				<< "   The probability value for the (Welsh el al.,2003) P^2 quantile estimator." << ::std::endl
+				<< "   [default: '" << default_jain1985_p2_quantile_prob << "']." << ::std::endl
 				<< " --data-smoother {'brown_ses'|'brown_des'|'dummy'|'holt_winters_des'}" << ::std::endl
 				<< "   The name of the smoother to use to smooth observed data." << ::std::endl
 				<< "   [default: '" << default_data_smoother << "']." << ::std::endl
@@ -476,24 +492,28 @@ int main(int argc, char *argv[])
 	bool opt_help = false;
 //	std::string opt_out_dat_file;
 	detail::app_manager_category opt_app_manager;
-	real_type opt_brown_single_exponential_alpha = 0;
-	real_type opt_brown_double_exponential_alpha = 0;
-	real_type opt_chen2000_ewma_w = 0;
-	real_type opt_chen2000_ewsa_w = 0;
+	real_type opt_brown_single_exponential_alpha;
+	real_type opt_brown_double_exponential_alpha;
+	real_type opt_chen2000_ewma_quantile_prob;
+	real_type opt_chen2000_ewma_w;
+	real_type opt_chen2000_ewsa_quantile_prob;
+	real_type opt_chen2000_ewsa_w;
 	detail::data_estimator_category opt_data_estimator;
 	detail::data_smoother_category opt_data_smoother;
-	real_type opt_holt_winters_double_exponential_alpha = 0;
-	real_type opt_holt_winters_double_exponential_beta = 0;
-	real_type opt_holt_winters_double_exponential_delta = 0;
-	real_type opt_quantile_prob = 0;
+	real_type opt_holt_winters_double_exponential_alpha;
+	real_type opt_holt_winters_double_exponential_beta;
+	real_type opt_holt_winters_double_exponential_delta;
+//	real_type opt_quantile_prob = 0;
+	real_type opt_jain1985_p2_quantile_prob;
 	testbed::application_performance_category opt_slo_metric;
-	real_type opt_slo_value = 0;
+	real_type opt_slo_value;
 	std::string opt_str;
 	real_type opt_ts;
 	real_type opt_tc;
 	bool opt_verbose = detail::default_verbose;
 	std::vector<std::string> opt_vm_uris;
-	real_type opt_welsh2003_ewma_alpha = 0;
+	real_type opt_welsh2003_ewma_alpha;
+	real_type opt_welsh2003_ewma_quantile_prob;
 	testbed::workload_category opt_wkl;
 	testbed::workload_generator_category opt_wkl_driver;
 	std::string opt_wkl_driver_rain_path;
@@ -511,10 +531,14 @@ int main(int argc, char *argv[])
 //		opt_out_dat_file = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--out-dat-file", detail::default_out_dat_file);
 		opt_app_manager = dcs::cli::simple::get_option<detail::app_manager_category>(argv, argv+argc, "--app-manager", detail::default_app_manager);
 		opt_data_estimator = dcs::cli::simple::get_option<detail::data_estimator_category>(argv, argv+argc, "--data-estimator", detail::default_data_estimator);
-		opt_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--quantile-prob", detail::default_quantile_prob);
+//		opt_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--quantile-prob", detail::default_quantile_prob);
+		opt_chen2000_ewma_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewma-quantile", detail::default_chen2000_ewma_quantile_prob);
 		opt_chen2000_ewma_w = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewma-w", detail::default_chen2000_ewma_w);
+		opt_chen2000_ewsa_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewsa-quantile", detail::default_chen2000_ewsa_quantile_prob);
 		opt_chen2000_ewsa_w = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewsa-w", detail::default_chen2000_ewsa_w);
+		opt_jain1985_p2_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--jain1985_p2-quantile", detail::default_jain1985_p2_quantile_prob);
 		opt_welsh2003_ewma_alpha = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--welsh2003_ewma-alpha", detail::default_welsh2003_ewma_alpha);
+		opt_welsh2003_ewma_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--welsh2003_ewma-quantile", detail::default_welsh2003_ewma_quantile_prob);
 		opt_data_smoother = dcs::cli::simple::get_option<detail::data_smoother_category>(argv, argv+argc, "--data-smoother", detail::default_data_smoother);
 		opt_brown_single_exponential_alpha = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--brown_ses-alpha", detail::default_brown_single_exponential_alpha);
 		opt_brown_double_exponential_alpha = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--brown_des-alpha", detail::default_brown_double_exponential_alpha);
@@ -582,19 +606,35 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
-		oss << "Quantile estimator probability: " << opt_quantile_prob;
+//		oss << "Quantile estimator probability: " << opt_quantile_prob;
+//		dcs::log_info(DCS_LOGGING_AT, oss.str());
+//		oss.str("");
+
+		oss << "(Chen et al.,2000)'s EWMA quantile estimator probability: " << opt_chen2000_ewma_quantile_prob;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
-		oss << "(Chen,2000)'s EWMA quantile estimator w: " << opt_chen2000_ewma_w;
+		oss << "(Chen et al.,2000)'s EWMA quantile estimator w: " << opt_chen2000_ewma_w;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
-		oss << "(Chen,2000)'s EWSA quantile estimator w: " << opt_chen2000_ewsa_w;
+		oss << "(Chen et al.,2000)'s EWSA quantile estimator probability: " << opt_chen2000_ewsa_quantile_prob;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
-		oss << "(Welsh,2003)'s EWMA quantile estimator alpha: " << opt_welsh2003_ewma_alpha;
+		oss << "(Chen et al.,2000)'s EWSA quantile estimator w: " << opt_chen2000_ewsa_w;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "(Jain et al.,1985)'s P^2 quantile estimator probability: " << opt_jain1985_p2_quantile_prob;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "(Welsh et al.,2003)'s EWMA quantile estimator alpha: " << opt_welsh2003_ewma_alpha;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "(Welsh et al.,2003)'s EWMA quantile estimator probability: " << opt_welsh2003_ewma_quantile_prob;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
@@ -782,13 +822,13 @@ int main(int argc, char *argv[])
 		switch (opt_data_estimator)
 		{
 			case detail::chen2000_ewma_quantile_estimator:
-					p_estimator = boost::make_shared< testbed::chen2000_ewma_quantile_estimator<real_type> >(opt_quantile_prob, opt_chen2000_ewma_w);
+					p_estimator = boost::make_shared< testbed::chen2000_ewma_quantile_estimator<real_type> >(opt_chen2000_ewma_quantile_prob, opt_chen2000_ewma_w);
 					break;
 			case detail::chen2000_ewsa_quantile_estimator:
-					p_estimator = boost::make_shared< testbed::chen2000_ewsa_quantile_estimator<real_type> >(opt_quantile_prob, opt_chen2000_ewsa_w);
+					p_estimator = boost::make_shared< testbed::chen2000_ewsa_quantile_estimator<real_type> >(opt_chen2000_ewsa_quantile_prob, opt_chen2000_ewsa_w);
 					break;
 			case detail::jain1985_p2_algorithm_quantile_estimator:
-					p_estimator = boost::make_shared< testbed::jain1985_p2_algorithm_quantile_estimator<real_type> >(opt_quantile_prob);
+					p_estimator = boost::make_shared< testbed::jain1985_p2_algorithm_quantile_estimator<real_type> >(opt_jain1985_p2_quantile_prob);
 					break;
 			case detail::mean_estimator:
 				p_estimator = boost::make_shared< testbed::mean_estimator<real_type> >();
@@ -797,10 +837,10 @@ int main(int argc, char *argv[])
 				p_estimator = boost::make_shared< testbed::most_recently_observed_estimator<real_type> >();
 				break;
 			case detail::welsh2003_ewma_quantile_estimator:
-					p_estimator = boost::make_shared< testbed::welsh2003_ewma_quantile_estimator<real_type> >(opt_quantile_prob, opt_welsh2003_ewma_alpha, false);
+					p_estimator = boost::make_shared< testbed::welsh2003_ewma_quantile_estimator<real_type> >(opt_welsh2003_ewma_quantile_prob, opt_welsh2003_ewma_alpha, false);
 					break;
 			case detail::welsh2003_ewma_ext_quantile_estimator:
-					p_estimator = boost::make_shared< testbed::welsh2003_ewma_quantile_estimator<real_type> >(opt_quantile_prob, opt_welsh2003_ewma_alpha, true);
+					p_estimator = boost::make_shared< testbed::welsh2003_ewma_quantile_estimator<real_type> >(opt_welsh2003_ewma_quantile_prob, opt_welsh2003_ewma_alpha, true);
 					break;
 			default:
 				DCS_EXCEPTION_THROW(std::runtime_error, "Unknown data estimator");
@@ -920,7 +960,8 @@ int main(int argc, char *argv[])
 		p_mgr->app(p_app);
 
 		// Add to main experiment
-		boost::shared_ptr< testbed::application_experiment<traits_type> > p_app_exp = boost::make_shared< testbed::application_experiment<traits_type> >(p_app, p_drv, p_mgr);
+		boost::shared_ptr< testbed::application_experiment<traits_type> > p_app_exp;
+		p_app_exp = boost::make_shared< testbed::application_experiment<traits_type> >(p_app, p_drv, p_mgr);
 		p_app_exp->restore_state(!opt_no_restore_vms);
 		sys_exp.add_app_experiment(p_app_exp);
 
@@ -932,6 +973,7 @@ int main(int argc, char *argv[])
 		//sys_exp.logger(...);
 		//sys_exp.output_data_file(out_dat_file);
 
+		// Run!
 		sys_exp.run();
 	}
 	catch (std::exception const& e)
