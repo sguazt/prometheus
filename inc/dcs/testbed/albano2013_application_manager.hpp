@@ -40,6 +40,7 @@
 #include <fstream>
 #include <limits>
 #include <map>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -177,7 +178,7 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 			 tgt_it != tgt_end_it;
 			 ++tgt_it)
 		{
-			const application_performance_category cat(tgt_it->first);
+			const application_performance_category cat = tgt_it->first;
 
 			out_sensors_[cat] = this->app().sensor(cat);
 		}
@@ -247,12 +248,12 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 			 in_sens_it != in_sens_end_it;
 			 ++in_sens_it)
 		{
-			const virtual_machine_performance_category cat(in_sens_it->first);
+			const virtual_machine_performance_category cat = in_sens_it->first;
 
 			const ::std::size_t n = in_sens_it->second.size();
 			for (::std::size_t i = 0; i < n; ++i)
 			{
-				sensor_pointer p_sens(in_sens_it->second.at(i));
+				sensor_pointer p_sens = in_sens_it->second.at(i);
 
 				// check: p_sens != null
 				DCS_DEBUG_ASSERT( p_sens );
@@ -278,9 +279,9 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 			 out_sens_it != out_sens_end_it;
 			 ++out_sens_it)
 		{
-			const application_performance_category cat(out_sens_it->first);
+			const application_performance_category cat = out_sens_it->first;
 
-			sensor_pointer p_sens(out_sens_it->second);
+			sensor_pointer p_sens = out_sens_it->second;
 
 			// check: p_sens != null
 			DCS_DEBUG_ASSERT( p_sens );
