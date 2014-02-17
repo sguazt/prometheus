@@ -82,6 +82,8 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 	{
 		this->sampling_time(default_sampling_time);
 		this->control_time(default_control_time);
+		//this->data_estimator(cpu_util_virtual_machine_performance, boost::make_shared< testbed::mean_estimator<real_type> >());
+		//this->data_smoother(cpu_util_virtual_machine_performance, ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
 	}
 
 	/// A constructor.
@@ -91,6 +93,8 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 	{
 		this->sampling_time(default_sampling_time);
 		this->control_time(default_control_time);
+		//this->data_estimator(cpu_util_virtual_machine_performance, boost::make_shared< testbed::mean_estimator<real_type> >());
+		//this->data_smoother(cpu_util_virtual_machine_performance, ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
 	}
 
 	/// Set the path of the output data file.
@@ -346,8 +350,6 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 		DCS_DEBUG_TRACE("(" << this << ") BEGIN Do CONTROL - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << ctl_fail_count_);
 
 		++ctl_count_;
-
-		bool skip_ctl = false;
 
 		// Compute the elapsed time
 		::std::time_t ts = -1;

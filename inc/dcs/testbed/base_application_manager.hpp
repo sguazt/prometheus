@@ -300,6 +300,42 @@ class base_application_manager
 
 		this->do_reset();
 
+		// Reset app estimators
+		typename app_data_estimator_map::iterator app_est_end_it = app_estimators_.end();
+		for (typename app_data_estimator_map::iterator it = app_estimators_.begin();
+			 it != app_est_end_it;
+			 ++it)
+		{
+			it->second->reset();
+		}
+
+		// Reset app smoothers
+		typename vm_data_estimator_map::iterator vm_est_end_it = vm_estimators_.end();
+		for (typename vm_data_estimator_map::iterator it = vm_estimators_.begin();
+			 it != vm_est_end_it;
+			 ++it)
+		{
+			it->second->reset();
+		}
+
+		// Reset VM estimators
+		typename app_data_smoother_map::iterator app_smo_end_it = app_smoothers_.end();
+		for (typename app_data_smoother_map::iterator it = app_smoothers_.begin();
+			 it != app_smo_end_it;
+			 ++it)
+		{
+			it->second->reset();
+		}
+
+		// Reset VM smoothers
+		typename vm_data_smoother_map::iterator vm_smo_end_it = vm_smoothers_.end();
+		for (typename vm_data_smoother_map::iterator it = vm_smoothers_.begin();
+			 it != vm_smo_end_it;
+			 ++it)
+		{
+			it->second->reset();
+		}
+
 		// Emit signal
 		(*p_rst_sig_)(*this);
 	}

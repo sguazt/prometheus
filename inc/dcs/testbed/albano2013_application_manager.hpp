@@ -203,9 +203,9 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 		// Reset fuzzy controller
 		p_fuzzy_eng_->restart();
 
-		// Reset Cres estimator and smoother
-		this->data_estimator(cpu_util_virtual_machine_performance).reset();
-		this->data_smoother(cpu_util_virtual_machine_performance).reset();
+		//// Reset Cres estimator and smoother
+		//this->data_estimator(cpu_util_virtual_machine_performance).reset();
+		//this->data_smoother(cpu_util_virtual_machine_performance).reset();
 
 		// Reset output data file
 		if (p_dat_ofs_ && p_dat_ofs_->is_open())
