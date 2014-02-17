@@ -34,6 +34,8 @@
 #include <dcs/logging.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
+#include <dcs/testbed/data_estimators.hpp>
+#include <dcs/testbed/data_smoothers.hpp>
 #include <dcs/testbed/virtual_machine_performance_category.hpp>
 #include <fl/Headers.h>
 #include <fstream>
@@ -106,9 +108,9 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 
 	private: void init()
 	{
-		this->data_estimator(cpu_util_virtual_machine_performance, boost::make_shared< testbed::mean_estimator<real_type> >());
+		this->data_estimator(cpu_util_virtual_machine_performance, boost::make_shared< mean_estimator<real_type> >());
 
-		this->data_smoother(cpu_util_virtual_machine_performance, ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
+		this->data_smoother(cpu_util_virtual_machine_performance, ::boost::make_shared< brown_single_exponential_smoother<real_type> >(beta_));
 
 		DCS_DEBUG_ASSERT( p_fuzzy_eng_ );
 
