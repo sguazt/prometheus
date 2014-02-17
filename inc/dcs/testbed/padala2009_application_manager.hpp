@@ -87,6 +87,7 @@
 #endif // DCS_TESTBED_EXP_PADALA2009_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
 #include <limits>
 #include <map>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -201,14 +202,31 @@ class padala2009_application_manager: public base_application_manager<TraitsT>
 			//ybar_[cat] = numeric_vector_type(ny, tgt_it->second);
 			out_sensors_[cat] = this->app().sensor(cat);
 		}
+
+		// Reset counters
 		ctl_count_ = ctl_skip_count_
 				   = ctl_fail_count_
 				   = sysid_fail_count_
 				   = 0;
 
+		// Reset output data file
+		if (p_dat_ofs_ && p_dat_ofs_->is_open())
+		{
+			p_dat_ofs_->close();
+		}
+		p_dat_ofs_.reset();
 		if (!dat_fname_.empty())
 		{
 			p_dat_ofs_ = ::boost::make_shared< ::std::ofstream >(dat_fname_.c_str());
+			if (!p_dat_ofs_->good())
+			{
+				::std::ostringstream oss;
+				oss << "Cannot open output data file '" << dat_fname_ << "'";
+
+				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+			}
+
+			//TODO: write header
 		}
 	}
 

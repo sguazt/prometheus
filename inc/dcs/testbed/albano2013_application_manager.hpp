@@ -206,9 +206,21 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 		this->data_smoother(cpu_util_virtual_machine_performance).reset();
 
 		// Reset output data file
+		if (p_dat_ofs_ && p_dat_ofs_->is_open())
+		{
+			p_dat_ofs_->close();
+		}
+		p_dat_ofs_.reset();
 		if (!dat_fname_.empty())
 		{
 			p_dat_ofs_ = ::boost::make_shared< ::std::ofstream >(dat_fname_.c_str());
+			if (!p_dat_ofs_->good())
+			{
+				::std::ostringstream oss;
+				oss << "Cannot open output data file '" << dat_fname_ << "'";
+
+				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+			}
 
 			const ::std::size_t nvms = this->app().num_vms();
 			for (::std::size_t i = 0; i < nvms; ++i)
