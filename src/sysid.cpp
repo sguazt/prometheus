@@ -1198,6 +1198,8 @@ int main(int argc, char *argv[])
 		p_mgr->target_value(opt_slo_metric, std::numeric_limits<real_type>::quiet_NaN()); // SLO value not used
 		p_mgr->data_estimator(opt_slo_metric, p_estimator);
 		p_mgr->data_smoother(opt_slo_metric, p_smoother);
+		p_mgr->data_estimator(testbed::cpu_util_virtual_machine_performance, boost::make_shared< testbed::mean_estimator<real_type> >());
+		p_mgr->data_smoother(testbed::cpu_util_virtual_machine_performance, boost::make_shared< testbed::dummy_smoother<real_type> >());
 		p_mgr->sampling_time(opt_ts);
 		p_mgr->control_time(opt_tc);
 		p_mgr->app(p_app);
