@@ -309,6 +309,7 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 			for (::std::size_t i = 0; i < max_nobs; ++i)
 			{
 				*p_dat_ofs_ << ts;
+				// Write VM data
 				for (::std::size_t j = 0; j < nvms; ++j)
 				{
 					const vm_pointer p_vm = vms[j];
@@ -322,16 +323,19 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 					}
 					else
 					{
-						*p_dat_ofs_ << ",na,na";
+						//*p_dat_ofs_ << ",na,na";
+						*p_dat_ofs_ << "," << share << "," << obs.back().value();
 					}
 				}
+				// Write App data
 				if (i < app_obs.size())
 				{
 					*p_dat_ofs_ << "," << app_obs[i].timestamp() << "," << "\"" << app_obs[i].label() << "\"" << "," << app_obs[i].value();
 				}
 				else
 				{
-					*p_dat_ofs_ << ",na,na,na";
+					//*p_dat_ofs_ << ",na,na,na";
+					*p_dat_ofs_ << "," << app_obs.back().timestamp() << "," << "\"" << app_obs.back().label() << "\"" << "," << app_obs.back().value();
 				}
 
 				*p_dat_ofs_ << "," << "\"[DATA]\"" << ::std::endl;
