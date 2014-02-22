@@ -373,14 +373,12 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 			}
 
+			*p_dat_ofs_ << "\"ts\"";
+
 			const ::std::size_t nvms = this->app().num_vms();
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
-				if (i > 0)
-				{
-					*p_dat_ofs_ << ",";
-				}
-				*p_dat_ofs_ << "\"Cap_{" << i << "}\",\"Share_{" << i << "}\"";
+				*p_dat_ofs_ << ",\"Cap_{" << i << "}\",\"Share_{" << i << "}\"";
 			}
 			for (target_iterator tgt_it = this->target_values().begin();
 				 tgt_it != tgt_end_it;
