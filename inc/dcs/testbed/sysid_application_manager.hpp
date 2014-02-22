@@ -313,29 +313,36 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 				for (::std::size_t j = 0; j < nvms; ++j)
 				{
 					const vm_pointer p_vm = vms[j];
-					const obs_container& obs = vm_obs[j];
-					const ::std::size_t nobs = obs.size();
+					const obs_container& vm_obs = vm_obs[j];
+					const ::std::size_t nobs = vm_obs.size();
 					const real_type share = p_vm->cpu_share();
 
 					if (i < nobs)
 					{
-						*p_dat_ofs_ << "," << share << "," << obs[i].value();
+						*p_dat_ofs_ << "," << share << "," << vm_obs[i].value();
+					}
+					else if (nobs > 0)
+					{
+						*p_dat_ofs_ << "," << share << "," << vm_obs.back().value();
 					}
 					else
 					{
-						//*p_dat_ofs_ << ",na,na";
-						*p_dat_ofs_ << "," << share << "," << obs.back().value();
+						*p_dat_ofs_ << ",na,na";
 					}
 				}
 				// Write App data
-				if (i < app_obs.size())
+				const ::std::size_t nobs = app_obs.size();
+				if (i < nobs)
 				{
 					*p_dat_ofs_ << "," << app_obs[i].timestamp() << "," << "\"" << app_obs[i].label() << "\"" << "," << app_obs[i].value();
 				}
+				else if (nobs > 0)
+				{
+					*p_dat_ofs_ << "," << app_obs.back().timestamp() << "," << "\"" << app_obs.back().label() << "\"" << "," << app_obs.back().value();
+				}
 				else
 				{
-					//*p_dat_ofs_ << ",na,na,na";
-					*p_dat_ofs_ << "," << app_obs.back().timestamp() << "," << "\"" << app_obs.back().label() << "\"" << "," << app_obs.back().value();
+					*p_dat_ofs_ << ",na,na,na";
 				}
 
 				*p_dat_ofs_ << "," << "\"[DATA]\"" << ::std::endl;
