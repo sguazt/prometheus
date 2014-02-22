@@ -313,17 +313,17 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 				for (::std::size_t j = 0; j < nvms; ++j)
 				{
 					const vm_pointer p_vm = vms[j];
-					const obs_container& vm_obs = vm_obs[j];
+					const obs_container& obs = vm_obs[j];
 					const ::std::size_t nobs = vm_obs.size();
 					const real_type share = p_vm->cpu_share();
 
 					if (i < nobs)
 					{
-						*p_dat_ofs_ << "," << share << "," << vm_obs[i].value();
+						*p_dat_ofs_ << "," << share << "," << obs[i].value();
 					}
 					else if (nobs > 0)
 					{
-						*p_dat_ofs_ << "," << share << "," << vm_obs.back().value();
+						*p_dat_ofs_ << "," << share << "," << obs.back().value();
 					}
 					else
 					{
