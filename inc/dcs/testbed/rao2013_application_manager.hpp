@@ -402,39 +402,6 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 
 		DCS_DEBUG_TRACE("(" << this << ") BEGIN Do SAMPLE - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << ctl_fail_count_);
 
-/*
-		// Collect input values
-		const in_sensor_iterator in_sens_end_it = in_sensors_.end();
-		for (in_sensor_iterator in_sens_it = in_sensors_.begin();
-			 in_sens_it != in_sens_end_it;
-			 ++in_sens_it)
-		{
-			const virtual_machine_performance_category cat(in_sens_it->first);
-
-			const ::std::size_t n = in_sens_it->second.size();
-			for (::std::size_t i = 0; i < n; ++i)
-			{
-				sensor_pointer p_sens(in_sens_it->second.at(i));
-
-				// check: p_sens != null
-				DCS_DEBUG_ASSERT( p_sens );
-
-				p_sens->sense();
-				if (p_sens->has_observations())
-				{
-					const obs_container obs = p_sens->observations();
-					const obs_iterator end_it = obs.end();
-					for (obs_iterator it = obs.begin();
-						 it != end_it;
-						 ++it)
-					{
-						this->data_estimator(cat).collect(it->value());
-					}
-				}
-			}
-		}
-*/
-
 		// Collect output values
 		const out_sensor_iterator out_sens_end_it = out_sensors_.end();
 		for (out_sensor_iterator out_sens_it = out_sensors_.begin();
@@ -549,14 +516,23 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Y(k): " << y << " - R
 					   DCS_EXCEPTION_THROW(::std::runtime_error,
 					   "Only SISO system are currently managed"));
 
-			const real_type Ke = (ctl_count_ > 1) ? ::std::abs(Ke_) : 1.0;
-			const real_type Kde = (ctl_count_ > 1) ? ::std::abs(Kde_) : 1.0;
 			const real_type e = Ke*es_.begin()->second;
 			const real_type de = Kde*des.begin()->second;
+
+//FIXME: Should Ke and Kde be updated before or after the application of fuzzy control
+//			const real_type Ke = (ctl_count_ > 1) ? ::std::abs(Ke_) : 1.0;
+//			const real_type Kde = (ctl_count_ > 1) ? ::std::abs(Kde_) : 1.0;
+//
+//			// Update input scaling factors
+//			Ke_ = (1-gamma_)*Ke_ + gamma_*e;
+//			Kde_ = (1-gamma_)*Kde_ - gamma_*de;
 
 			// Update input scaling factors
 			Ke_ = (1-gamma_)*Ke_ + gamma_*e;
 			Kde_ = (1-gamma_)*Kde_ - gamma_*de;
+
+			const real_type Ke = ::std::abs(Ke_);
+			const real_type Kde = ::std::abs(Kde_);
 
 			// Perform fuzzy control
 			bool ok = false;
