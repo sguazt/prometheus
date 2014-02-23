@@ -67,7 +67,7 @@ class base_smoother
 
 	public: void reset()
 	{
-		return this->do_reset();
+		this->do_reset();
 	}
 
 	private: virtual value_type do_smooth(data_container const& data) = 0; 

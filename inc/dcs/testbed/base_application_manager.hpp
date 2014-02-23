@@ -40,6 +40,7 @@
 #include <dcs/exception.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application.hpp>
+#include <dcs/testbed/base_virtual_machine.hpp>
 #include <dcs/testbed/data_estimators.hpp>
 #include <dcs/testbed/data_smoothers.hpp>
 #include <dcs/testbed/virtual_machine_performance_category.hpp>
@@ -63,10 +64,11 @@ class base_application_manager
 	public: typedef ::boost::shared_ptr<app_type> app_pointer;
 	public: typedef ::boost::shared_ptr<data_estimator_type> data_estimator_pointer;
 	public: typedef ::boost::shared_ptr<data_smoother_type> data_smoother_pointer;
+	public: typedef typename base_virtual_machine<TraitsT>::identifier_type vm_identifier_type;
 	protected: typedef ::std::map<application_performance_category,data_estimator_pointer> app_data_estimator_map;
-	protected: typedef ::std::map<virtual_machine_performance_category,data_estimator_pointer> vm_data_estimator_map;
+	protected: typedef ::std::map< virtual_machine_performance_category, ::std::map<vm_identifier_type,data_estimator_pointer> > vm_data_estimator_map;
 	protected: typedef ::std::map<application_performance_category,data_smoother_pointer> app_data_smoother_map;
-	protected: typedef ::std::map<virtual_machine_performance_category,data_smoother_pointer> vm_data_smoother_map;
+	protected: typedef ::std::map< virtual_machine_performance_category, ::std::map<vm_identifier_type,data_smoother_pointer> > vm_data_smoother_map;
 	private: typedef ::boost::signals2::signal<void (self_type const&)> signal_type;
 	private: typedef ::boost::shared_ptr<signal_type> signal_pointer;
 
@@ -166,34 +168,42 @@ class base_application_manager
 		return *(app_estimators_.at(cat));
 	}
 
-	public: void data_estimator(virtual_machine_performance_category cat, data_estimator_pointer const& p_estimator)
+	public: void data_estimator(virtual_machine_performance_category cat, vm_identifier_type const& vm_id, data_estimator_pointer const& p_estimator)
 	{
 		// pre: p_estimator != null
 		DCS_ASSERT(p_estimator,
 				   DCS_EXCEPTION_THROW(::std::invalid_argument,
 									   "Invalid pointer to data estimator"));
 
-        vm_estimators_[cat] = p_estimator;
+        vm_estimators_[cat][vm_id] = p_estimator;
 	}
 
-	public: data_estimator_type& data_estimator(virtual_machine_performance_category cat)
+	public: data_estimator_type& data_estimator(virtual_machine_performance_category cat, vm_identifier_type const& vm_id)
 	{
-		// pre: exists(vm_estimators_[cat]) && vm_estimators_[cat] != null
-		DCS_ASSERT(vm_estimators_.count(cat) > 0 && vm_estimators_.at(cat),
+		// pre: exists(vm_estimators_[cat])
+		DCS_ASSERT(vm_estimators_.count(cat) > 0,
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Invalid category for data estimator"));
+		// pre: exists(vm_estimators_[cat][vm_id]) && vm_estimators_[cat][vm_id] != null
+		DCS_ASSERT(vm_estimators_.at(cat).count(vm_id) > 0 && vm_estimators_.at(cat).at(vm_id),
 				   DCS_EXCEPTION_THROW(::std::invalid_argument,
 									   "Invalid category for data estimator"));
 
-		return *(vm_estimators_[cat]);
+		return *(vm_estimators_[cat][vm_id]);
 	}
 
-	public: data_estimator_type const& data_estimator(virtual_machine_performance_category cat) const
+	public: data_estimator_type const& data_estimator(virtual_machine_performance_category cat, vm_identifier_type const& vm_id) const
 	{
-		// pre: exists(vm_estimators_[cat]) && vm_estimators_[cat] != null
-		DCS_ASSERT(vm_estimators_.count(cat) > 0 && vm_estimators_.at(cat),
+		// pre: exists(vm_estimators_[cat])
+		DCS_ASSERT(vm_estimators_.count(cat) > 0,
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Invalid category for data estimator"));
+		// pre: exists(vm_estimators_[cat][vm_id]) && vm_estimators_[cat][vm_id] != null
+		DCS_ASSERT(vm_estimators_.at(cat).count(vm_id) > 0 && vm_estimators_.at(cat).at(vm_id),
 				   DCS_EXCEPTION_THROW(::std::invalid_argument,
 									   "Invalid category for data estimator"));
 
-		return *(vm_estimators_.at(cat));
+		return *(vm_estimators_.at(cat).at(vm_id));
 	}
 
 	public: void data_smoother(application_performance_category cat, data_smoother_pointer const& p_smoother)
@@ -220,28 +230,41 @@ class base_application_manager
 		return *(app_smoothers_.at(cat));
 	}
 
-	public: void data_smoother(virtual_machine_performance_category cat, data_smoother_pointer const& p_smoother)
+	public: void data_smoother(virtual_machine_performance_category cat, vm_identifier_type const& vm_id, data_smoother_pointer const& p_smoother)
 	{
 		// pre: p_estimator != null
 		DCS_ASSERT(p_smoother,
 				   DCS_EXCEPTION_THROW(::std::invalid_argument, "Invalid pointer to data smoother"));
 
-		vm_smoothers_[cat] = p_smoother;
+		vm_smoothers_[cat][vm_id] = p_smoother;
 	}
 
-	public: data_smoother_type& data_smoother(virtual_machine_performance_category cat)
+	public: data_smoother_type& data_smoother(virtual_machine_performance_category cat, vm_identifier_type const& vm_id)
 	{
-		return *(vm_smoothers_[cat]);
-	}
-
-	public: data_smoother_type const& data_smoother(virtual_machine_performance_category cat) const
-	{
-		// pre: exists(vm_smoothers_[cat]) && vm_smoothers_[cat] != null
-		DCS_ASSERT(vm_smoothers_.count(cat) > 0 && vm_smoothers_.at(cat),
+		// pre: exists(vm_smoothers_[cat])
+		DCS_ASSERT(vm_smoothers_.count(cat) > 0,
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Invalid category for data smoothers"));
+		// pre: exists(vm_smoothers_[cat][vm_id]) && vm_smoothers_[cat][vm_id] != null
+		DCS_ASSERT(vm_smoothers_.at(cat).count(vm_id) > 0 && vm_smoothers_.at(cat).at(vm_id),
 				   DCS_EXCEPTION_THROW(::std::invalid_argument,
 									   "Invalid category for data smoothers"));
 
-		return *(vm_smoothers_.at(cat));
+		return *(vm_smoothers_[cat][vm_id]);
+	}
+
+	public: data_smoother_type const& data_smoother(virtual_machine_performance_category cat, vm_identifier_type const& vm_id) const
+	{
+		// pre: exists(vm_smoothers_[cat])
+		DCS_ASSERT(vm_smoothers_.count(cat) > 0,
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Invalid category for data smoothers"));
+		// pre: exists(vm_smoothers_[cat][vm_id]) && vm_smoothers_[cat][vm_id] != null
+		DCS_ASSERT(vm_smoothers_.at(cat).count(vm_id) > 0 && vm_smoothers_.at(cat).at(vm_id),
+				   DCS_EXCEPTION_THROW(::std::invalid_argument,
+									   "Invalid category for data smoothers"));
+
+		return *(vm_smoothers_.at(cat).at(vm_id));
 	}
 
 	public: ::std::vector<application_performance_category> target_metrics() const
@@ -301,7 +324,7 @@ class base_application_manager
 		this->do_reset();
 
 		// Reset app estimators
-		typename app_data_estimator_map::iterator app_est_end_it = app_estimators_.end();
+		const typename app_data_estimator_map::iterator app_est_end_it = app_estimators_.end();
 		for (typename app_data_estimator_map::iterator it = app_estimators_.begin();
 			 it != app_est_end_it;
 			 ++it)
@@ -309,17 +332,23 @@ class base_application_manager
 			it->second->reset();
 		}
 
-		// Reset app smoothers
-		typename vm_data_estimator_map::iterator vm_est_end_it = vm_estimators_.end();
+		// Reset VM estimators
+		const typename vm_data_estimator_map::iterator vm_est_end_it = vm_estimators_.end();
 		for (typename vm_data_estimator_map::iterator it = vm_estimators_.begin();
 			 it != vm_est_end_it;
 			 ++it)
 		{
-			it->second->reset();
+			const typename vm_data_estimator_map::mapped_type::iterator vm_end_it = it->second.end();
+			for (typename vm_data_estimator_map::mapped_type::iterator vm_it = it->second.begin();
+				 vm_it != vm_end_it;
+				 ++vm_it)
+			{
+				vm_it->second->reset();
+			}
 		}
 
-		// Reset VM estimators
-		typename app_data_smoother_map::iterator app_smo_end_it = app_smoothers_.end();
+		// Reset app smoothers
+		const typename app_data_smoother_map::iterator app_smo_end_it = app_smoothers_.end();
 		for (typename app_data_smoother_map::iterator it = app_smoothers_.begin();
 			 it != app_smo_end_it;
 			 ++it)
@@ -328,12 +357,18 @@ class base_application_manager
 		}
 
 		// Reset VM smoothers
-		typename vm_data_smoother_map::iterator vm_smo_end_it = vm_smoothers_.end();
+		const typename vm_data_smoother_map::iterator vm_smo_end_it = vm_smoothers_.end();
 		for (typename vm_data_smoother_map::iterator it = vm_smoothers_.begin();
 			 it != vm_smo_end_it;
 			 ++it)
 		{
-			it->second->reset();
+			const typename vm_data_smoother_map::mapped_type::iterator vm_end_it = it->second.end();
+			for (typename vm_data_smoother_map::mapped_type::iterator vm_it = it->second.begin();
+				 vm_it != vm_end_it;
+				 ++vm_it)
+			{
+				vm_it->second->reset();
+			}
 		}
 
 		// Emit signal

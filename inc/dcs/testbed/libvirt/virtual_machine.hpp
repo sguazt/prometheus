@@ -158,17 +158,22 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 
 	private: identifier_type do_id() const
 	{
-		::std::ostringstream oss;
-		if (p_vmm_)
+		if (id_.empty())
 		{
-			oss << p_vmm_->id();
+			::std::ostringstream oss;
+			if (p_vmm_)
+			{
+				oss << p_vmm_->id();
+			}
+			else
+			{
+				oss << "<None>";
+			}
+			oss << ":" << this->name();
+			id_ = oss.str();
 		}
-		else
-		{
-			oss << "<None>";
-		}
-		oss << ":" << this->name();
-		return oss.str();
+
+		return id_;
 	}
 
 	private: vmm_pointer do_vmm()
@@ -312,6 +317,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 
 
 	private: ::std::string name_;
+	private: mutable ::std::string id_;
 	private: vmm_impl_pointer p_vmm_;
 	private: ::virDomainPtr p_dom_;
 }; // virtual_machine

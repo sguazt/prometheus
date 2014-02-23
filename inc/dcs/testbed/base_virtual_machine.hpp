@@ -70,7 +70,7 @@ class base_virtual_machine
 	}
 
 	/// Get the VM identifier
-	public: ::std::string id() const
+	public: identifier_type id() const
 	{
 		return do_id();
 	}

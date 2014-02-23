@@ -70,12 +70,13 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 	public: typedef typename traits_type::real_type real_type;
 	private: typedef typename base_type::app_type app_type;
 	private: typedef typename base_type::app_pointer app_pointer;
+	private: typedef typename base_type::vm_identifier_type vm_identifier_type;
 	private: typedef typename app_type::sensor_type sensor_type;
 	private: typedef typename app_type::sensor_pointer sensor_pointer;
 	private: typedef ::std::vector<real_type> observation_container;
 	private: typedef ::std::map<application_performance_category,observation_container> observation_map;
 	private: typedef ::std::map<application_performance_category,sensor_pointer> out_sensor_map;
-	private: typedef ::std::map<virtual_machine_performance_category,::std::vector<sensor_pointer> > in_sensor_map;
+	private: typedef ::std::map<virtual_machine_performance_category,::std::map<vm_identifier_type,sensor_pointer> > in_sensor_map;
 
 
 	private: static const ::std::string rgain_fuzzy_var_name;
@@ -93,7 +94,6 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 	public: void smoothing_factor(real_type value)
 	{
 		beta_ = value;
-		this->data_smoother(cpu_util_virtual_machine_performance, ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
 	}
 
 	public: real_type smoothing_factor() const
@@ -108,10 +108,6 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 
 	private: void init()
 	{
-		this->data_estimator(cpu_util_virtual_machine_performance, boost::make_shared< mean_estimator<real_type> >());
-
-		this->data_smoother(cpu_util_virtual_machine_performance, ::boost::make_shared< brown_single_exponential_smoother<real_type> >(beta_));
-
 		DCS_DEBUG_ASSERT( p_fuzzy_eng_ );
 
 		fl::InputVariable* p_iv = 0;
@@ -172,6 +168,9 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 		typedef typename base_type::target_value_map::const_iterator target_iterator;
 		typedef typename app_type::vm_pointer vm_pointer;
 
+		const ::std::vector<vm_pointer> vms = this->app().vms();
+		const ::std::size_t nvms = this->app().num_vms();
+
 		// Reset output sensors
 		out_sensors_.clear();
 		const target_iterator tgt_end_it = this->target_values().end();
@@ -185,14 +184,13 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 		}
 
 		// Reset input sensors
-		const ::std::vector<vm_pointer> vms = this->app().vms();
-		const ::std::size_t nvms = this->app().num_vms();
 		in_sensors_.clear();
 		for (::std::size_t i = 0; i < nvms; ++i)
 		{
 			const virtual_machine_performance_category cat = cpu_util_virtual_machine_performance;
+			vm_pointer p_vm = vms[i];
 
-			in_sensors_[cat].push_back(vms[i]->sensor(cat));
+			in_sensors_[cat][p_vm->id()] = p_vm->sensor(cat);
 		}
 
 		// Reset counters
@@ -206,6 +204,11 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 		//// Reset Cres estimator and smoother
 		//this->data_estimator(cpu_util_virtual_machine_performance).reset();
 		//this->data_smoother(cpu_util_virtual_machine_performance).reset();
+		for (::std::size_t i = 0; i < nvms; ++i)
+		{
+			this->data_smoother(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
+			//this->data_estimator(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::mean_estimator<real_type> >());
+		}
 
 		// Reset output data file
 		if (p_dat_ofs_ && p_dat_ofs_->is_open())
@@ -261,10 +264,17 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 		{
 			const virtual_machine_performance_category cat = in_sens_it->first;
 
-			const ::std::size_t n = in_sens_it->second.size();
-			for (::std::size_t i = 0; i < n; ++i)
+			//const ::std::size_t n = in_sens_it->second.size();
+			//for (::std::size_t i = 0; i < n; ++i)
+			//{
+			//	sensor_pointer p_sens = in_sens_it->second.at(i);
+			const typename in_sensor_map::mapped_type::const_iterator vm_end_it = in_sens_it->second.end();
+			for (typename in_sensor_map::mapped_type::const_iterator vm_it = in_sens_it->second.begin();
+				 vm_it != vm_end_it;
+				 ++vm_it)
 			{
-				sensor_pointer p_sens = in_sens_it->second.at(i);
+				const vm_identifier_type vm_id = vm_it->first;
+				sensor_pointer p_sens = vm_it->second;
 
 				// check: p_sens != null
 				DCS_DEBUG_ASSERT( p_sens );
@@ -278,7 +288,8 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 						 it != end_it;
 						 ++it)
 					{
-						this->data_estimator(cat).collect(it->value());
+						//this->data_estimator(cat, vm_id).collect(it->value());
+						this->data_smoother(cat, vm_id).smooth(it->value());
 					}
 				}
 			}
@@ -334,22 +345,28 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 		for (::std::size_t i = 0; i < nvms; ++i)
 		{
 			const virtual_machine_performance_category cat = cpu_util_virtual_machine_performance;
+			const vm_pointer p_vm = vms[i];
 
-			if (this->data_estimator(cat).count() > 0)
-			{
-				const real_type uh = this->data_estimator(cat).estimate();
-				const real_type c = vms[i]->cpu_share();
+//			if (this->data_estimator(cat, vms[i]->id()).count() > 0)
+//			{
+//				//const real_type uh = this->data_estimator(cat, p_vm->id()).estimate();
+//				const real_type uh = this->data_smoother(cat, p_vm->id()).forecast(0);
+//				const real_type c = p_vm->cpu_share();
+//
+//				cress[cat].push_back(c-uh);
+//			}
+//			else
+//			{
+//				// No observation collected during the last control interval
+//				DCS_DEBUG_TRACE("No input observation collected during the last control interval -> Skip control");
+//				skip_ctl = true;
+//				break;
+//			}
+			const real_type uh = this->data_smoother(cat, p_vm->id()).forecast(0);
+			const real_type c = p_vm->cpu_share();
 
-				cress[cat].push_back(c-uh);
-DCS_DEBUG_TRACE("VM " << vms[i]->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << cress.at(cat).at(i));//XXX
-			}
-			else
-			{
-				// No observation collected during the last control interval
-				DCS_DEBUG_TRACE("No input observation collected during the last control interval -> Skip control");
-				skip_ctl = true;
-				break;
-			}
+			cress[cat].push_back(c-uh);
+DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << cress.at(cat).at(i));//XXX
 		}
 
 		if (!skip_ctl)
