@@ -516,23 +516,15 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Y(k): " << y << " - R
 					   DCS_EXCEPTION_THROW(::std::runtime_error,
 					   "Only SISO system are currently managed"));
 
-//FIXME: Should Ke and Kde be updated before or after the application of fuzzy control
-//			const real_type Ke = (ctl_count_ > 1) ? ::std::abs(Ke_) : 1.0;
-//			const real_type Kde = (ctl_count_ > 1) ? ::std::abs(Kde_) : 1.0;
-//			const real_type e = Ke*es_.begin()->second;
-//			const real_type de = Kde*des.begin()->second;
-//
-//			// Update input scaling factors
-//			Ke_ = (1-gamma_)*Ke_ + gamma_*e;
-//			Kde_ = (1-gamma_)*Kde_ - gamma_*de;
+			// Compute the input to the RC fuzzy controller
+			const real_type Ke = (ctl_count_ > 1) ? ::std::abs(Ke_) : 1.0;
+			const real_type Kde = (ctl_count_ > 1) ? ::std::abs(Kde_) : 1.0;
+			const real_type e = Ke*es_.begin()->second;
+			const real_type de = Kde*des.begin()->second;
 
 			// Update input scaling factors
 			Ke_ = (1-gamma_)*Ke_ + gamma_*es_.begin()->second;
 			Kde_ = (1-gamma_)*Kde_ - gamma_*des.begin()->second;
-
-			// Compute the input to the RC fuzzy controller
-			const real_type e = ::std::abs(Ke_)*es_.begin()->second;
-			const real_type de = ::std::abs(Kde_)*des.begin()->second;
 
 			// Perform fuzzy control
 			bool ok = false;
