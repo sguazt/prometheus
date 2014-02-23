@@ -62,12 +62,13 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 	public: typedef typename traits_type::real_type real_type;
 	private: typedef typename base_type::app_type app_type;
 	private: typedef typename base_type::app_pointer app_pointer;
+	private: typedef typename base_type::vm_identifier_type vm_identifier_type;
 	private: typedef typename app_type::sensor_type sensor_type;
 	private: typedef typename app_type::sensor_pointer sensor_pointer;
 	private: typedef ::std::vector<real_type> observation_container;
 	private: typedef ::std::map<application_performance_category,observation_container> observation_map;
 	private: typedef ::std::map<application_performance_category,sensor_pointer> app_sensor_map;
-	private: typedef ::std::map<virtual_machine_performance_category,::std::vector<sensor_pointer> > vm_sensor_map;
+	private: typedef ::std::map<virtual_machine_performance_category,::std::map<vm_identifier_type,sensor_pointer> > vm_sensor_map;
 	public: typedef base_signal_generator<real_type> signal_generator_type;
 	public: typedef ::boost::shared_ptr<signal_generator_type> signal_generator_pointer;
 
@@ -157,8 +158,9 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 		for (::std::size_t i = 0; i < nvms; ++i)
 		{
 			const virtual_machine_performance_category cat = cpu_util_virtual_machine_performance;
+			const vm_pointer p_vm = vms[i];
 
-			vm_sensors_[cat].push_back(vms[i]->sensor(cat));
+			vm_sensors_[cat][p_vm->id()] = p_vm->sensor(cat);
 		}
 
 		// Reset counters
@@ -220,7 +222,7 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 		const ::std::vector<vm_pointer> vms = this->app().vms();
 		const ::std::size_t nvms = vms.size();
 
-		::std::vector<obs_container> vm_obs(nvms);
+		::std::map<vm_identifier_type,obs_container> vm_obs;
 		obs_container app_obs;
 
 		::std::size_t max_nobs = 0;
@@ -237,10 +239,17 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 		{
 			const virtual_machine_performance_category cat = vm_sens_it->first;
 
-			const ::std::size_t n = vm_sens_it->second.size();
-			for (::std::size_t i = 0; i < n; ++i)
-			{
-				sensor_pointer p_sens = vm_sens_it->second.at(i);
+//			const ::std::size_t n = vm_sens_it->second.size();
+//			for (::std::size_t i = 0; i < n; ++i)
+//			{
+//				sensor_pointer p_sens = vm_sens_it->second.at(i);
+            const typename vm_sensor_map::mapped_type::const_iterator vm_end_it = vm_sens_it->second.end();
+            for (typename vm_sensor_map::mapped_type::const_iterator vm_it = vm_sens_it->second.begin();
+                 vm_it != vm_end_it;
+                 ++vm_it)
+            {
+                const vm_identifier_type vm_id = vm_it->first;
+                sensor_pointer p_sens = vm_it->second;
 
 				// check: p_sens != null
 				DCS_DEBUG_ASSERT( p_sens );
@@ -254,11 +263,11 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 						 it != end_it;
 						 ++it)
 					{
-						this->data_estimator(cat).collect(it->value());
+						this->data_estimator(cat, vm_id).collect(it->value());
 
 						if (out_ext_fmt_)
 						{
-							vm_obs[i].push_back(*it);
+							vm_obs[vm_id].push_back(*it);
 						}
 					}
 
@@ -313,8 +322,8 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 				for (::std::size_t j = 0; j < nvms; ++j)
 				{
 					const vm_pointer p_vm = vms[j];
-					const obs_container& obs = vm_obs[j];
-					const ::std::size_t nobs = vm_obs.size();
+					const obs_container& obs = vm_obs.at(p_vm->id());
+					const ::std::size_t nobs = obs.size();
 					const real_type share = p_vm->cpu_share();
 
 					if (i < nobs)
@@ -401,12 +410,13 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
 				const virtual_machine_performance_category cat = cpu_util_virtual_machine_performance;
+				const vm_pointer p_vm = vms[i];
 
 				*p_dat_ofs_ << "," << old_shares[i];
 
-				if (this->data_estimator(cat).count() > 0)
+				if (this->data_estimator(cat, p_vm->id()).count() > 0)
 				{
-					*p_dat_ofs_ << "," << this->data_estimator(cat).estimate();
+					*p_dat_ofs_ << "," << this->data_estimator(cat, p_vm->id()).estimate();
 				}
 				else
 				{
