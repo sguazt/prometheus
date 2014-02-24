@@ -142,7 +142,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 					break;
 			}
 			p_iv->setRange(-1, 1);
-			p_iv->addTerm(new ::fl::Ramp("NL", -1, -two_third));
+			p_iv->addTerm(new ::fl::Ramp("NL", -two_third, -1));
 			p_iv->addTerm(new ::fl::Triangle("NM", -1, -two_third, -one_third));
 			p_iv->addTerm(new ::fl::Triangle("NS", -two_third, -one_third, 0));
 			p_iv->addTerm(new ::fl::Triangle("ZE", -one_third, 0, one_third));
@@ -160,7 +160,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 		p_ov->setDefuzzifier(new ::fl::Centroid());
 		p_ov->setDefaultValue(::fl::nan);
 		p_ov->setLockValidOutput(false);
-		p_ov->addTerm(new ::fl::Ramp("NL", -1, -two_third));
+		p_ov->addTerm(new ::fl::Ramp("NL", -two_third, -1));
 		p_ov->addTerm(new ::fl::Triangle("NM", -1, -two_third, -one_third));
 		p_ov->addTerm(new ::fl::Triangle("NS", -two_third, -one_third, 0));
 		p_ov->addTerm(new ::fl::Triangle("ZE", -one_third, 0, one_third));
@@ -242,7 +242,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 					break;
 			}
 			p_iv->setRange(-1, 1);
-			p_iv->addTerm(new ::fl::Ramp("NL", -1, -two_third));
+			p_iv->addTerm(new ::fl::Ramp("NL", -two_third, -1));
 			p_iv->addTerm(new ::fl::Triangle("NM", -1, -two_third, -one_third));
 			p_iv->addTerm(new ::fl::Triangle("NS", -two_third, -one_third, 0));
 			p_iv->addTerm(new ::fl::Triangle("ZE", -one_third, 0, one_third));
