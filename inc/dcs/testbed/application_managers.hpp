@@ -35,6 +35,10 @@
 
 
 #include <dcs/testbed/albano2013_application_manager.hpp>
+#include <dcs/testbed/albano2013v2_application_manager.hpp>
+#include <dcs/testbed/albano2013v3_application_manager.hpp>
+#include <dcs/testbed/albano2013v4_application_manager.hpp>
+#include <dcs/testbed/albano2013v5_application_manager.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
 #include <dcs/testbed/lq_application_manager.hpp>
 #include <dcs/testbed/padala2009_application_manager.hpp>
