@@ -53,10 +53,12 @@ class throughput_sensor: public base_sensor<TraitsT>
 	private: typedef base_sensor<TraitsT> base_type;
 	public: typedef typename base_type::traits_type traits_type;
 	public: typedef typename base_type::observation_type observation_type;
+	private: typedef typename traits_type::real_type real_type;
 
 
-	public: throughput_sensor(::std::string const& status_file_path)
+	public: explicit throughput_sensor(::std::string const& status_file_path, bool interval_throughput=true)
 	: status_file_(status_file_path),
+	  int_tput_(interval_throughput),
 	  fpos_(0)
 //	  new_data_(false)
 	{
@@ -76,7 +78,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 		const ::std::string noname_op("<no-name>");
 		const ::std::size_t timestamp_field(1);
 		const ::std::size_t num_operations_field(2);
-		//const ::std::size_t relative_throughput_field(3);
+		const ::std::size_t relative_throughput_field(3);
 		//const ::std::size_t update_latency_field(4);
 		//const ::std::size_t read_latency_field(5);
 
@@ -136,6 +138,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 
 			::std::time_t obs_ts = 0; // timestamp (in secs from the beginning of the experiment)
 			unsigned long obs_nops = 0; // number of operations from the beginning of the experiment
+			real_type obs_rel_tput = 0; // relative throughput (i.e., the throughput of the last sampling interval)
 			::std::size_t field = 0;
 			bool done = false;
 			for (::std::size_t pos = 0; pos < n && !done; ++pos)
@@ -194,7 +197,37 @@ class throughput_sensor: public base_sensor<TraitsT>
 								;
 							}
 							pos = pos2;
-							done = true;
+							if (!int_tput_)
+							{
+								done = true;
+							}
+							break;
+						}
+						case relative_throughput_field:
+						{
+							::std::size_t pos2(pos);
+							//for (; pos2 < n && ::std::isalpha(line[pos2]); ++pos2)
+							for (; pos2 < n && !::std::isspace(line[pos2]); ++pos2)
+							{
+								;
+							}
+							if (pos2 == n)
+							{
+								// This line does not contain useful data
+								continue;
+							}
+							::std::istringstream iss(line.substr(pos, pos2-pos));
+							iss >> obs_rel_tput;
+//DCS_DEBUG_TRACE("Interval Throughput: " << rel_tput);
+							for (; pos2 < n && line[pos2] != ';'; ++pos2)
+							{
+								;
+							}
+							pos = pos2;
+							if (int_tput_)
+							{
+								done = true;
+							}
 							break;
 						}
 						default:
@@ -210,9 +243,16 @@ class throughput_sensor: public base_sensor<TraitsT>
 
 			if (obs_ts > 0)
 			{
-				DCS_DEBUG_TRACE("Found observation: " << obs_ts << ", " << obs_nops);
+				DCS_DEBUG_TRACE("Found observation: " << obs_ts << ", " << obs_nops << ", " << obs_rel_tput);
 
-				obs_.push_back(observation_type(obs_ts, noname_op, obs_nops/obs_ts));
+				if (int_tput_)
+				{
+					obs_.push_back(observation_type(obs_ts, noname_op, obs_nops/obs_ts));
+				}
+				else
+				{
+					obs_.push_back(observation_type(obs_ts, noname_op, obs_rel_tput));
+				}
 			}
 		}
 
@@ -242,6 +282,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 
 
 	private: ::std::string status_file_;
+	private: bool int_tput_; ///< A flag which indicates if the the last sampling interval throughput (a \c true value) or the incremental throughput (a \c false value) should be sensed
 	private: ::std::ifstream ifs_;
 	private: ::std::ifstream::pos_type fpos_;
 //	private: bool new_data_;
