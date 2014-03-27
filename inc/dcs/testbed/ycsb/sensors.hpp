@@ -34,6 +34,8 @@
 #define DCS_TESTBED_YCSB_SENSORS_HPP
 
 
+//#include <boost/date_time/gregorian/gregorian_types.hpp>
+//#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <cctype>
 #include <cstddef>
 #include <ctime>
@@ -46,6 +48,33 @@
 
 
 namespace dcs { namespace testbed { namespace ycsb {
+
+namespace detail { namespace /*<unnamed>*/ {
+
+::std::time_t make_timestamp(int year, int month, int day, int hour, int min, int sec, int msec)
+{
+//	namespace bpt = boost::posix_time;
+//	namespace bgr = boost::gregorian;
+//	namespace bdt = boost::date_time;
+//
+//	bpt::ptime dt = bpt::ptime(bgr::date(year, month, day), bpt::hours(hour)+bpt::minutes(min)+bpt::seconds(sec)+bpt::milliseconds(msec));
+//	bpt::ptime start_epoch(bgr::date(1970,1,1));
+ //   bdt::time_duration diff = dt-start_epoch;
+//	return static_cast< ::std::time_t >(diff.total_seconds());
+	::std::tm t;
+	t.tm_sec = (sec+msec/1000) % 60;
+	t.tm_min = min % 60;
+	t.tm_hour = hour % 24;
+	t.tm_mday = day % 32;
+	t.tm_mon = (month-1) % 12;
+	t.tm_year = year-1900;
+	t.tm_wday = t.tm_yday = t.tm_isdst = -1;
+
+	return ::std::mktime(&t);
+}
+
+}} // Namespace detail::<unnamed>
+
 
 template <typename TraitsT>
 class throughput_sensor: public base_sensor<TraitsT>
@@ -77,8 +106,9 @@ class throughput_sensor: public base_sensor<TraitsT>
 
 		const ::std::string noname_op("<no-name>");
 		const ::std::size_t timestamp_field(1);
-		const ::std::size_t num_operations_field(2);
-		const ::std::size_t relative_throughput_field(3);
+		const ::std::size_t elapsed_field(2);
+		const ::std::size_t num_operations_field(3);
+		const ::std::size_t relative_throughput_field(4);
 		//const ::std::size_t update_latency_field(4);
 		//const ::std::size_t read_latency_field(5);
 
@@ -136,7 +166,8 @@ class throughput_sensor: public base_sensor<TraitsT>
 				continue;
 			}
 
-			::std::time_t obs_ts = 0; // timestamp (in secs from the beginning of the experiment)
+			::std::time_t obs_ts = 0; // timestamp (in secs)
+			::std::time_t obs_elapsed = 0; // timestamp (in secs from the beginning of the experiment)
 			unsigned long obs_nops = 0; // number of operations from the beginning of the experiment
 			real_type obs_rel_tput = 0; // relative throughput (i.e., the throughput of the last sampling interval)
 			::std::size_t field = 0;
@@ -156,6 +187,145 @@ class throughput_sensor: public base_sensor<TraitsT>
 					{
 						case timestamp_field:
 						{
+							// Format: yyyy-mm-dd HH:MM:SS:ttt
+
+							unsigned short year = 0;
+							unsigned short month = 0;
+							unsigned short day = 0;
+							unsigned short hour = 0;
+							unsigned short min = 0;
+							unsigned short sec = 0;
+							unsigned short msec = 0;
+
+							::std::size_t pos2(pos);
+
+							// Parse year (yyyy)
+							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
+							{
+								;
+							}
+							if (pos2 == n)
+							{
+								// This line does not contain useful data
+								continue;
+							}
+							::std::istringstream iss(line.substr(pos, pos2-pos));
+							iss >> year;
+							for (; pos2 < n && line[pos2] != '-'; ++pos2)
+							{
+								;
+							}
+							pos = pos2;
+							// Parse month (mm)
+							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
+							{
+								;
+							}
+							if (pos2 == n)
+							{
+								// This line does not contain useful data
+								continue;
+							}
+							iss.str("");
+							iss.str(line.substr(pos, pos2-pos));
+							iss >> month;
+							for (; pos2 < n && line[pos2] != '-'; ++pos2)
+							{
+								;
+							}
+							pos = pos2;
+							// Parse day (dd)
+							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
+							{
+								;
+							}
+							if (pos2 == n)
+							{
+								// This line does not contain useful data
+								continue;
+							}
+							iss.str("");
+							iss.str(line.substr(pos, pos2-pos));
+							iss >> day;
+							for (; pos2 < n && isspace(line[pos2]); ++pos2)
+							{
+								;
+							}
+							pos = pos2;
+							// Parse hour (HH)
+							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
+							{
+								;
+							}
+							if (pos2 == n)
+							{
+								// This line does not contain useful data
+								continue;
+							}
+							iss.str("");
+							iss.str(line.substr(pos, pos2-pos));
+							iss >> hour;
+							for (; pos2 < n && line[pos2] != ':'; ++pos2)
+							{
+								;
+							}
+							pos = pos2;
+							// Parse minutes (MM)
+							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
+							{
+								;
+							}
+							if (pos2 == n)
+							{
+								// This line does not contain useful data
+								continue;
+							}
+							iss.str("");
+							iss.str(line.substr(pos, pos2-pos));
+							iss >> min;
+							for (; pos2 < n && line[pos2] != ':'; ++pos2)
+							{
+								;
+							}
+							pos = pos2;
+							// Parse seconds (SS)
+							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
+							{
+								;
+							}
+							if (pos2 == n)
+							{
+								// This line does not contain useful data
+								continue;
+							}
+							iss.str("");
+							iss.str(line.substr(pos, pos2-pos));
+							iss >> sec;
+							for (; pos2 < n && line[pos2] != ':'; ++pos2)
+							{
+								;
+							}
+							pos = pos2;
+							// Parse milliseconds (ttt)
+							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
+							{
+								;
+							}
+							if (pos2 == n)
+							{
+								// This line does not contain useful data
+								continue;
+							}
+							iss.str("");
+							iss.str(line.substr(pos, pos2-pos));
+							iss >> msec;
+							obs_ts = detail::make_timestamp(year, month, day, hour, min, sec, msec);
+//DCS_DEBUG_TRACE("Timestamp: " << obs_ts);
+							pos = pos2;
+							break;
+						}
+						case elapsed_field:
+						{
 							::std::size_t pos2(pos);
 							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
 							{
@@ -167,8 +337,8 @@ class throughput_sensor: public base_sensor<TraitsT>
 								continue;
 							}
 							::std::istringstream iss(line.substr(pos, pos2-pos));
-							iss >> obs_ts;
-//DCS_DEBUG_TRACE("Timestamp: " << obs_ts);
+							iss >> obs_elapsed;
+//DCS_DEBUG_TRACE("Timestamp: " << obs_elapsed);
 							for (; pos2 < n && line[pos2] != ':'; ++pos2)
 							{
 								;
@@ -241,17 +411,17 @@ class throughput_sensor: public base_sensor<TraitsT>
 				}
 			}
 
-			if (obs_ts > 0)
+			if (obs_elapsed > 0)
 			{
-				DCS_DEBUG_TRACE("Found observation: " << obs_ts << ", " << obs_nops << ", " << obs_rel_tput);
+				DCS_DEBUG_TRACE("Found observation: " << obs_ts << ", " << obs_elapsed << ", " << obs_nops << ", " << obs_rel_tput);
 
 				if (int_tput_)
 				{
-					obs_.push_back(observation_type(obs_ts, noname_op, obs_nops/obs_ts));
+					obs_.push_back(observation_type(obs_elapsed, noname_op, obs_nops/obs_elapsed));
 				}
 				else
 				{
-					obs_.push_back(observation_type(obs_ts, noname_op, obs_rel_tput));
+					obs_.push_back(observation_type(obs_elapsed, noname_op, obs_rel_tput));
 				}
 			}
 		}
