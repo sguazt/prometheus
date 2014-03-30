@@ -197,7 +197,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 							unsigned short sec = 0;
 							unsigned short msec = 0;
 
-							::std::size_t pos2(pos);
+							::std::size_t pos2 = pos;
 
 							// Parse year (yyyy)
 							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
@@ -215,6 +215,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
+							++pos2;
 							pos = pos2;
 							// Parse month (mm)
 							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
@@ -233,6 +234,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
+							++pos2;
 							pos = pos2;
 							// Parse day (dd)
 							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
@@ -251,6 +253,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
+							++pos2;
 							pos = pos2;
 							// Parse hour (HH)
 							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
@@ -269,6 +272,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
+							++pos2;
 							pos = pos2;
 							// Parse minutes (MM)
 							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
@@ -287,6 +291,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
+							++pos2;
 							pos = pos2;
 							// Parse seconds (SS)
 							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
@@ -305,6 +310,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
+							++pos2;
 							pos = pos2;
 							// Parse milliseconds (ttt)
 							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
@@ -320,7 +326,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 							iss.str(line.substr(pos, pos2-pos));
 							iss >> msec;
 							obs_ts = detail::make_timestamp(year, month, day, hour, min, sec, msec);
-//DCS_DEBUG_TRACE("Timestamp: " << obs_ts);
+//DCS_DEBUG_TRACE("Timestamp: " << obs_ts << "(" << year << "-" << month << "-" << day << " " << hour << ":" << min << ":" << sec << ":" << msec << ")");
 							pos = pos2;
 							break;
 						}
@@ -343,6 +349,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
+							++pos2;
 							pos = pos2;
 							break;
 						}
@@ -366,6 +373,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
+							++pos2;
 							pos = pos2;
 							if (!int_tput_)
 							{
@@ -393,6 +401,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
+							++pos2;
 							pos = pos2;
 							if (int_tput_)
 							{
@@ -417,11 +426,11 @@ class throughput_sensor: public base_sensor<TraitsT>
 
 				if (int_tput_)
 				{
-					obs_.push_back(observation_type(obs_elapsed, noname_op, obs_nops/obs_elapsed));
+					obs_.push_back(observation_type(obs_elapsed, noname_op, obs_rel_tput));
 				}
 				else
 				{
-					obs_.push_back(observation_type(obs_elapsed, noname_op, obs_rel_tput));
+					obs_.push_back(observation_type(obs_elapsed, noname_op, obs_nops/obs_elapsed));
 				}
 			}
 		}
