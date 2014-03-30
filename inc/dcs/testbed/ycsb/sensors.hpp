@@ -227,7 +227,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 								// This line does not contain useful data
 								continue;
 							}
-							//iss.str(::std::string());
+							iss.str(::std::string());
 							iss.clear();
 							iss.str(line.substr(pos, pos2-pos));
 							iss >> month;
@@ -247,7 +247,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 								// This line does not contain useful data
 								continue;
 							}
-							//iss.str(::std::string());
+							iss.str(::std::string());
 							iss.clear();
 							iss.str(line.substr(pos, pos2-pos));
 							iss >> day;
@@ -267,7 +267,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 								// This line does not contain useful data
 								continue;
 							}
-							//iss.str(::std::string());
+							iss.str(::std::string());
 							iss.clear();
 							iss.str(line.substr(pos, pos2-pos));
 							iss >> hour;
@@ -287,7 +287,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 								// This line does not contain useful data
 								continue;
 							}
-							//iss.str(::std::string());
+							iss.str(::std::string());
 							iss.clear();
 							iss.str(line.substr(pos, pos2-pos));
 							iss >> min;
@@ -307,7 +307,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 								// This line does not contain useful data
 								continue;
 							}
-							//iss.str(::std::string());
+							iss.str(::std::string());
 							iss.clear();
 							iss.str(line.substr(pos, pos2-pos));
 							iss >> sec;
@@ -327,7 +327,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 								// This line does not contain useful data
 								continue;
 							}
-							//iss.str(::std::string());
+							iss.str(::std::string());
 							iss.clear();
 							iss.str(line.substr(pos, pos2-pos));
 							iss >> msec;
