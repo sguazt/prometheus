@@ -204,7 +204,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
-							if (pos2 == n)
+							if (pos2 == pos || pos2 == n)
 							{
 								// This line does not contain useful data
 								continue;
@@ -222,12 +222,13 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
-							if (pos2 == n)
+							if (pos2 == pos || pos2 == n)
 							{
 								// This line does not contain useful data
 								continue;
 							}
-							iss.str("");
+							//iss.str(::std::string());
+							iss.clear();
 							iss.str(line.substr(pos, pos2-pos));
 							iss >> month;
 							for (; pos2 < n && line[pos2] != '-'; ++pos2)
@@ -241,12 +242,13 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
-							if (pos2 == n)
+							if (pos2 == pos || pos2 == n)
 							{
 								// This line does not contain useful data
 								continue;
 							}
-							iss.str("");
+							//iss.str(::std::string());
+							iss.clear();
 							iss.str(line.substr(pos, pos2-pos));
 							iss >> day;
 							for (; pos2 < n && isspace(line[pos2]); ++pos2)
@@ -260,12 +262,13 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
-							if (pos2 == n)
+							if (pos2 == pos || pos2 == n)
 							{
 								// This line does not contain useful data
 								continue;
 							}
-							iss.str("");
+							//iss.str(::std::string());
+							iss.clear();
 							iss.str(line.substr(pos, pos2-pos));
 							iss >> hour;
 							for (; pos2 < n && line[pos2] != ':'; ++pos2)
@@ -279,12 +282,13 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
-							if (pos2 == n)
+							if (pos2 == pos || pos2 == n)
 							{
 								// This line does not contain useful data
 								continue;
 							}
-							iss.str("");
+							//iss.str(::std::string());
+							iss.clear();
 							iss.str(line.substr(pos, pos2-pos));
 							iss >> min;
 							for (; pos2 < n && line[pos2] != ':'; ++pos2)
@@ -298,12 +302,13 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
-							if (pos2 == n)
+							if (pos2 == pos || pos2 == n)
 							{
 								// This line does not contain useful data
 								continue;
 							}
-							iss.str("");
+							//iss.str(::std::string());
+							iss.clear();
 							iss.str(line.substr(pos, pos2-pos));
 							iss >> sec;
 							for (; pos2 < n && line[pos2] != ':'; ++pos2)
@@ -317,12 +322,13 @@ class throughput_sensor: public base_sensor<TraitsT>
 							{
 								;
 							}
-							if (pos2 == n)
+							if (pos2 == pos || pos2 == n)
 							{
 								// This line does not contain useful data
 								continue;
 							}
-							iss.str("");
+							//iss.str(::std::string());
+							iss.clear();
 							iss.str(line.substr(pos, pos2-pos));
 							iss >> msec;
 							obs_ts = detail::make_timestamp(year, month, day, hour, min, sec, msec);
@@ -332,19 +338,19 @@ class throughput_sensor: public base_sensor<TraitsT>
 						}
 						case elapsed_field:
 						{
-							::std::size_t pos2(pos);
+							::std::size_t pos2 = pos;
 							for (; pos2 < n && ::std::isdigit(line[pos2]); ++pos2)
 							{
 								;
 							}
-							if (pos2 == n)
+							if (pos2 == pos || pos2 == n)
 							{
 								// This line does not contain useful data
 								continue;
 							}
 							::std::istringstream iss(line.substr(pos, pos2-pos));
 							iss >> obs_elapsed;
-//DCS_DEBUG_TRACE("Timestamp: " << obs_elapsed);
+//DCS_DEBUG_TRACE("Elapsed: " << obs_elapsed);
 							for (; pos2 < n && line[pos2] != ':'; ++pos2)
 							{
 								;
@@ -355,13 +361,13 @@ class throughput_sensor: public base_sensor<TraitsT>
 						}
 						case num_operations_field:
 						{
-							::std::size_t pos2(pos);
+							::std::size_t pos2 = pos;
 							//for (; pos2 < n && ::std::isalpha(line[pos2]); ++pos2)
 							for (; pos2 < n && !::std::isspace(line[pos2]); ++pos2)
 							{
 								;
 							}
-							if (pos2 == n)
+							if (pos2 == pos || pos2 == n)
 							{
 								// This line does not contain useful data
 								continue;
@@ -383,20 +389,20 @@ class throughput_sensor: public base_sensor<TraitsT>
 						}
 						case relative_throughput_field:
 						{
-							::std::size_t pos2(pos);
+							::std::size_t pos2 = pos;
 							//for (; pos2 < n && ::std::isalpha(line[pos2]); ++pos2)
 							for (; pos2 < n && !::std::isspace(line[pos2]); ++pos2)
 							{
 								;
 							}
-							if (pos2 == n)
+							if (pos2 == pos || pos2 == n)
 							{
 								// This line does not contain useful data
 								continue;
 							}
 							::std::istringstream iss(line.substr(pos, pos2-pos));
 							iss >> obs_rel_tput;
-//DCS_DEBUG_TRACE("Interval Throughput: " << rel_tput);
+//DCS_DEBUG_TRACE("Interval Throughput: " << obs_rel_tput);
 							for (; pos2 < n && line[pos2] != ';'; ++pos2)
 							{
 								;
