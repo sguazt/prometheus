@@ -528,6 +528,8 @@ DCS_DEBUG_TRACE("Applying optimal control");
 						// check: p_vm != null
 						DCS_DEBUG_ASSERT( p_vm );
 
+						const real_type old_share = p_vm->cpu_share();
+
 						real_type new_share = opt_u(v);
 
 						if (::dcs::math::float_traits<real_type>::definitely_less(new_share, default_min_share))
@@ -547,8 +549,11 @@ DCS_DEBUG_TRACE("Applying optimal control");
 
 //						u_.push_back(new_share);
 
-DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << p_vm->cpu_share() << " - new-share: " << new_share);
-						p_vm->cpu_share(new_share);
+DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << old_share << " - new-share: " << new_share);
+						if (!::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share))
+						{
+							p_vm->cpu_share(new_share);
+						}
 
 						++v;
 					}

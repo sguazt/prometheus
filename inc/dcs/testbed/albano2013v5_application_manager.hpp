@@ -32,6 +32,7 @@
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
 #include <dcs/logging.hpp>
+#include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
 #include <dcs/testbed/data_estimators.hpp>
@@ -461,11 +462,15 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << " -> DeltaC(k+1): " << deltacs.at(i));/
 				{
 					vm_pointer p_vm = vms[i];
 
-					const real_type new_share = ::std::max(::std::min(p_vm->cpu_share()+deltacs[i], 1.0), 0.0);
+					const real_type old_share = p_vm->cpu_share();
+					const real_type new_share = ::std::max(::std::min(old_share+deltacs[i], 1.0), 0.0);
 
-					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << p_vm->cpu_share() << " - new-share: " << new_share);
+					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << old_share << " - new-share: " << new_share);
 
-					p_vm->cpu_share(new_share);
+					if (!::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share))
+					{
+						p_vm->cpu_share(new_share);
+					}
 DCS_DEBUG_TRACE("VM " << vms[i]->id() << " -> C(k+1): " << new_share);//XXX
 				}
 DCS_DEBUG_TRACE("Optimal control applied");//XXX

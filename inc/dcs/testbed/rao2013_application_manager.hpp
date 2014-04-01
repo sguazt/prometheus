@@ -33,6 +33,7 @@
 #include <dcs/exception.hpp>
 #include <dcs/logging.hpp>
 #include <dcs/macro.hpp>
+#include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
 #include <fl/Headers.h>
@@ -571,16 +572,19 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Y(k): " << y << " - R
 				{
 					vm_pointer p_vm = vms[i];
 
-					real_type c = p_vm->cpu_share();
+					const real_type c = p_vm->cpu_share();
 
 					// Compute the output amplifier
 					const real_type Kdu = c*0.5*::std::abs(e);
 
 					const real_type u = ::std::max(::std::min(c+alpha*Kdu*du, 1.0), 0.0);
 
-					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << p_vm->cpu_share() << " - new-share: " << u);
+					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << c << " - new-share: " << u);
 
-					p_vm->cpu_share(u);
+					if (!::dcs::math::float_traits<real_type>::essentially_equal(c, u))
+					{
+						p_vm->cpu_share(u);
+					}
 DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Alpha: " << alpha << ", DeltaU: " << du << ", K_{DeltaU}: " << Kdu << " -> U(k+1): " << u);//XXX
 				}
 DCS_DEBUG_TRACE("Optimal control applied");//XXX
