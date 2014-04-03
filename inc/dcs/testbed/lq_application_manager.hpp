@@ -53,6 +53,7 @@
 #include <boost/numeric/ublasx/operation/num_columns.hpp>
 #include <boost/numeric/ublasx/operation/num_rows.hpp>
 #include <boost/smart_ptr.hpp>
+#include <cmath>
 #include <cstddef>
 #include <dcs/assert.hpp>
 #include <dcs/control/analysis/controllability.hpp>
@@ -1539,9 +1540,13 @@ DCS_DEBUG_TRACE("Applying optimal control");
 							}
 
 							new_share = ::std::min(::std::max(new_share, default_min_share), default_max_share);
+							const real_type old_share = p_vm->cpu_share();
 
-DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << p_vm->cpu_share() << " - new-share: " << new_share);
-							p_vm->cpu_share(new_share);
+DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << old_share << " - new-share: " << new_share);
+							if (::std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(new_share, old_share))
+							{
+								p_vm->cpu_share(new_share);
+							}
 
 							++v;
 						}

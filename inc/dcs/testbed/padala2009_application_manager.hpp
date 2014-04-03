@@ -66,6 +66,7 @@
 #endif // DCS_TESTBED_EXP_PADALA2009_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
 #include <boost/numeric/ublasx/operation/isfinite.hpp>
 #include <boost/smart_ptr.hpp>
+#include <cmath>
 #include <cstddef>
 #include <ctime>
 #include <dcs/assert.hpp>
@@ -550,7 +551,7 @@ DCS_DEBUG_TRACE("Applying optimal control");
 //						u_.push_back(new_share);
 
 DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << old_share << " - new-share: " << new_share);
-						if (!::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share))
+						if (::std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share))
 						{
 							p_vm->cpu_share(new_share);
 						}

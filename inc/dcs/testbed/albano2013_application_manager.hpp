@@ -27,6 +27,7 @@
 
 
 #include <boost/smart_ptr.hpp>
+#include <cmath>
 #include <cstddef>
 #include <dcs/assert.hpp>
 #include <dcs/debug.hpp>
@@ -467,11 +468,11 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << " -> DeltaC(k+1): " << deltacs.at(i));/
 
 					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << old_share << " - new-share: " << new_share);
 
-					if (!::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share))
+					if (::std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share))
 					{
 						p_vm->cpu_share(new_share);
-					}
 DCS_DEBUG_TRACE("VM " << vms[i]->id() << " -> C(k+1): " << new_share);//XXX
+					}
 				}
 DCS_DEBUG_TRACE("Optimal control applied");//XXX
 			}
