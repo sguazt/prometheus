@@ -79,6 +79,7 @@ enum data_estimator_category
 	chen2000_ewsa_quantile_estimator,
 	jain1985_p2_algorithm_quantile_estimator,
 	most_recently_observed_estimator,
+	true_quantile_estimator,
 	welsh2003_ewma_quantile_estimator,
 	welsh2003_ewma_ext_quantile_estimator
 };
@@ -120,6 +121,7 @@ const double default_chen2000_ewma_w = 0.05;
 const double default_chen2000_ewma_quantile_prob = default_quantile_prob;
 const double default_chen2000_ewsa_w = 0.05;
 const double default_chen2000_ewsa_quantile_prob = default_quantile_prob;
+const double default_true_quantile_prob = default_quantile_prob;
 const double default_welsh2003_ewma_alpha = 0.7;
 const double default_welsh2003_ewma_quantile_prob = default_quantile_prob;
 const data_smoother_category default_data_smoother = dummy_smoother;
@@ -219,6 +221,10 @@ inline
 	{
 		cat = jain1985_p2_algorithm_quantile_estimator;
 	}
+	else if (!s.compare("true_quantile"))
+	{
+		cat = true_quantile_estimator;
+	}
 	else if (!s.compare("welsh2003_ewma_quantile"))
 	{
 		cat = welsh2003_ewma_quantile_estimator;
@@ -256,6 +262,9 @@ inline
 				break;
 		case jain1985_p2_algorithm_quantile_estimator:
 				os << "jain1985_p2_algorithm_quantile";
+				break;
+		case true_quantile_estimator:
+				os << "true_quantile";
 				break;
 		case welsh2003_ewma_quantile_estimator:
 				os << "welsh2003_ewma_quantile";
@@ -372,6 +381,7 @@ void usage(char const* progname)
 				<< "   - 'jain1985_p2_algorithm_quantile': quantile estimation according to the P^2 algorithm by (Jain et al., 1985)" << ::std::endl
 				<< "   - 'mean': sample mean" << ::std::endl
 				<< "   - 'mro': most recently observed data" << ::std::endl
+				<< "   - 'true_ewma_quantile': true quantile estimation" << ::std::endl
 				<< "   - 'welsh2003_ewma_quantile': quantile estimation according to the EWMA method by (Welsh et al., 2003)" << ::std::endl
 				<< "   - 'welsh2003_ewma_ext_quantile': quantile estimation according to the extended EWMA method by (Welsh et al., 2003)" << ::std::endl
 				<< "   [default: '" << default_data_estimator << "']." << ::std::endl
@@ -393,12 +403,15 @@ void usage(char const* progname)
 				<< " --jain1985_p2-quantile <value>" << ::std::endl
 				<< "   The probability value for the (Jain et al.,1985) P^2 quantile estimator." << ::std::endl
 				<< "   [default: '" << default_jain1985_p2_quantile_prob << "']." << ::std::endl
+				<< " --true-quantile <value>" << ::std::endl
+				<< "   The probability value for the true quantile estimator." << ::std::endl
+				<< "   [default: '" << default_true_quantile_prob << "']." << ::std::endl
 				<< " --welsh2003_ewma-alpha <value>" << ::std::endl
 				<< "   The alpha parameter for the (Welsh el al.,2003) EWMA quantile estimator." << ::std::endl
 				<< "   [default: '" << default_welsh2003_ewma_alpha << "']." << ::std::endl
 				<< " --welsh2003_ewma-quantile <value>" << ::std::endl
-				<< "   The probability value for the (Welsh el al.,2003) P^2 quantile estimator." << ::std::endl
-				<< "   [default: '" << default_jain1985_p2_quantile_prob << "']." << ::std::endl
+				<< "   The probability value for the (Welsh el al.,2003) EWMA quantile estimator." << ::std::endl
+				<< "   [default: '" << default_welsh2003_ewma_quantile_prob << "']." << ::std::endl
 				<< " --data-smoother {'brown_ses'|'brown_des'|'dummy'|'holt_winters_des'}" << ::std::endl
 				<< "   The name of the smoother to use to smooth observed data." << ::std::endl
 				<< "   [default: '" << default_data_smoother << "']." << ::std::endl
@@ -547,6 +560,7 @@ int main(int argc, char *argv[])
 	std::string opt_str;
 	real_type opt_ts;
 	real_type opt_tc;
+	real_type opt_true_quantile_prob;
 	bool opt_verbose = detail::default_verbose;
 	std::vector<std::string> opt_vm_uris;
 	real_type opt_welsh2003_ewma_alpha;
@@ -575,6 +589,7 @@ int main(int argc, char *argv[])
 		opt_chen2000_ewsa_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewsa-quantile", detail::default_chen2000_ewsa_quantile_prob);
 		opt_chen2000_ewsa_w = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewsa-w", detail::default_chen2000_ewsa_w);
 		opt_jain1985_p2_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--jain1985_p2-quantile", detail::default_jain1985_p2_quantile_prob);
+		opt_true_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--true-quantile", detail::default_true_quantile_prob);
 		opt_welsh2003_ewma_alpha = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--welsh2003_ewma-alpha", detail::default_welsh2003_ewma_alpha);
 		opt_welsh2003_ewma_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--welsh2003_ewma-quantile", detail::default_welsh2003_ewma_quantile_prob);
 		opt_data_smoother = dcs::cli::simple::get_option<detail::data_smoother_category>(argv, argv+argc, "--data-smoother", detail::default_data_smoother);
@@ -669,6 +684,10 @@ int main(int argc, char *argv[])
 		oss.str("");
 
 		oss << "(Jain et al.,1985)'s P^2 quantile estimator probability: " << opt_jain1985_p2_quantile_prob;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "True quantile estimator probability: " << opt_true_quantile_prob;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
@@ -878,6 +897,9 @@ int main(int argc, char *argv[])
 			case detail::most_recently_observed_estimator:
 				p_estimator = boost::make_shared< testbed::most_recently_observed_estimator<real_type> >();
 				break;
+			case detail::true_quantile_estimator:
+					p_estimator = boost::make_shared< testbed::true_quantile_estimator<real_type> >(opt_true_quantile_prob);
+					break;
 			case detail::welsh2003_ewma_quantile_estimator:
 					p_estimator = boost::make_shared< testbed::welsh2003_ewma_quantile_estimator<real_type> >(opt_welsh2003_ewma_quantile_prob, opt_welsh2003_ewma_alpha, false);
 					break;

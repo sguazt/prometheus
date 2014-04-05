@@ -45,6 +45,7 @@
 #include <dcs/macro.hpp>
 #include <dcs/testbed/detail/quantile.hpp>
 #include <limits>
+#include <list>
 #include <vector>
 
 
@@ -548,6 +549,73 @@ class chen2000_ewsa_quantile_estimator: public base_estimator<ValueT>
 	private: mutable value_type r_;
 	private: mutable value_type c_;
 	private: mutable bool init_;
+}; // chen2000_ewsa_quantile_estimator
+
+template <typename ValueT>
+class true_quantile_estimator: public base_estimator<ValueT>
+{
+	private: typedef base_estimator<ValueT> base_type;
+	public: typedef typename base_type::value_type value_type;
+	private: typedef typename base_type::data_container data_container;
+
+
+	public: explicit true_quantile_estimator(value_type prob, int type = 7)
+	: prob_(prob),
+	  type_(type),
+	  data_()
+	{
+	}
+
+	private: void do_collect(data_container const& data)
+	{
+		typedef typename data_container::const_iterator data_iterator;
+		typedef typename std::list<value_type>::iterator impl_iterator;
+
+		const data_iterator data_end_it = data.end();
+		for (data_iterator data_it = data.begin(); data_it != data_end_it; ++data_it)
+		{
+			value_type val = *data_it;
+
+			const impl_iterator impl_end_it = data_.end();
+			impl_iterator impl_it = data_.begin();
+			while (impl_it != impl_end_it && *impl_it < val)
+			{
+				++impl_it;
+			}
+			data_.insert(impl_it, val);
+		}
+	}
+
+	private: value_type do_estimate() const
+	{
+		value_type q = ::std::numeric_limits<value_type>::quiet_NaN();
+
+		switch (type_)
+		{
+			case 7:
+				{
+					::std::size_t index = (data_.size()-1) * prob_;
+					::std::size_t lo = ::std::floor(index);
+					//::std::size_t hi = ::std::ceil(index);
+					typename ::std::list<value_type>::iterator it = data_.begin();
+					::std::advance(it, lo);
+					q = *it;
+				}
+				break;
+		}
+
+		return q;
+	}
+
+	private: void do_reset()
+	{
+		data_.clear();
+	}
+
+
+	private: value_type prob_;
+	private: int type_;
+	private: mutable std::list<value_type> data_;
 }; // chen2000_ewsa_quantile_estimator
 
 }} // Namespace dcs::testbed
