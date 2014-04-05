@@ -303,7 +303,7 @@ class welsh2003_ewma_quantile_estimator: public base_estimator<ValueT>
 
 		if (ext_)
 		{
-			q = detail::quantile(data_.begin(), data_.end(), prob_);
+			q = detail::quantile(data_.begin(), data_.end(), prob_, false);
 		}
 		else
 		{
@@ -391,7 +391,7 @@ class chen2000_ewma_quantile_estimator: public base_estimator<ValueT>
 
 	private: value_type do_estimate() const
 	{
-		value_type q = detail::quantile(data_.begin(), data_.end(), prob_);
+		value_type q = detail::quantile(data_.begin(), data_.end(), prob_, false);
 
 		if (init_)
 		{
@@ -427,6 +427,7 @@ class chen2000_ewma_quantile_estimator: public base_estimator<ValueT>
 	private: mutable bool init_;
 }; // chen2000_ewma_quantile_estimator
 
+
 //
 //// From:
 ////  Fei Chen and Diane Lambert and José C. Pinheiro
@@ -457,10 +458,10 @@ class chen2000_ewsa_quantile_estimator: public base_estimator<ValueT>
 	{
 		typedef typename data_container::const_iterator data_iterator;
 
-		data_iterator data_end_it(data.end());
+		const data_iterator data_end_it = data.end();
 		for (data_iterator data_it = data.begin(); data_it != data_end_it; ++data_it)
 		{
-			value_type val(*data_it);
+			const value_type val = *data_it;
 
 			data_.push_back(val);
 		}
@@ -468,18 +469,20 @@ class chen2000_ewsa_quantile_estimator: public base_estimator<ValueT>
 
 	private: value_type do_estimate() const
 	{
-		const ::std::size_t m(data_.size());
+		const ::std::size_t m = data_.size();
 
 		if (m > 0)
 		{
-			const value_type q25 = detail::quantile(data_.begin(), data_.end(), 0.25);
-			const value_type q75 = detail::quantile(data_.begin(), data_.end(), 0.75);
+			const value_type p25_75[] = {0.25, 0.75};
+			const ::std::vector<value_type> q25_75 = detail::quantile<value_type>(data_.begin(), data_.end(), p25_75, p25_75+2, false);
 
 			if (init_)
 			{
-				s_ = detail::quantile(data_.begin(), data_.end(), prob_);
-				r_ = q75-q25;
-				value_type c(1);
+				// Set the initial estimate S_0^* equal to the q^\text{th} sample quantile \hat{Q}_n if X_{01},\ldots,X_{0M}
+
+				s_ = detail::quantile(data_.begin(), data_.end(), prob_, false);
+				r_ = q25_75[1]-q25_75[0];
+				value_type c = 1;
 				for (::std::size_t i = 2; i <= m; ++i)
 				{
 					c += 1.0/::std::sqrt(i);
@@ -513,7 +516,7 @@ class chen2000_ewsa_quantile_estimator: public base_estimator<ValueT>
 				}
 				s_ = s_ + (w_/f_)*(prob_-scnt/static_cast<value_type>(m));
 				f_ = (1-w_)*f_ + (w_/(2*c_*m))*fcnt;
-				r_ = q75-q25;
+				r_ = q25_75[1]-q25_75[0];
 				value_type c(0);
 				const ::std::size_t m2(2*m);
 				for (::std::size_t i = m+1; i <= m2; ++i)
@@ -551,6 +554,7 @@ class chen2000_ewsa_quantile_estimator: public base_estimator<ValueT>
 	private: mutable bool init_;
 }; // chen2000_ewsa_quantile_estimator
 
+
 template <typename ValueT>
 class true_quantile_estimator: public base_estimator<ValueT>
 {
@@ -559,9 +563,9 @@ class true_quantile_estimator: public base_estimator<ValueT>
 	private: typedef typename base_type::data_container data_container;
 
 
-	public: explicit true_quantile_estimator(value_type prob, int type = 7)
+	public: explicit true_quantile_estimator(value_type prob)
 	: prob_(prob),
-	  type_(type),
+	  type_(detail::type7_quantile),
 	  data_()
 	{
 	}
@@ -588,28 +592,7 @@ class true_quantile_estimator: public base_estimator<ValueT>
 
 	private: value_type do_estimate() const
 	{
-		value_type q = ::std::numeric_limits<value_type>::quiet_NaN();
-
-		switch (type_)
-		{
-			case 7:
-				{
-					value_type index = (data_.size()-1) * prob_;
-					::std::size_t lo = ::std::floor(index);
-					::std::size_t hi = ::std::ceil(index);
-					value_type h = index -lo;
-
-					typename ::std::list<value_type>::iterator it_lo = data_.begin();
-					::std::advance(it_lo, lo);
-					typename ::std::list<value_type>::iterator it_hi = data_.begin();
-					::std::advance(it_hi, hi);
-
-					q = (1-h)*(*it_lo) + h*(*it_hi);
-				}
-				break;
-		}
-
-		return q;
+		return detail::quantile(data_.begin(), data_.end(), prob_, true, type_);
 	}
 
 	private: void do_reset()
@@ -619,8 +602,8 @@ class true_quantile_estimator: public base_estimator<ValueT>
 
 
 	private: value_type prob_;
-	private: int type_;
-	private: mutable std::list<value_type> data_;
+	private: detail::quantile_category type_;
+	private: ::std::list<value_type> data_;
 }; // chen2000_ewsa_quantile_estimator
 
 }} // Namespace dcs::testbed
