@@ -594,12 +594,17 @@ class true_quantile_estimator: public base_estimator<ValueT>
 		{
 			case 7:
 				{
-					::std::size_t index = (data_.size()-1) * prob_;
+					value_type index = (data_.size()-1) * prob_;
 					::std::size_t lo = ::std::floor(index);
-					//::std::size_t hi = ::std::ceil(index);
-					typename ::std::list<value_type>::iterator it = data_.begin();
-					::std::advance(it, lo);
-					q = *it;
+					::std::size_t hi = ::std::ceil(index);
+					value_type h = index -lo;
+
+					typename ::std::list<value_type>::iterator it_lo = data_.begin();
+					::std::advance(it_lo, lo);
+					typename ::std::list<value_type>::iterator it_hi = data_.begin();
+					::std::advance(it_hi, hi);
+
+					q = (1-h)*(*it_lo) + h*(*it_hi);
 				}
 				break;
 		}
