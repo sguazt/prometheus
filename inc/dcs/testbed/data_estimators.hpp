@@ -43,6 +43,7 @@
 #include <cstddef>
 #include <dcs/debug.hpp>
 #include <dcs/macro.hpp>
+#include <dcs/math/function/sign.hpp>
 #include <dcs/testbed/detail/quantile.hpp>
 #include <limits>
 #include <list>
@@ -199,6 +200,7 @@ class mean_estimator: public base_estimator<ValueT>
 	private: accumulator_type acc_;
 }; // mean_estimator
 
+
 /**
  * The P^2 Algorithm for incremental quantile estimation.
  *
@@ -256,6 +258,112 @@ class jain1985_p2_algorithm_quantile_estimator: public base_estimator<ValueT>
 	private: accumulator_type acc_;
 }; // jain1985_p2_algorithm_quantile_estimator
 
+
+// Method found at https://stackoverflow.com/a/2144754
+template <typename ValueT>
+class recursive_quantile_estimator: public base_estimator<ValueT>
+{
+	private: typedef base_estimator<ValueT> base_type;
+	public: typedef typename base_type::value_type value_type;
+	private: typedef typename base_type::data_container data_container;
+
+
+	public: explicit recursive_quantile_estimator(value_type prob, value_type w = 0.05)
+	: prob_(prob),
+	  w_(w),
+	  k_(0),
+	  cumadev_(0),
+	  m_(::std::numeric_limits<value_type>::quiet_NaN()),
+	  q_(::std::numeric_limits<value_type>::quiet_NaN()),
+	  init_(true)
+	{
+	}
+
+	private: void do_collect(data_container const& data)
+	{
+		typedef typename data_container::const_iterator data_iterator;
+
+		data_iterator data_end_it(data.end());
+		for (data_iterator data_it = data.begin(); data_it != data_end_it; ++data_it)
+		{
+			value_type val(*data_it);
+
+			data_.push_back(val);
+		}
+	}
+
+	private: value_type do_estimate() const
+	{
+		const ::std::size_t n = data_.size();
+
+		if (n > 0)
+		{
+			if (init_)
+			{
+				const value_type p[2] = {prob_, 0.5};
+
+				const ::std::vector<value_type> q = detail::quantile<value_type>(data_.begin(), data_.end(), p, p+2, false);
+				q_ = q[0];
+				m_ = q[1];
+				init_ = false;
+				k_ += n;
+			}
+			else
+			{
+				// This essentially shifts the sgn() function's symmetrical output {-1,0,1}
+				// to lean toward one side, partitioning the data samples into two
+				// unequally-sized bins (fractions p and 1-p of the data are less
+				// than/greater than the quantile estimate, respectively).
+				// Note that for p=0.5, this reduces to the median estimator.
+				//
+				// Use a constant w_ if the data is non-stationary and you want to track
+				// changes over time; otherwise, for stationary sources you can use
+				// something like w=1/n
+
+				for (::std::size_t i = 0; i < n; ++i)
+				{
+					++k_;
+					m_ += w_*::dcs::math::sign(data_[i]-m_);
+
+					// A generic value like 0.001 simply doesn't make any sense.
+					// A seemingly-better approach is to set eta from a running estimate of the absolute deviation
+					cumadev_ += ::std::abs(data_[i]-m_);
+					const value_type w = 1.5*cumadev_/(k_*k_);
+					q_ += w*(::dcs::math::sign(data_[i]-q_) + 2.0*prob_ - 1);
+				}
+			}
+
+			data_.clear();
+		}
+
+		return q_;
+	}
+
+	private: void do_reset()
+	{
+		data_.clear();
+		k_ = 0;
+		m_ = q_ = ::std::numeric_limits<value_type>::quiet_NaN();
+		cumadev_ = 0;
+	}
+
+//	private: ::std::size_t do_count() const
+//	{
+//		return ::boost::accumulators::count(acc_);
+//	}
+
+
+	private: value_type prob_;
+	private: value_type w_;
+	private: mutable data_container data_;
+	private: mutable ::std::size_t k_;
+	private: mutable value_type cumadev_;
+	private: mutable value_type m_;
+	private: mutable value_type q_;
+	private: mutable bool init_;
+}; // recursive_quantile_estimator
+
+
 /**
  * The EWMA-based incremental quantile estimation method from (Welsh,2003).
  *
@@ -274,7 +382,7 @@ class welsh2003_ewma_quantile_estimator: public base_estimator<ValueT>
 	private: typedef typename base_type::data_container data_container;
 
 
-	public: explicit welsh2003_ewma_quantile_estimator(value_type prob, value_type alpha, bool extended = false)
+	public: explicit welsh2003_ewma_quantile_estimator(value_type prob, value_type alpha = 0.7, bool extended = false)
 	: prob_(prob),
 	  alpha_(alpha),
 	  data_(),
@@ -299,29 +407,35 @@ class welsh2003_ewma_quantile_estimator: public base_estimator<ValueT>
 
 	private: value_type do_estimate() const
 	{
-		value_type q(0);
+		const ::std::size_t m = data_.size();
 
-		if (ext_)
+		if (m > 0)
 		{
-			q = detail::quantile(data_.begin(), data_.end(), prob_, false);
-		}
-		else
-		{
-			::std::size_t np = ::std::min(static_cast< ::std::size_t >(::std::ceil(prob_*data_.size())), data_.size());
-			::std::partial_sort(data_.begin(), data_.begin()+np, data_.end());
-			q = data_[np-1];
-		}
+			value_type q = 0;
 
-		if (init_)
-		{
-			ewma_ = q;
-			init_ = false;
+			if (ext_)
+			{
+				q = detail::quantile(data_.begin(), data_.end(), prob_, false);
+			}
+			else
+			{
+				::std::size_t np = ::std::min(static_cast< ::std::size_t >(::std::ceil(prob_*data_.size())), data_.size());
+				//::std::partial_sort(data_.begin(), data_.begin()+np, data_.end());
+				::std::sort(data_.begin(), data_.end());
+				q = data_[np-1];
+			}
+
+			if (init_)
+			{
+				ewma_ = q;
+				init_ = false;
+			}
+			else
+			{
+				ewma_ = alpha_*ewma_+(1-alpha_)*q;
+			}
+			data_.clear();
 		}
-		else
-		{
-			ewma_ = alpha_*ewma_+(1-alpha_)*q;
-		}
-		data_.clear();
 
 		return ewma_;
 	}
@@ -349,15 +463,12 @@ class welsh2003_ewma_quantile_estimator: public base_estimator<ValueT>
 
 
 /**
- * The EWMA-based incremental quantile estimation method from (Welsh,2003).
+ * The EWMA-based incremental quantile estimation method from (Chen,2000).
  *
- *
-// From:
-// //  Fei Chen and Diane Lambert and José C. Pinheiro
-// //  "Incremental Quantile Estimation for Massive Tracking",
-// //  In Proc. of the 6th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD'00), 2000
-// //
-//
+ * From:
+ *   Fei Chen and Diane Lambert and José C. Pinheiro
+ *   "Incremental Quantile Estimation for Massive Tracking",
+ *   In Proc. of the 6th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD'00), 2000
  */
 template <typename ValueT>
 class chen2000_ewma_quantile_estimator: public base_estimator<ValueT>
@@ -367,7 +478,7 @@ class chen2000_ewma_quantile_estimator: public base_estimator<ValueT>
 	private: typedef typename base_type::data_container data_container;
 
 
-	public: chen2000_ewma_quantile_estimator(value_type prob, value_type w)
+	public: explicit chen2000_ewma_quantile_estimator(value_type prob, value_type w = 0.05)
 	: prob_(prob),
 	  w_(w),
 	  data_(),
@@ -391,18 +502,23 @@ class chen2000_ewma_quantile_estimator: public base_estimator<ValueT>
 
 	private: value_type do_estimate() const
 	{
-		value_type q = detail::quantile(data_.begin(), data_.end(), prob_, false);
+		const ::std::size_t m = data_.size();
 
-		if (init_)
+		if (m > 0)
 		{
-			ewma_ = q;
-			init_ = false;
+			const value_type q = detail::quantile(data_.begin(), data_.end(), prob_, false);
+
+			if (init_)
+			{
+				ewma_ = q;
+				init_ = false;
+			}
+			else
+			{
+				ewma_ = (1-w_)*ewma_+w_*q;
+			}
+			data_.clear();
 		}
-		else
-		{
-			ewma_ = (1-w_)*ewma_+w_*q;
-		}
-		data_.clear();
 
 		return ewma_;
 	}
@@ -428,12 +544,138 @@ class chen2000_ewma_quantile_estimator: public base_estimator<ValueT>
 }; // chen2000_ewma_quantile_estimator
 
 
-//
-//// From:
-////  Fei Chen and Diane Lambert and José C. Pinheiro
-////  "Incremental Quantile Estimation for Massive Tracking",
-////  In Proc. of the 6th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD'00), 2000
-////
+/**
+ * The SA-based incremental quantile estimation method from (Chen,2000).
+ *
+ * From:
+ *   Fei Chen and Diane Lambert and José C. Pinheiro
+ *   "Incremental Quantile Estimation for Massive Tracking",
+ *   In Proc. of the 6th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD'00), 2000
+ */
+template <typename ValueT>
+class chen2000_sa_quantile_estimator: public base_estimator<ValueT>
+{
+	private: typedef base_estimator<ValueT> base_type;
+	public: typedef typename base_type::value_type value_type;
+	private: typedef typename base_type::data_container data_container;
+
+
+	public: explicit chen2000_sa_quantile_estimator(value_type prob)
+	: prob_(prob),
+	  sn_(::std::numeric_limits<value_type>::quiet_NaN()),
+	  fn_(::std::numeric_limits<value_type>::quiet_NaN()),
+	  f0_(::std::numeric_limits<value_type>::quiet_NaN()),
+	  n_(0),
+	  data_(),
+	  init_(true)
+	{
+	}
+
+	private: void do_collect(data_container const& data)
+	{
+		typedef typename data_container::const_iterator data_iterator;
+
+		data_iterator data_end_it(data.end());
+		for (data_iterator data_it = data.begin(); data_it != data_end_it; ++data_it)
+		{
+			value_type val(*data_it);
+
+			data_.push_back(val);
+		}
+	}
+
+	private: value_type do_estimate() const
+	{
+		const ::std::size_t m = data_.size();
+
+		if (m > 0)
+		{
+			if (init_)
+			{
+				// FIXME: the initialization step is not clear in the Chen's paper, so we propose an our one
+
+				const value_type p25_75[] = {0.25, 0.75};
+				const ::std::vector<value_type> q25_75 = detail::quantile<value_type>(data_.begin(), data_.end(), p25_75, p25_75+2, false);
+
+				fn_ = f0_ = q25_75[1]-q25_75[0]; // Estimate f_0 with IQR
+				// FIXME: unlike the Chen's paper, we handle the case of fn_ ~= zero
+				if (f0_ > 0)
+				{
+					sn_ = (1.0/f0_)*prob_;
+				}
+				else
+				{
+					//sn_ = q25_75[1];
+					sn_ = detail::quantile(data_.begin(), data_.end(), prob_, false);
+				}
+				init_ = false;
+			}
+			else
+			{
+				++n_;
+
+				const value_type wn = 1.0/n_;
+				const value_type cn = ::std::sqrt(wn);
+
+				::std::size_t cncnt = 0;
+				for (::std::size_t i = 0; i < m; ++i)
+				{
+					if (::std::abs(data_[i]- sn_) <= cn)
+					{
+						++cncnt;
+					}
+				}
+				fn_ = (1-wn)*fn_ + wn*cncnt/(2.0*cn*m);
+
+				const value_type en = ::std::max(fn_,f0_*cn);
+
+				::std::size_t sncnt = 0;
+				for (::std::size_t i = 0; i < m; ++i)
+				{
+					if (data_[i] <= sn_)
+					{
+						++sncnt;
+					}
+				}
+				sn_ += (wn/en)*(prob_-sncnt/static_cast<value_type>(m));
+			}
+			data_.clear();
+		}
+
+		return sn_;
+	}
+
+	private: void do_reset()
+	{
+		init_ = true;
+		data_.clear();
+		sn_ = fn_ = ::std::numeric_limits<value_type>::quiet_NaN();
+	}
+
+//	private: ::std::size_t do_count() const
+//	{
+//		return data_.size();
+//	}
+
+
+	private: value_type prob_;
+	private: mutable value_type sn_;
+	private: mutable value_type fn_;
+	private: mutable value_type f0_;
+	private: mutable ::std::size_t n_;
+	private: mutable data_container data_;
+	private: mutable bool init_;
+}; // chen2000_sa_quantile_estimator
+
+
+/**
+ * The EWSA-based incremental quantile estimation method from (Chen,2000).
+ *
+ * From:
+ *  Fei Chen and Diane Lambert and José C. Pinheiro
+ *  "Incremental Quantile Estimation for Massive Tracking",
+ *  In Proc. of the 6th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD'00), 2000
+ */
 template <typename ValueT>
 class chen2000_ewsa_quantile_estimator: public base_estimator<ValueT>
 {
@@ -442,14 +684,14 @@ class chen2000_ewsa_quantile_estimator: public base_estimator<ValueT>
 	private: typedef typename base_type::data_container data_container;
 
 
-	public: chen2000_ewsa_quantile_estimator(value_type prob, value_type w)
+	public: explicit chen2000_ewsa_quantile_estimator(value_type prob, value_type w = 0.05)
 	: prob_(prob),
 	  w_(w),
 	  data_(),
-	  s_(::std::numeric_limits<value_type>::quiet_NaN()),
-	  f_(::std::numeric_limits<value_type>::quiet_NaN()),
-	  r_(::std::numeric_limits<value_type>::quiet_NaN()),
-	  c_(::std::numeric_limits<value_type>::quiet_NaN()),
+	  sn_(::std::numeric_limits<value_type>::quiet_NaN()),
+	  fn_(::std::numeric_limits<value_type>::quiet_NaN()),
+	  rn_(::std::numeric_limits<value_type>::quiet_NaN()),
+	  cn_(::std::numeric_limits<value_type>::quiet_NaN()),
 	  init_(true)
 	{
 	}
@@ -478,64 +720,93 @@ class chen2000_ewsa_quantile_estimator: public base_estimator<ValueT>
 
 			if (init_)
 			{
-				// Set the initial estimate S_0^* equal to the q^\text{th} sample quantile \hat{Q}_n if X_{01},\ldots,X_{0M}
-
-				s_ = detail::quantile(data_.begin(), data_.end(), prob_, false);
-				r_ = q25_75[1]-q25_75[0];
+				// Set the initial estimate S_0^* equal to the q^\text{th} sample quantile
+				// \hat{Q}_n of X_{01},\ldots,X_{0M}
+				sn_ = detail::quantile(data_.begin(), data_.end(), prob_, false);
+				// Estimate the scale r_0^* of f_0^* by the interquantile range of
+				// X_{01},\ldots,X_{0M}; i.e., by the difference of the .75 and .25 sample
+				// quantiles
+				rn_ = q25_75[1]-q25_75[0];
+				// Then take c_0^* = r_0^* M^{-1} \sum_{i=1}^M i^{-1/2}
 				value_type c = 1;
 				for (::std::size_t i = 2; i <= m; ++i)
 				{
 					c += 1.0/::std::sqrt(i);
 				}
-				c_ = r_*c/m;
-				::std::size_t cnt(0);
+				// FIXME: unlike the Chen's paper, we handle the case of rn_ ~= zero
+				if (rn_ > 0)
+				{
+					cn_ = rn_*c/m;
+				}
+				else
+				{
+					cn_ = c/m;
+				}
+				// Take f_0^* = (2 c_0^* M)^{-1} \max\{\#\{|X_{0i}-S_0^*| \le c_0^*\},1\}
+				// which is the density of observations in a neighborhood of width 2c_0^* of
+				// S_0^*, unless the fraction of neighborhood is zero
+				::std::size_t cnt = 0;
 				for (::std::size_t i = 0; i < m; ++i)
 				{
-					if (::std::abs(data_[i]-s_) <= c_)
+					if (::std::abs(data_[i]-sn_) <= cn_)
 					{
 						++cnt;
 					}
 				}
-				f_ = 1.0/(2*c_*m)*::std::max(cnt,::std::size_t(1));
+				fn_ = 1.0/(2.0*cn_*m)*::std::max(cnt,::std::size_t(1));
 				init_ = false;
 			}
 			else
 			{
-				::std::size_t scnt(0);
-				::std::size_t fcnt(0);
+				// S_n^* = S_{n-1}^*+\frac{w}{f_{n-1}^*}(p-\frac{\#\{X_{ni} \le S_{n-1}^*\}}{M})
+				// f_n^* = (1-w)f_{n-1}^*+\frac{w}{2c_{n-1}^*M}\#\{|X_{ni}-S_{n-1}^*| \le c_{n-1}^*\}
+				::std::size_t scnt = 0;
+				::std::size_t fcnt = 0;
 				for (::std::size_t i = 0; i < m; ++i)
 				{
-					if (data_[i] <= s_)
+					if (data_[i] <= sn_)
 					{
 						++scnt;
 					}
-					if (::std::abs(data_[i]-s_) <= c_)
+					if (::std::abs(data_[i]-sn_) <= cn_)
 					{
 						++fcnt;
 					}
 				}
-				s_ = s_ + (w_/f_)*(prob_-scnt/static_cast<value_type>(m));
-				f_ = (1-w_)*f_ + (w_/(2*c_*m))*fcnt;
-				r_ = q25_75[1]-q25_75[0];
-				value_type c(0);
-				const ::std::size_t m2(2*m);
+				sn_ += (w_/fn_)*(prob_-scnt/static_cast<value_type>(m));
+				fn_ = (1-w_)*fn_ + (w_/(2.0*cn_*m))*fcnt;
+				// Take r_n^∗ to be the difference of the current EWSA estimates for the
+				// .75 and .25 quantiles, and define the neighborhood size for the next
+				// updating step to be c_n^* = r_n^∗ c, with c = M^{-1} \sum_{i=M+1}^{2M} i^{-1/2}.
+				rn_ = q25_75[1]-q25_75[0];
+				value_type c = 0;
+				const ::std::size_t m2 = 2*m;
 				for (::std::size_t i = m+1; i <= m2; ++i)
 				{
 					c += 1.0/::std::sqrt(i);
 				}
-				c_ = r_*c/m;
+				c /= m;
+				// FIXME: unlike the Chen's paper, we handle the case of rn_ ~= zero
+				if (rn_ > 0)
+				{
+					cn_ = rn_*c;
+				}
+				else
+				{
+					cn_ = c;
+				}
 			}
 			data_.clear();
 		}
 
-		return s_;
+		return sn_;
 	}
 
 	private: void do_reset()
 	{
 		init_ = true;
 		data_.clear();
-		s_ = f_ = r_ = c_ = ::std::numeric_limits<value_type>::quiet_NaN();
+		sn_ = fn_ = rn_ = cn_ = ::std::numeric_limits<value_type>::quiet_NaN();
 	}
 
 //	private: ::std::size_t do_count() const
@@ -547,10 +818,10 @@ class chen2000_ewsa_quantile_estimator: public base_estimator<ValueT>
 	private: value_type prob_;
 	private: value_type w_;
 	private: mutable data_container data_;
-	private: mutable value_type s_;
-	private: mutable value_type f_;
-	private: mutable value_type r_;
-	private: mutable value_type c_;
+	private: mutable value_type sn_;
+	private: mutable value_type fn_;
+	private: mutable value_type rn_;
+	private: mutable value_type cn_;
 	private: mutable bool init_;
 }; // chen2000_ewsa_quantile_estimator
 
@@ -604,7 +875,7 @@ class true_quantile_estimator: public base_estimator<ValueT>
 	private: value_type prob_;
 	private: detail::quantile_category type_;
 	private: ::std::list<value_type> data_;
-}; // chen2000_ewsa_quantile_estimator
+}; // true_quantile_estimator
 
 }} // Namespace dcs::testbed
 
