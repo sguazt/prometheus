@@ -75,8 +75,6 @@ class albano2013v4_application_manager: public base_application_manager<TraitsT>
 	private: typedef typename base_type::vm_identifier_type vm_identifier_type;
 	private: typedef typename app_type::sensor_type sensor_type;
 	private: typedef typename app_type::sensor_pointer sensor_pointer;
-	private: typedef ::std::vector<real_type> observation_container;
-	private: typedef ::std::map<application_performance_category,observation_container> observation_map;
 	private: typedef ::std::map<application_performance_category,sensor_pointer> out_sensor_map;
 	private: typedef ::std::map<virtual_machine_performance_category,::std::map<vm_identifier_type,sensor_pointer> > in_sensor_map;
 
@@ -234,7 +232,6 @@ class albano2013v4_application_manager: public base_application_manager<TraitsT>
 
 			*p_dat_ofs_ << "\"ts\"";
 
-			const ::std::size_t nvms = this->app().num_vms();
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
 				*p_dat_ofs_ << ",\"Cap_{" << i << "}\",\"Share_{" << i << "}\"";
