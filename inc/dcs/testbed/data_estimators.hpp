@@ -598,16 +598,10 @@ class chen2000_sa_quantile_estimator: public base_estimator<ValueT>
 				const ::std::vector<value_type> q25_75 = detail::quantile<value_type>(data_.begin(), data_.end(), p25_75, p25_75+2, false);
 
 				fn_ = f0_ = q25_75[1]-q25_75[0]; // Estimate f_0 with IQR
-				// FIXME: unlike the Chen's paper, we handle the case of fn_ ~= zero
-				if (f0_ > 0)
-				{
-					sn_ = (1.0/f0_)*prob_;
-				}
-				else
-				{
-					//sn_ = q25_75[1];
-					sn_ = detail::quantile(data_.begin(), data_.end(), prob_, false);
-				}
+				// NOTE: Unlike Chen's paper, for S0 we use the true sample quantile of current data.
+				// This seems to produce better results.
+				//sn_ = (1.0/f0_)*prob_;
+				sn_ = detail::quantile(data_.begin(), data_.end(), prob_, false);
 				init_ = false;
 			}
 			else
