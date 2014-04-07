@@ -727,7 +727,7 @@ class chen2000_ewsa_quantile_estimator: public base_estimator<ValueT>
 				{
 					c += 1.0/::std::sqrt(i);
 				}
-				// FIXME: unlike the Chen's paper, we handle the case of rn_ ~= zero
+				// FIXME: unlike the Chen's paper, we deal with the case of rn_ ~= zero
 				if (rn_ > 0)
 				{
 					cn_ = rn_*c/m;
