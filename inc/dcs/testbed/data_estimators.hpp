@@ -643,7 +643,7 @@ class chen2000_sa_quantile_estimator: public base_estimator<ValueT>
 	{
 		init_ = true;
 		data_.clear();
-		sn_ = fn_ = ::std::numeric_limits<value_type>::quiet_NaN();
+		sn_ = fn_ = f0_ = ::std::numeric_limits<value_type>::quiet_NaN();
 	}
 
 //	private: ::std::size_t do_count() const
