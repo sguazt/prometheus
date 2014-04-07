@@ -88,7 +88,10 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 
 	public: albano2013_application_manager()
 	: beta_(0.9),
-	  p_fuzzy_eng_(new fl::Engine())
+	  p_fuzzy_eng_(new fl::Engine()),
+	  ctl_count_(0),
+	  ctl_skip_count_(0),
+	  ctl_fail_count_(0)
 	{
 		init();
 	}
