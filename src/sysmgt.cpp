@@ -100,6 +100,7 @@ enum app_manager_category
 	albano2013v3_app_manager,
 	albano2013v4_app_manager,
 	albano2013v5_app_manager,
+	dummy_app_manager,
 	padala2009_app_manager,
 	rao2013_app_manager
 };
@@ -136,7 +137,7 @@ const std::string default_slo_metric_str("rt");
 const double default_slo_value = 0;
 const bool default_no_restore_vms = false;
 const bool default_verbose = false;
-const app_manager_category default_app_manager = padala2009_app_manager;
+const app_manager_category default_app_manager = dummy_app_manager;
 
 
 template <typename CharT, typename CharTraitsT>
@@ -317,6 +318,10 @@ inline
 	{
 		cat = albano2013v5_app_manager;
 	}
+	else if (!s.compare("dummy"))
+	{
+		cat = dummy_app_manager;
+	}
 	else if (!s.compare("padala2009"))
 	{
 		cat = padala2009_app_manager;
@@ -355,6 +360,9 @@ inline
 		case albano2013v5_app_manager:
 			os << "albano2013v5";
 			break;
+		case dummy_app_manager:
+			os << "dummy";
+			break;
 		case padala2009_app_manager:
 			os << "padala2009";
 			break;
@@ -382,6 +390,7 @@ void usage(char const* progname)
 				<< "   - 'albano2013v3': a variant of the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
 				<< "   - 'albano2013v4': a variant of the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
 				<< "   - 'albano2013v5': a variant of the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
+				<< "   - 'dummy': a 'do-nothing' application manager" << ::std::endl
 				<< "   - 'padala2009': the LQ controller described in (Padala et al., 2009)" << ::std::endl
 				<< "   - 'rao2013': the fuzzy controller described in (Rao et al., 2013)" << ::std::endl
 				<< "   [default: '" << default_app_manager << "']." << ::std::endl
@@ -1065,6 +1074,17 @@ int main(int argc, char *argv[])
 				}
 				break;
 #endif // 0
+			case detail::dummy_app_manager:
+				{
+					testbed::dummy_application_manager<traits_type> dummy_mgr;
+					if (!opt_app_manager_stats_file.empty())
+					{
+						dummy_mgr.export_data_to(opt_app_manager_stats_file);
+					}
+
+					p_mgr = boost::make_shared< testbed::dummy_application_manager<traits_type> >(dummy_mgr);
+				}
+				break;
 			case detail::padala2009_app_manager:
 				{
 					const std::size_t na(2);

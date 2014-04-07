@@ -7,12 +7,7 @@
  *
  * <hr/>
  *
- * Copyright (C) 2012       Marco Guazzone (marco.guazzone@gmail.com)
- *                          [Distributed Computing System (DCS) Group,
- *                           Computer Science Institute,
- *                           Department of Science and Technological Innovation,
- *                           University of Piemonte Orientale,
- *                           Alessandria (Italy)]
+ * Copyright (C) 2012-2014  Marco Guazzone (marco.guazzone@gmail.com)
  *
  * This file is part of dcsxx-testbed (below referred to as "this program").
  *
@@ -40,6 +35,7 @@
 #include <dcs/testbed/albano2013v4_application_manager.hpp>
 #include <dcs/testbed/albano2013v5_application_manager.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
+#include <dcs/testbed/dummy_application_manager.hpp>
 #include <dcs/testbed/lq_application_manager.hpp>
 #include <dcs/testbed/padala2009_application_manager.hpp>
 #include <dcs/testbed/rao2013_application_manager.hpp>
