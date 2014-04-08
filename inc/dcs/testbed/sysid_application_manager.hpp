@@ -211,7 +211,7 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 			}
 
 			// Write last part of header to output file
-			*p_dat_ofs_ << ",\"Operation Time\",\"Operation Name\",\"Performance Index\",\"Entry Type\"" << ::std::endl;
+			*p_dat_ofs_ << ",\"Operation Time\",\"Operation Name\",\"Performance Index\",\"# Controls\",\"# Control Skips\",\"# Control Fails\",\"Entry Type\"" << ::std::endl;
 		}
 	}
 
@@ -360,6 +360,7 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 					*p_dat_ofs_ << ",na,na,na";
 				}
 
+				*p_dat_ofs_ << "," << "\"na\",\"na\",\"na\""; // Control counters not available here
 				*p_dat_ofs_ << "," << "\"[DATA]\"" << ::std::endl;
 			}
 		}
@@ -447,7 +448,7 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 				{
 					*p_dat_ofs_ << ",na";
 				}
-				*p_dat_ofs_ << "," << tgt_it->second;
+//				*p_dat_ofs_ << "," << tgt_it->second;
 			}
 			*p_dat_ofs_ << "," << ctl_count_ << "," << ctl_skip_count_ << "," << ctl_fail_count_;
 			if (out_ext_fmt_)
