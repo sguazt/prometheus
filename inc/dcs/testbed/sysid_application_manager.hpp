@@ -32,6 +32,7 @@
 #include <dcs/assert.hpp>
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
+#include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
 #include <dcs/testbed/base_signal_generator.hpp>
@@ -175,6 +176,11 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 		// Reset estimators and smoothers
 		//this->data_estimator(cpu_util_virtual_machine_performance).reset();
 		//this->data_smoother(cpu_util_virtual_machine_performance).reset();
+//		for (::std::size_t i = 0; i < nvms; ++i)
+//		{
+//			this->data_smoother(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
+//			//this->data_estimator(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::mean_estimator<real_type> >());
+//		}
 
 		// Reset output data file
 		if (p_dat_ofs_ && p_dat_ofs_->is_open())
@@ -398,7 +404,10 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 			DCS_DEBUG_ASSERT( p_vm );
 
 			old_shares[i] = p_vm->cpu_share();
-			p_vm->cpu_share(new_shares[i]);
+			if (!::dcs::math::float_traits<real_type>::essentially_equal(old_shares[i], new_shares[i]))
+			{
+				p_vm->cpu_share(new_shares[i]);
+			}
 
 			DCS_DEBUG_TRACE( "   VM '" << p_vm->name() << "' :: Old CPU share: " << old_shares[i] << " :: New CPU share: " << new_shares[i] );
 		}
