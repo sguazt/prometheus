@@ -321,6 +321,14 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 		{
 			::std::ostringstream oss;
 
+			// Cache VM shares (they will not change until the next control interval)
+			::std::map<vm_identifier_type,real_type> vm_shares;
+			for (::std::size_t j = 0; j < nvms; ++j)
+			{
+				const vm_pointer p_vm = vms[j];
+				vm_shares[p_vm->id()] = p_vm->cpu_share();
+			}
+
 			for (::std::size_t i = 0; i < max_nobs; ++i)
 			{
 				*p_dat_ofs_ << ts;
@@ -330,7 +338,7 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 					const vm_pointer p_vm = vms[j];
 					const obs_container& obs = vm_obs.at(p_vm->id());
 					const ::std::size_t nobs = obs.size();
-					const real_type share = p_vm->cpu_share();
+					const real_type share = vm_shares.at(p_vm->id());
 
 					if (i < nobs)
 					{
