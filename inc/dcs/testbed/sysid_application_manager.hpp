@@ -440,6 +440,8 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 				{
 					*p_dat_ofs_ << ",na";
 				}
+
+				this->data_estimator(cat, p_vm->id()).reset();
 			}
             const target_iterator tgt_end_it = this->target_values().end();
             for (target_iterator tgt_it = this->target_values().begin();
@@ -457,6 +459,10 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 					*p_dat_ofs_ << ",na";
 				}
 //				*p_dat_ofs_ << "," << tgt_it->second;
+
+#ifdef DDCS_TESTBED_EXP_RESET_ESTIMATION_EVERY_INTERVAL
+				this->data_estimator(cat).reset();
+#endif // DDCS_TESTBED_EXP_RESET_ESTIMATION_EVERY_INTERVAL
 			}
 			*p_dat_ofs_ << "," << ctl_count_ << "," << ctl_skip_count_ << "," << ctl_fail_count_;
 			if (out_ext_fmt_)
