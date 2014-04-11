@@ -209,8 +209,9 @@ class albano2013v3_application_manager: public base_application_manager<TraitsT>
 		//this->data_smoother(cpu_util_virtual_machine_performance).reset();
 		for (::std::size_t i = 0; i < nvms; ++i)
 		{
-			this->data_smoother(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
 			//this->data_estimator(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::mean_estimator<real_type> >());
+			this->data_smoother(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
+			//this->data_smoother(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::holt_winters_double_exponential_smoother<real_type> >(beta_));
 		}
 
 		// Reset output data file
@@ -242,7 +243,11 @@ class albano2013v3_application_manager: public base_application_manager<TraitsT>
 			{
 				const application_performance_category cat = tgt_it->first;
 
-				*p_dat_ofs_ << ",\"y_{" << cat << "}\",\"yn_{" << cat << "}\",\"r_{" << cat << "}\"";
+				*p_dat_ofs_ << ",\"r_{" << cat << "}\",\"y_{" << cat << "}\",\"Rgain_{" << cat << "}\"";
+			}
+			for (::std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"Cres_{" << i << "}\"";
 			}
 			*p_dat_ofs_ << ",\"# Controls\",\"# Skip Controls\",\"# Fail Controls\"";
 			*p_dat_ofs_ << ::std::endl;
@@ -521,8 +526,13 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 				}
 				const real_type yh = this->data_estimator(cat).estimate();
 				const real_type yr = tgt_it->second;
-				const real_type yn = yh/yr;
-				*p_dat_ofs_ << yh << "," << yn << "," << yr;
+				const real_type rgain = rgains.begin()->second; //FIXME: only one performance index is managed
+				*p_dat_ofs_ << yr << "," << yh << "," << rgain;
+			}
+			for (::std::size_t i = 0; i < nvms; ++i)
+			{
+				const real_type cres = cress.begin()->second.at(i); //FIXME: only one physical resource is managed
+				*p_dat_ofs_ << "," << cres;
 			}
 			*p_dat_ofs_ << "," << ctl_count_ << "," << ctl_skip_count_ << "," << ctl_fail_count_;
 			*p_dat_ofs_ << ::std::endl;
