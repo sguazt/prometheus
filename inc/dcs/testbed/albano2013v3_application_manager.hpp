@@ -36,7 +36,7 @@
 #include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
-#include <dcs/testbed/data_estimators.hpp>
+//#include <dcs/testbed/data_estimators.hpp>
 #include <dcs/testbed/data_smoothers.hpp>
 #include <dcs/testbed/virtual_machine_performance_category.hpp>
 #include <fl/Headers.h>
