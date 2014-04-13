@@ -8,12 +8,7 @@
  *
  * <hr/>
  *
- * Copyright (C) 2012       Marco Guazzone (marco.guazzone@gmail.com)
- *                          [Distributed Computing System (DCS) Group,
- *                           Computer Science Institute,
- *                           Department of Science and Technological Innovation,
- *                           University of Piemonte Orientale,
- *                           Alessandria (Italy)]
+ * Copyright (C) 2012-2014  Marco Guazzone (marco.guazzone@gmail.com)
  *
  * This file is part of dcsxx-testbed (below referred to as "this program").
  *
@@ -81,7 +76,9 @@
 #include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
+#include <dcs/testbed/data_smoothers.hpp>
 #include <dcs/testbed/system_identification_strategies.hpp>
+#include <dcs/testbed/virtual_machine_performance_category.hpp>
 #include <fstream>
 #ifdef DCS_TESTBED_EXP_PADALA2009_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
 # include <functional>
@@ -108,6 +105,7 @@ class padala2009_application_manager: public base_application_manager<TraitsT>
 	public: typedef typename traits_type::real_type real_type;
 	private: typedef typename base_type::app_type app_type;
 	private: typedef typename base_type::app_pointer app_pointer;
+	private: typedef typename base_type::vm_identifier_type vm_identifier_type;
 	private: typedef typename app_type::sensor_type sensor_type;
 	private: typedef typename app_type::sensor_pointer sensor_pointer;
 	protected: typedef ::boost::numeric::ublas::vector<real_type> numeric_vector_type;
@@ -117,7 +115,8 @@ class padala2009_application_manager: public base_application_manager<TraitsT>
 	private: typedef ::std::vector<real_type> observation_container;
 	private: typedef ::std::map<application_performance_category,observation_container> observation_map;
 	//private: typedef ::std::map<application_performance_category,numeric_vector_type> observation_map;
-	private: typedef ::std::map<application_performance_category,sensor_pointer> sensor_map;
+	private: typedef ::std::map<application_performance_category,sensor_pointer> app_sensor_map;
+	private: typedef ::std::map<virtual_machine_performance_category,::std::map<vm_identifier_type,sensor_pointer> > vm_sensor_map;
 
 
 	private: static const real_type default_sampling_time;
@@ -170,6 +169,9 @@ class padala2009_application_manager: public base_application_manager<TraitsT>
 
 	private: void do_reset()
 	{
+		typedef typename base_type::target_value_map::const_iterator target_iterator;
+		typedef typename app_type::vm_pointer vm_pointer;
+
 		// pre: p_sysid_alg_ != null
 		DCS_ASSERT(p_sysid_alg_,
 				   DCS_EXCEPTION_THROW(::std::runtime_error,
@@ -190,18 +192,31 @@ class padala2009_application_manager: public base_application_manager<TraitsT>
 		//const ::std::size_t nu = p_sysid_alg_->num_inputs();
 		//const ::std::size_t ny = p_sysid_alg_->num_outputs();
 
-		out_sensors_.clear();
+		const ::std::vector<vm_pointer> vms = this->app().vms();
+		const ::std::size_t nvms = this->app().num_vms();
+
+		// Reset App sensors
+		app_sensors_.clear();
 		//ybar_.clear();
-		typedef typename base_type::target_value_map::const_iterator target_iterator;
-		target_iterator tgt_end_it = this->target_values().end();
+		const target_iterator tgt_end_it = this->target_values().end();
 		for (target_iterator tgt_it = this->target_values().begin();
 			 tgt_it != tgt_end_it;
 			 ++tgt_it)
 		{
-			const application_performance_category cat(tgt_it->first);
+			const application_performance_category cat = tgt_it->first;
 
 			//ybar_[cat] = numeric_vector_type(ny, tgt_it->second);
-			out_sensors_[cat] = this->app().sensor(cat);
+			app_sensors_[cat] = this->app().sensor(cat);
+		}
+
+		// Reset VM sensors
+		vm_sensors_.clear();
+		for (::std::size_t i = 0; i < nvms; ++i)
+		{
+			const virtual_machine_performance_category cat = cpu_util_virtual_machine_performance;
+			vm_pointer p_vm = vms[i];
+
+			vm_sensors_[cat][p_vm->id()] = p_vm->sensor(cat);
 		}
 
 		// Reset counters
@@ -209,6 +224,14 @@ class padala2009_application_manager: public base_application_manager<TraitsT>
 				   = ctl_fail_count_
 				   = sysid_fail_count_
 				   = 0;
+
+		// Reset VCPU util estimator and smoother
+		for (::std::size_t i = 0; i < nvms; ++i)
+		{
+			//this->data_estimator(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::mean_estimator<real_type> >());
+			this->data_smoother(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(0.9));
+			//this->data_smoother(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::holt_winters_double_exponential_smoother<real_type> >(beta_));
+		}
 
 		// Reset output data file
 		if (p_dat_ofs_ && p_dat_ofs_->is_open())
@@ -227,24 +250,79 @@ class padala2009_application_manager: public base_application_manager<TraitsT>
 				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 			}
 
-			//TODO: write header
+			*p_dat_ofs_ << "\"ts\"";
+
+			const ::std::size_t nvms = this->app().num_vms();
+			for (::std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"Cap_{" << vms[i]->id() << "}\",\"Share_{" << vms[i]->id() << "}\",\"Util_{" << vms[i]->id() << "}\"";
+			}
+			for (target_iterator tgt_it = this->target_values().begin();
+				 tgt_it != tgt_end_it;
+				 ++tgt_it)
+			{
+				const application_performance_category cat = tgt_it->first;
+
+				*p_dat_ofs_ << ",\"y_{" << cat << "}\",\"yn_{" << cat << "}\",\"r_{" << cat << "}\"";
+			}
+			*p_dat_ofs_ << ",\"# Controls\",\"# Skip Controls\",\"# Fail SysIds\",\"# Fail Controls\"";
+			*p_dat_ofs_ << ::std::endl;
 		}
 	}
 
 	private: void do_sample()
 	{
-		typedef typename sensor_map::const_iterator sensor_iterator;
+		typedef typename vm_sensor_map::const_iterator vm_sensor_iterator;
+		typedef typename app_sensor_map::const_iterator app_sensor_iterator;
+		typedef ::std::vector<typename sensor_type::observation_type> obs_container;
+		typedef typename obs_container::const_iterator obs_iterator;
 
 		DCS_DEBUG_TRACE("(" << this << ") BEGIN Do SAMPLE - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << sysid_fail_count_ << "/" << ctl_fail_count_);
 
-		sensor_iterator sens_end_it = out_sensors_.end();
-		for (sensor_iterator sens_it = out_sensors_.begin();
-			 sens_it != sens_end_it;
-			 ++sens_it)
+		// Collect VM values
+		const vm_sensor_iterator vm_sens_end_it = vm_sensors_.end();
+		for (vm_sensor_iterator vm_sens_it = vm_sensors_.begin();
+			 vm_sens_it != vm_sens_end_it;
+			 ++vm_sens_it)
 		{
-			const application_performance_category cat(sens_it->first);
+			const virtual_machine_performance_category cat = vm_sens_it->first;
 
-			sensor_pointer p_sens(sens_it->second);
+			const typename vm_sensor_map::mapped_type::const_iterator vm_end_it = vm_sens_it->second.end();
+			for (typename vm_sensor_map::mapped_type::const_iterator vm_it = vm_sens_it->second.begin();
+				 vm_it != vm_end_it;
+				 ++vm_it)
+			{
+				const vm_identifier_type vm_id = vm_it->first;
+				sensor_pointer p_sens = vm_it->second;
+
+				// check: p_sens != null
+				DCS_DEBUG_ASSERT( p_sens );
+
+				p_sens->sense();
+				if (p_sens->has_observations())
+				{
+					const obs_container obs = p_sens->observations();
+					const obs_iterator end_it = obs.end();
+					for (obs_iterator it = obs.begin();
+						 it != end_it;
+						 ++it)
+					{
+						//this->data_estimator(cat, vm_id).collect(it->value());
+						this->data_smoother(cat, vm_id).smooth(it->value());
+					}
+				}
+			}
+		}
+
+		// Collect App values
+		const app_sensor_iterator app_sens_end_it = app_sensors_.end();
+		for (app_sensor_iterator app_sens_it = app_sensors_.begin();
+			 app_sens_it != app_sens_end_it;
+			 ++app_sens_it)
+		{
+			const application_performance_category cat = app_sens_it->first;
+
+			sensor_pointer p_sens = app_sens_it->second;
 
 			// check: p_sens != null
 			DCS_DEBUG_ASSERT( p_sens );
@@ -601,7 +679,7 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 				{
 					*p_dat_ofs_ << ",";
 				}
-				*p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share();
+				*p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share() << "," << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0);
 			}
 			*p_dat_ofs_ << ",";
 			const target_iterator tgt_end_it = this->target_values().end();
@@ -639,7 +717,8 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 
 
 	private: real_type q_; ///< The stability factor
-	private: sensor_map out_sensors_; ///< Sensor map for the application outputs
+	private: vm_sensor_map vm_sensors_;
+	private: app_sensor_map app_sensors_; ///< Sensor map for the application outputs
 	private: sysid_strategy_pointer p_sysid_alg_;
 //	private: performance_measure_map yr_; ///< The output vector to be tracked , mapped by application performance category
 	private: ::std::size_t ctl_count_; ///< Number of times control function has been invoked

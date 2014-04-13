@@ -81,8 +81,8 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 	private: typedef typename app_type::sensor_pointer sensor_pointer;
 	private: typedef ::std::vector<real_type> observation_container;
 	private: typedef ::std::map<application_performance_category,observation_container> observation_map;
-	private: typedef ::std::map<application_performance_category,sensor_pointer> out_sensor_map;
-	private: typedef ::std::map<virtual_machine_performance_category,::std::map<vm_identifier_type,sensor_pointer> > in_sensor_map;
+	private: typedef ::std::map<application_performance_category,sensor_pointer> app_sensor_map;
+	private: typedef ::std::map<virtual_machine_performance_category,::std::map<vm_identifier_type,sensor_pointer> > vm_sensor_map;
 
 
 	private: static const ::std::string alpha_fuzzy_var_name;
@@ -340,7 +340,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 		const ::std::size_t nvms = this->app().num_vms();
 
 		// Reset output sensors
-		out_sensors_.clear();
+		app_sensors_.clear();
 		const target_iterator tgt_end_it = this->target_values().end();
 		for (target_iterator tgt_it = this->target_values().begin();
 			 tgt_it != tgt_end_it;
@@ -348,18 +348,18 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 		{
 			const application_performance_category cat(tgt_it->first);
 
-			out_sensors_[cat] = this->app().sensor(cat);
+			app_sensors_[cat] = this->app().sensor(cat);
 			es_[cat] = 0;
 		}
 
 		// Reset input sensors
-		in_sensors_.clear();
+		vm_sensors_.clear();
 		for (::std::size_t i = 0; i < nvms; ++i)
 		{
 			const virtual_machine_performance_category cat = cpu_util_virtual_machine_performance;
 			vm_pointer p_vm = vms[i];
 
-			in_sensors_[cat][p_vm->id()] = p_vm->sensor(cat);
+			vm_sensors_[cat][p_vm->id()] = p_vm->sensor(cat);
 		}
 
 		// Reset counters
@@ -374,9 +374,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 		// Reset input scaling factors
 		Ke_ = Kde_ = 0;
 
-		//// Reset Cres estimator and smoother
-		//this->data_estimator(cpu_util_virtual_machine_performance).reset();
-		//this->data_smoother(cpu_util_virtual_machine_performance).reset();
+		// Reset VCPU util estimator and smoother
 		for (::std::size_t i = 0; i < nvms; ++i)
 		{
 			//this->data_estimator(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::mean_estimator<real_type> >());
@@ -423,27 +421,23 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 
 	private: void do_sample()
 	{
-		typedef typename in_sensor_map::const_iterator in_sensor_iterator;
-		typedef typename out_sensor_map::const_iterator out_sensor_iterator;
+		typedef typename vm_sensor_map::const_iterator vm_sensor_iterator;
+		typedef typename app_sensor_map::const_iterator app_sensor_iterator;
 		typedef ::std::vector<typename sensor_type::observation_type> obs_container;
 		typedef typename obs_container::const_iterator obs_iterator;
 
 		DCS_DEBUG_TRACE("(" << this << ") BEGIN Do SAMPLE - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << ctl_fail_count_);
 
-		// Collect input values
-		const in_sensor_iterator in_sens_end_it = in_sensors_.end();
-		for (in_sensor_iterator in_sens_it = in_sensors_.begin();
-			 in_sens_it != in_sens_end_it;
-			 ++in_sens_it)
+		// Collect VM values
+		const vm_sensor_iterator vm_sens_end_it = vm_sensors_.end();
+		for (vm_sensor_iterator vm_sens_it = vm_sensors_.begin();
+			 vm_sens_it != vm_sens_end_it;
+			 ++vm_sens_it)
 		{
-			const virtual_machine_performance_category cat = in_sens_it->first;
+			const virtual_machine_performance_category cat = vm_sens_it->first;
 
-			//const ::std::size_t n = in_sens_it->second.size();
-			//for (::std::size_t i = 0; i < n; ++i)
-			//{
-			//	sensor_pointer p_sens = in_sens_it->second.at(i);
-			const typename in_sensor_map::mapped_type::const_iterator vm_end_it = in_sens_it->second.end();
-			for (typename in_sensor_map::mapped_type::const_iterator vm_it = in_sens_it->second.begin();
+			const typename vm_sensor_map::mapped_type::const_iterator vm_end_it = vm_sens_it->second.end();
+			for (typename vm_sensor_map::mapped_type::const_iterator vm_it = vm_sens_it->second.begin();
 				 vm_it != vm_end_it;
 				 ++vm_it)
 			{
@@ -469,15 +463,15 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 			}
 		}
 
-		// Collect output values
-		const out_sensor_iterator out_sens_end_it = out_sensors_.end();
-		for (out_sensor_iterator out_sens_it = out_sensors_.begin();
-			 out_sens_it != out_sens_end_it;
-			 ++out_sens_it)
+		// Collect App values
+		const app_sensor_iterator app_sens_end_it = app_sensors_.end();
+		for (app_sensor_iterator app_sens_it = app_sensors_.begin();
+			 app_sens_it != app_sens_end_it;
+			 ++app_sens_it)
 		{
-			const application_performance_category cat(out_sens_it->first);
+			const application_performance_category cat(app_sens_it->first);
 
-			sensor_pointer p_sens(out_sens_it->second);
+			sensor_pointer p_sens(app_sens_it->second);
 
 			// check: p_sens != null
 			DCS_DEBUG_ASSERT( p_sens );
@@ -733,8 +727,8 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 	private: ::std::size_t ctl_count_; ///< Number of times control function has been invoked
 	private: ::std::size_t ctl_skip_count_; ///< Number of times control has been skipped
 	private: ::std::size_t ctl_fail_count_; ///< Number of times control has failed
-	private: in_sensor_map in_sensors_;
-	private: out_sensor_map out_sensors_;
+	private: vm_sensor_map vm_sensors_;
+	private: app_sensor_map app_sensors_;
 	private: ::std::string dat_fname_;
 	private: ::boost::shared_ptr< ::std::ofstream > p_dat_ofs_;
 }; // rao2013_application_manager
