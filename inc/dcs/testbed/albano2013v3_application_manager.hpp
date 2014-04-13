@@ -235,7 +235,7 @@ class albano2013v3_application_manager: public base_application_manager<TraitsT>
 
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
-				*p_dat_ofs_ << ",\"Cap_{" << i << "}\",\"Share_{" << i << "}\"";
+				*p_dat_ofs_ << ",\"Cap_{" << vms[i]->id() << "}\",\"Share_{" << vms[i]->id() << "}\"";
 			}
 			for (target_iterator tgt_it = this->target_values().begin();
 				 tgt_it != tgt_end_it;
@@ -247,7 +247,7 @@ class albano2013v3_application_manager: public base_application_manager<TraitsT>
 			}
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
-				*p_dat_ofs_ << ",\"Cres_{" << i << "}\"";
+				*p_dat_ofs_ << ",\"Cres_{" << vms[i]->id() << "}\"";
 			}
 			*p_dat_ofs_ << ",\"# Controls\",\"# Skip Controls\",\"# Fail Controls\"";
 			*p_dat_ofs_ << ::std::endl;
