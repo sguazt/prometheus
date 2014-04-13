@@ -406,7 +406,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 			const ::std::size_t nvms = this->app().num_vms();
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
-				*p_dat_ofs_ << ",\"Cap_{" << vms[i]->id() << "}\",\"Share_{" << vms[i]->id() << "}\",\"Util_{" << vms[i]->id() << "}";
+				*p_dat_ofs_ << ",\"Cap_{" << vms[i]->id() << "}\",\"Share_{" << vms[i]->id() << "}\",\"Util_{" << vms[i]->id() << "}\"";
 			}
 			for (target_iterator tgt_it = this->target_values().begin();
 				 tgt_it != tgt_end_it;
@@ -513,7 +513,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 		::std::vector<vm_pointer> vms = this->app().vms();
 		const ::std::size_t nvms = vms.size();
 
-		std::map<application_performance_category,real_type> es_;
+		//std::map<application_performance_category,real_type> es_;
 		std::map<application_performance_category,real_type> des;
 
 		const target_iterator tgt_end_it = this->target_values().end();
