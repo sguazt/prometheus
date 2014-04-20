@@ -537,7 +537,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 						}
 						break;
 					case throughput_application_performance:
-						if (dcs::math::float_traits<real_type>::approximately_greater_equal(y, 0,5*r))
+						if (dcs::math::float_traits<real_type>::approximately_greater_equal(y, 0.5*r))
 						{
 							e = (y-r)/r;
 						}

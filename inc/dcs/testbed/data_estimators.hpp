@@ -719,11 +719,11 @@ class chen2000_ewsa_quantile_estimator: public base_estimator<ValueT>
 
 		if (m > 0)
 		{
-			const value_type p25_75[] = {0.25, 0.75};
-			const ::std::vector<value_type> q25_75 = detail::quantile<value_type>(data_.begin(), data_.end(), p25_75, p25_75+2, false);
-
 			if (init_)
 			{
+				const value_type p25_75[] = {0.25, 0.75};
+				const ::std::vector<value_type> q25_75 = detail::quantile<value_type>(data_.begin(), data_.end(), p25_75, p25_75+2, false);
+
 				// Set the initial estimate S_0^* equal to the q^\text{th} sample quantile
 				// \hat{Q}_n of X_{01},\ldots,X_{0M}
 				sn_ = detail::quantile(data_.begin(), data_.end(), prob_, false);
@@ -733,18 +733,19 @@ class chen2000_ewsa_quantile_estimator: public base_estimator<ValueT>
 				rn_ = q25_75[1]-q25_75[0];
 				// Then take c_0^* = r_0^* M^{-1} \sum_{i=1}^M i^{-1/2}
 				value_type c = 1;
+				cn_ = 1;
 				for (::std::size_t i = 2; i <= m; ++i)
 				{
-					c += 1.0/::std::sqrt(i);
+					cn_ += 1.0/::std::sqrt(i);
 				}
 				// FIXME: unlike the Chen's paper, we deal with the case of rn_ ~= zero
 				if (rn_ > 0)
 				{
-					cn_ = rn_*c/m;
+					cn_ *= rn_/m;
 				}
 				else
 				{
-					cn_ = c/m;
+					cn_ /= m;
 				}
 				// Take f_0^* = (2 c_0^* M)^{-1} \max\{\#\{|X_{0i}-S_0^*| \le c_0^*\},1\}
 				// which is the density of observations in a neighborhood of width 2c_0^* of
@@ -777,27 +778,26 @@ class chen2000_ewsa_quantile_estimator: public base_estimator<ValueT>
 						++fcnt;
 					}
 				}
+				const value_type q25 = sn_ + (w_/fn_)*(0.25-scnt/static_cast<value_type>(m));
+				const value_type q75 = sn_ + (w_/fn_)*(0.75-scnt/static_cast<value_type>(m));
 				sn_ += (w_/fn_)*(prob_-scnt/static_cast<value_type>(m));
 				fn_ = (1-w_)*fn_ + (w_/(2.0*cn_*m))*fcnt;
 				// Take r_n^∗ to be the difference of the current EWSA estimates for the
 				// .75 and .25 quantiles, and define the neighborhood size for the next
 				// updating step to be c_n^* = r_n^∗ c, with c = M^{-1} \sum_{i=M+1}^{2M} i^{-1/2}.
-				rn_ = q25_75[1]-q25_75[0];
-				value_type c = 0;
+				//rn_ = q25_75[1]-q25_75[0];
+				rn_ = q75-q25;
 				const ::std::size_t m2 = 2*m;
+				cn_ = 0;
 				for (::std::size_t i = m+1; i <= m2; ++i)
 				{
-					c += 1.0/::std::sqrt(i);
+					cn_ += 1.0/::std::sqrt(i);
 				}
-				c /= m;
+				cn_ /= m;
 				// FIXME: unlike the Chen's paper, we handle the case of rn_ ~= zero
 				if (rn_ > 0)
 				{
-					cn_ = rn_*c;
-				}
-				else
-				{
-					cn_ = c;
+					cn_ *= rn_;
 				}
 			}
 			data_.clear();
