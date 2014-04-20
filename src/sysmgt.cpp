@@ -270,9 +270,6 @@ inline
 		case chen2000_sa_quantile_estimator:
 				os << "chen2000_sa_quantile";
 				break;
-		case chen2000_sa_quantile_estimator:
-				os << "chen2000_sa_quantile";
-				break;
 		case jain1985_p2_algorithm_quantile_estimator:
 				os << "jain1985_p2_algorithm_quantile";
 				break;
