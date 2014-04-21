@@ -184,7 +184,7 @@ class sinusoidal_signal_generator: public detail::base_sinusoidal_signal_generat
 
 	private: vector_type do_generate()
 	{
-		::std::size_t n(this->a_.size());
+		const ::std::size_t n = this->a_.size();
 		vector_type u(n);
 
 		for (::std::size_t i = 0; i < n; ++i)
@@ -204,7 +204,7 @@ class sinusoidal_signal_generator: public detail::base_sinusoidal_signal_generat
 
 	private: void do_reset()
 	{
-		this->k_ = uint_vector_type(this->a_.size());
+		this->k_ = uint_vector_type(this->a_.size(), 0);
 	}
 }; // sinusoidal_signal_generator
 
@@ -230,7 +230,7 @@ class half_sinusoidal_signal_generator: public detail::base_sinusoidal_signal_ge
 
 	private: vector_type do_generate()
 	{
-		::std::size_t n(this->a_.size());
+		const ::std::size_t n = this->a_.size();
 		vector_type u(n);
 
 		for (::std::size_t i = 0; i < n; ++i)
@@ -249,7 +249,7 @@ class half_sinusoidal_signal_generator: public detail::base_sinusoidal_signal_ge
 
 	private: void do_reset()
 	{
-		this->k_ = uint_vector_type(this->a_.size());
+		this->k_ = uint_vector_type(this->a_.size(), 0);
 	}
 }; // half_sinusoidal_signal_generator
 
@@ -275,7 +275,7 @@ class sinusoidal_mesh_signal_generator: public detail::base_sinusoidal_signal_ge
 
 	private: vector_type do_generate()
 	{
-		::std::size_t n(this->a_.size());
+		const ::std::size_t n = this->a_.size();
 		vector_type u(n);
 
 		// Compute signal value
@@ -303,7 +303,7 @@ class sinusoidal_mesh_signal_generator: public detail::base_sinusoidal_signal_ge
 
 	private: void do_reset()
 	{
-		this->k_ = uint_vector_type(this->a_.size());
+		this->k_ = uint_vector_type(this->a_.size(), 0);
 	}
 }; // sinusoidal_mesh_signal_generator
 
@@ -329,7 +329,7 @@ class half_sinusoidal_mesh_signal_generator: public detail::base_sinusoidal_sign
 
 	private: vector_type do_generate()
 	{
-		::std::size_t n(this->a_.size());
+		const ::std::size_t n = this->a_.size();
 		vector_type u(n);
 
 		// Compute signal value
@@ -356,7 +356,7 @@ class half_sinusoidal_mesh_signal_generator: public detail::base_sinusoidal_sign
 
 	private: void do_reset()
 	{
-		this->k_ = uint_vector_type(this->a_.size());
+		this->k_ = uint_vector_type(this->a_.size(), 0);
 	}
 }; // half_sinusoidal_mesh_signal_generator
 
