@@ -218,6 +218,52 @@ void disconnect(virConnectPtr conn)
 	return oss.str();
 }
 
+int max_num_cpus(virConnectPtr conn)
+{
+	DCS_DEBUG_ASSERT( conn );
+
+	int ret;
+
+	// First try to use virNodeGetCPUMap since it is the lightest way
+    ret = virNodeGetCPUMap(conn, 0, 0, 0);
+	if (-1 == ret)
+	{
+		// Fall back to virNodeGetInfo
+		virNodeInfo info;
+
+		ret = virNodeGetInfo(conn, &info);
+		if (-1 == ret)
+		{
+			::std::ostringstream oss;
+			oss << "Failed to get node info: " << last_error(conn);
+
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+
+		ret = VIR_NODEINFO_MAXCPUS(info);
+	}
+
+	return ret;
+}
+
+int max_supported_num_vcpus(virConnectPtr conn)
+{
+	DCS_DEBUG_ASSERT( conn );
+
+	int ret;
+
+	ret = virConnectGetMaxVcpus(conn, 0);
+	if (-1 == ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to get the max number of vCPUs: " << last_error(conn);
+
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+
+	return ret;
+}
+
 virDomainPtr connect_domain(virConnectPtr conn, ::std::string const& name)
 {
 	DCS_DEBUG_ASSERT( conn );
@@ -493,6 +539,55 @@ int num_vcpus(virConnectPtr conn, virDomainPtr dom, int flags)
 	return ret;
 }
 
+int num_cpus(virConnectPtr conn, virDomainPtr dom, int flags)
+{
+	DCS_DEBUG_ASSERT( conn );
+	DCS_DEBUG_ASSERT( dom );
+
+	int ret = 0;
+
+	virDomainInfo info;
+	ret = virDomainGetInfo(dom, &info);
+	if (0 > ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to query information for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+
+	const int nvcpus = info.nrVirtCpu;
+	const int maxncpus = max_num_cpus(conn);
+
+	const ::std::size_t cpumaplen = VIR_CPU_MAPLEN(maxncpus);
+	unsigned char* cpumaps = new unsigned char[nvcpus*cpumaplen];
+
+	ret = virDomainGetVcpuPinInfo(dom, info.nrVirtCpu, cpumaps, cpumaplen, flags);
+	if (0 > ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+
+	int ncpu = 0;
+	for (int cpu = 0; cpu < maxncpus; ++cpu)
+	{
+		for (int vcpu = 0; vcpu < cpumaplen; ++vcpu)
+		{
+			//if (VIR_CPU_USED(VIR_GET_CPUMAP(cpumaps, cpumaplen, vcpu), cpu))
+			if (VIR_CPU_USABLE(cpumaps, cpumaplen, vcpu, cpu))
+			{
+				++ncpu;
+				break;
+			}
+		}
+	}
+
+	delete[] cpumaps;
+
+	return ncpu;
+}
+
 unsigned int domain_id(virConnectPtr conn, virDomainPtr dom)
 {
 	DCS_DEBUG_ASSERT( conn );
@@ -523,43 +618,6 @@ unsigned int domain_id(virConnectPtr conn, virDomainPtr dom)
 	{
 		::std::ostringstream oss;
 		oss << "Failed to query the name for domain: " << last_error(conn);
-		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
-	}
-
-	return ret;
-}
-
-int max_num_cpus(virConnectPtr conn)
-{
-	DCS_DEBUG_ASSERT( conn );
-
-	virNodeInfo info;
-	int ret;
-
-	ret = virNodeGetInfo(conn, &info);
-	if (-1 == ret)
-	{
-		::std::ostringstream oss;
-		oss << "Failed to get node info: " << last_error(conn);
-
-		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
-	}
-
-	return VIR_NODEINFO_MAXCPUS(info);
-}
-
-int max_supported_num_vcpus(virConnectPtr conn)
-{
-	DCS_DEBUG_ASSERT( conn );
-
-	int ret;
-
-	ret = virConnectGetMaxVcpus(conn, 0);
-	if (-1 == ret)
-	{
-		::std::ostringstream oss;
-		oss << "Failed to get the max number of vCPUs: " << last_error(conn);
-
 		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 
