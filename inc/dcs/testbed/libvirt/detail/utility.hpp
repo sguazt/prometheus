@@ -47,6 +47,16 @@
 #include <string>
 
 
+// This macro is available only in recent versions of libvirt.
+// It is useful for enabling code that only works since a given version
+#if !defined(LIBVIR_CHECK_VERSION)
+
+# define LIBVIR_CHECK_VERSION(major, minor, micro) \
+     ((major) * 1000000 + (minor) * 1000 + (micro) <= LIBVIR_VERSION_NUMBER)
+
+#endif // LIBVIR_CHECK_VERSION
+
+
 namespace dcs { namespace testbed { namespace libvirt { namespace detail {
 
 inline
@@ -101,11 +111,13 @@ inline
 		case VIR_TYPED_PARAM_BOOLEAN:
 			oss << param.value.b;
 			break;
-#if LIBVIR_VERSION_NUMBER >= 10000
+#if LIBVIR_CHECK_VERSION(0,10,0)
+//#if LIBVIR_VERSION_NUMBER >= 10000
 		case VIR_TYPED_PARAM_STRING:
 			oss << param.value.s;
 			break;
-#endif // LIBVIR_VERSION_NUMBER
+//#endif // LIBVIR_VERSION_NUMBER
+#endif // LIBVIR_CHECK_VERSION
 	}
 
 	return oss.str();
@@ -224,6 +236,7 @@ int max_num_cpus(virConnectPtr conn)
 
 	int ret;
 
+#if LIBVIR_CHECK_VERSION(1,0,0)
 	// First try to use virNodeGetCPUMap since it is the lightest way
     ret = virNodeGetCPUMap(conn, 0, 0, 0);
 	if (-1 == ret)
@@ -242,6 +255,21 @@ int max_num_cpus(virConnectPtr conn)
 
 		ret = VIR_NODEINFO_MAXCPUS(info);
 	}
+#else
+	// Function "virNodeGetCPUMap" not available
+	virNodeInfo info;
+
+	ret = virNodeGetInfo(conn, &info);
+	if (-1 == ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to get node info: " << last_error(conn);
+
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+
+	ret = VIR_NODEINFO_MAXCPUS(info);
+#endif // LIBVIR_CHECK_VERSION
 
 	return ret;
 }
@@ -379,7 +407,8 @@ struct sched_param_value<char>
 	}
 }; // sched_param_value
 
-#if LIBVIR_VERSION_NUMBER >= 10000
+#if LIBVIR_CHECK_VERSION(0,10,0)
+//#if LIBVIR_VERSION_NUMBER >= 10000
 template <>
 struct sched_param_value<char*>
 {
@@ -393,7 +422,8 @@ struct sched_param_value<char*>
 		return param.value.s;
 	}
 }; // sched_param_value
-#endif // LIBVIR_VERSION_NUMBER
+//#endif // LIBVIR_VERSION_NUMBER
+#endif // LIBVIR_CHECK_VERSION
 
 template <typename ParamT>
 ParamT sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& name, int flags)
