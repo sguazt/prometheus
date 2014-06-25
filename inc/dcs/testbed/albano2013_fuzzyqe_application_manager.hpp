@@ -1,5 +1,5 @@
 /**
- * \file dcs/testbed/albano2013_application_manager.hpp
+ * \file dcs/testbed/albano2013_fuzzyqe_application_manager.hpp
  *
  * \brief Application manager based on the work by (Albano et al., 2013)
  *
@@ -22,8 +22,8 @@
  * limitations under the License.
  */
 
-#ifndef DCS_TESTBED_ALBANO2013_APPLICATION_MANAGER_HPP
-#define DCS_TESTBED_ALBANO2013_APPLICATION_MANAGER_HPP
+#ifndef DCS_TESTBED_ALBANO2013_FUZZYQE_APPLICATION_MANAGER_HPP
+#define DCS_TESTBED_ALBANO2013_FUZZYQE_APPLICATION_MANAGER_HPP
 
 
 #include <boost/smart_ptr.hpp>
@@ -65,7 +65,7 @@ namespace dcs { namespace testbed {
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  */
 template <typename TraitsT>
-class albano2013_application_manager: public base_application_manager<TraitsT>
+class albano2013_fuzzyqe_application_manager: public base_application_manager<TraitsT>
 {
 	private: typedef base_application_manager<TraitsT> base_type;
 	public: typedef typename base_type::traits_type traits_type;
@@ -84,7 +84,7 @@ class albano2013_application_manager: public base_application_manager<TraitsT>
 	private: static const ::std::string deltac_fuzzy_var_name;
 
 
-	public: albano2013_application_manager()
+	public: albano2013_fuzzyqe_application_manager()
 	: beta_(0.9),
 	  p_fuzzy_eng_(new fl::Engine()),
 	  ctl_count_(0),
@@ -541,17 +541,17 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 	private: out_sensor_map out_sensors_;
 	private: ::std::string dat_fname_;
 	private: ::boost::shared_ptr< ::std::ofstream > p_dat_ofs_;
-}; // albano2013_application_manager
+}; // albano2013_fuzzyqe_application_manager
 
 template <typename T>
-const ::std::string albano2013_application_manager<T>::rgain_fuzzy_var_name = "Rgain";
+const ::std::string albano2013_fuzzyqe_application_manager<T>::rgain_fuzzy_var_name = "Rgain";
 
 template <typename T>
-const ::std::string albano2013_application_manager<T>::cres_fuzzy_var_name = "Cres";
+const ::std::string albano2013_fuzzyqe_application_manager<T>::cres_fuzzy_var_name = "Cres";
 
 template <typename T>
-const ::std::string albano2013_application_manager<T>::deltac_fuzzy_var_name = "DeltaC";
+const ::std::string albano2013_fuzzyqe_application_manager<T>::deltac_fuzzy_var_name = "DeltaC";
 
 }} // Namespace dcs::testbed
 
-#endif // DCS_TESTBED_ALBANO2013_APPLICATION_MANAGER_HPP
+#endif // DCS_TESTBED_ALBANO2013_FUZZYQE_APPLICATION_MANAGER_HPP

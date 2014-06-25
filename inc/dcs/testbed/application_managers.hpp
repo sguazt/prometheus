@@ -26,16 +26,17 @@
 #define DCS_TESTBED_APPLICATION_MANAGERS_HPP
 
 
-#include <dcs/testbed/albano2013_application_manager.hpp>
-#include <dcs/testbed/albano2013v2_application_manager.hpp>
-#include <dcs/testbed/albano2013v3_application_manager.hpp>
-#include <dcs/testbed/albano2013v4_application_manager.hpp>
-#include <dcs/testbed/albano2013v5_application_manager.hpp>
+#include <dcs/testbed/albano2013_fuzzyqe_application_manager.hpp>
+//#include <dcs/testbed/albano2013v2_fuzzyqe_application_manager.hpp>
+//#include <dcs/testbed/albano2013v3_fuzzyqe_application_manager.hpp>
+//#include <dcs/testbed/albano2013v4_fuzzyqe_application_manager.hpp>
+//#include <dcs/testbed/albano2013v5_fuzzyqe_application_manager.hpp>
+#include <dcs/testbed/anglano2014_fc2q_application_manager.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
 #include <dcs/testbed/dummy_application_manager.hpp>
 #include <dcs/testbed/lq_application_manager.hpp>
-#include <dcs/testbed/padala2009_application_manager.hpp>
-#include <dcs/testbed/rao2013_application_manager.hpp>
+#include <dcs/testbed/padala2009_autocontrol_application_manager.hpp>
+#include <dcs/testbed/rao2013_dynaqos_application_manager.hpp>
 #include <dcs/testbed/sysid_application_manager.hpp>
 
 

@@ -1,5 +1,5 @@
 /**
- * \file dcs/testbed/padala2009_application_manager.hpp
+ * \file dcs/testbed/padala2009_autocontrol_application_manager.hpp
  *
  * \brief Class modeling the Application Manager component based on the work
  *  of (Padala et al, 2009)
@@ -23,20 +23,20 @@
  * limitations under the License.
  */
 
-#ifndef DCS_TESTBED_PADALA2009_APPLICATION_MANAGER_HPP
-#define DCS_TESTBED_PADALA2009_APPLICATION_MANAGER_HPP
+#ifndef DCS_TESTBED_PADALA2009_AUTOCONTROL_APPLICATION_MANAGER_HPP
+#define DCS_TESTBED_PADALA2009_AUTOCONTROL_APPLICATION_MANAGER_HPP
 
 //@{ Consistency checks for macros
 
-#ifndef DCS_TESTBED_EXP_PADALA2009_APP_MGR_NEGATIVE_SHARE_ACTION
-# define DCS_TESTBED_EXP_PADALA2009_APP_MGR_NEGATIVE_SHARE_ACTION 'C'
-#endif // DCS_TESTBED_EXP_PADALA2009_APP_MGR_NEGATIVE_SHARE_ACTION
-#if    DCS_TESTBED_EXP_PADALA2009_APP_MGR_NEGATIVE_SHARE_ACTION != 'C' \
-    && DCS_TESTBED_EXP_PADALA2009_APP_MGR_NEGATIVE_SHARE_ACTION != 'M' \
-    && DCS_TESTBED_EXP_PADALA2009_APP_MGR_NEGATIVE_SHARE_ACTION != 'R' \
-    && DCS_TESTBED_EXP_PADALA2009_APP_MGR_NEGATIVE_SHARE_ACTION != 'W'
-# error Unknwon value for DCS_TESTBED_EXP_PADALA2009_APP_MGR_NEGATIVE_SHARE_ACTION.
-#endif // DCS_TESTBED_EXP_PADALA2009_APP_MGR_NEGATIVE_SHARE_ACTION
+#ifndef DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_NEGATIVE_SHARE_ACTION
+# define DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_NEGATIVE_SHARE_ACTION 'C'
+#endif // DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_NEGATIVE_SHARE_ACTION
+#if    DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_NEGATIVE_SHARE_ACTION != 'C' \
+    && DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_NEGATIVE_SHARE_ACTION != 'M' \
+    && DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_NEGATIVE_SHARE_ACTION != 'R' \
+    && DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_NEGATIVE_SHARE_ACTION != 'W'
+# error Unknwon value for DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_NEGATIVE_SHARE_ACTION.
+#endif // DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_NEGATIVE_SHARE_ACTION
 
 //@} Consistency checks for macros
 
@@ -53,9 +53,9 @@
 #include <boost/numeric/ublas/vector_expression.hpp>
 #include <boost/numeric/ublas/vector_proxy.hpp>
 #include <boost/numeric/ublasx/operation/all.hpp>
-#ifdef DCS_TESTBED_EXP_PADALA2009_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
+#ifdef DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
 # include <boost/numeric/ublasx/operation/any.hpp>
-#endif // DCS_TESTBED_EXP_PADALA2009_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
+#endif // DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
 #include <boost/numeric/ublasx/operation/isfinite.hpp>
 #include <boost/smart_ptr.hpp>
 #include <cmath>
@@ -77,9 +77,9 @@
 #include <dcs/testbed/system_identification_strategies.hpp>
 #include <dcs/testbed/virtual_machine_performance_category.hpp>
 #include <fstream>
-#ifdef DCS_TESTBED_EXP_PADALA2009_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
+#ifdef DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
 # include <functional>
-#endif // DCS_TESTBED_EXP_PADALA2009_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
+#endif // DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
 #include <limits>
 #include <map>
 #include <sstream>
@@ -95,7 +95,7 @@
 namespace dcs { namespace testbed {
 
 template <typename TraitsT>
-class padala2009_application_manager: public base_application_manager<TraitsT>
+class padala2009_autocontrol_application_manager: public base_application_manager<TraitsT>
 {
 	private: typedef base_application_manager<TraitsT> base_type;
 	public: typedef typename base_type::traits_type traits_type;
@@ -123,7 +123,7 @@ class padala2009_application_manager: public base_application_manager<TraitsT>
 	private: static const real_type default_stability_factor;
 
 
-	public: padala2009_application_manager()
+	public: padala2009_autocontrol_application_manager()
 	: q_(default_stability_factor),
 	  ctl_count_(0),
       ctl_skip_count_(0),
@@ -484,7 +484,7 @@ DCS_DEBUG_TRACE("phi=" << p_sysid_alg_->phi());//XXX
 					// $\bar{\mathbf{u}}_a^*(k)= (\mathbf{b}_0\mathbf{b}_0^T+q\mathbf{I})^{-1}((1+\sum_{i=1}^{n_a}\hat{y}_a(k-i)-\sum_{i=1}^{n_b}\mathbf{b}_i^T\mathbf{u}_a(k-i))\mathbf{b}_0+q\sum_{i=1}^{n_b}\mathbf{u}_a(k-i))$
 					// (b1^2 + q)^{-1}*(q*(u2 + u3) + (r - b2*u2 - b3*u3 + a1*y1 + a2*y2 + a3*y3)*b1)
 
-//#ifdef DCS_TESTBED_EXP_PADALA2009_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
+//#ifdef DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
 //					// Check on B(1) suggested by Karlsson et al "Dynamic Black-Box Performance Model Estimation for Self-Tuning Regulators", 2005
 //					// This essentially consider the model as a linear model where u(k) is the free variabile.
 //					// They compute the first partial derivative wrt to u(k) which gives the matrix B(1).
@@ -528,7 +528,7 @@ DCS_DEBUG_TRACE("phi=" << p_sysid_alg_->phi());//XXX
 ////							::dcs::testbed::log_warn(cls_id_, oss.str());
 ////						}
 ////					}
-//#endif // DCS_TESTBED_EXP_PADALA2009_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
+//#endif // DCS_TESTBED_EXP_PADALA2009_AUTOCONTROL_APP_MGR_USE_ARX_B0_SIGN_HEURISTIC
 
 					real_type yr(1); //FIXME: only one reference target is handled
 
@@ -726,23 +726,23 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 	private: ::boost::shared_ptr< ::std::ofstream > p_dat_ofs_;
 //	private: numeric_vector_type u_; ///< Current values for inputs
 //	private: numeric_vector_type y_; ///< Current (normalized) values for outputs
-}; // padala2009_application_manager
+}; // padala2009_autocontrol_application_manager
 
 template <typename T>
-const typename padala2009_application_manager<T>::real_type padala2009_application_manager<T>::default_sampling_time = 1;
+const typename padala2009_autocontrol_application_manager<T>::real_type padala2009_autocontrol_application_manager<T>::default_sampling_time = 1;
 
 template <typename T>
-const typename padala2009_application_manager<T>::real_type padala2009_application_manager<T>::default_control_time = 5;
+const typename padala2009_autocontrol_application_manager<T>::real_type padala2009_autocontrol_application_manager<T>::default_control_time = 5;
 
 template <typename T>
-const typename padala2009_application_manager<T>::real_type padala2009_application_manager<T>::default_min_share = 0.0;
+const typename padala2009_autocontrol_application_manager<T>::real_type padala2009_autocontrol_application_manager<T>::default_min_share = 0.0;
 
 template <typename T>
-const typename padala2009_application_manager<T>::real_type padala2009_application_manager<T>::default_max_share = 1.00;
+const typename padala2009_autocontrol_application_manager<T>::real_type padala2009_autocontrol_application_manager<T>::default_max_share = 1.00;
 
 template <typename T>
-const typename padala2009_application_manager<T>::real_type padala2009_application_manager<T>::default_stability_factor = 2.0;
+const typename padala2009_autocontrol_application_manager<T>::real_type padala2009_autocontrol_application_manager<T>::default_stability_factor = 2.0;
 
 }} // Namespace dcs::testbed
 
-#endif // DCS_TESTBED_PADALA2009_APPLICATION_MANAGER_HPP
+#endif // DCS_TESTBED_PADALA2009_AUTOCONTROL_APPLICATION_MANAGER_HPP

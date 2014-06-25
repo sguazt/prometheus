@@ -1,7 +1,7 @@
 /**
- * \file dcs/testbed/albano2013v3_application_manager.hpp
+ * \file dcs/testbed/albano2013v4_fuzzyqe_application_manager.hpp
  *
- * \brief Application manager based on the work by (Albano et al., 2013)
+ * \brief Application manager based on a variation of the work by (Albano et al., 2013)
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
@@ -22,8 +22,8 @@
  * limitations under the License.
  */
 
-#ifndef DCS_TESTBED_ALBANO2013V3_APPLICATION_MANAGER_HPP
-#define DCS_TESTBED_ALBANO2013V3_APPLICATION_MANAGER_HPP
+#ifndef DCS_TESTBED_ALBANO2013V4_FUZZYQE_APPLICATION_MANAGER_HPP
+#define DCS_TESTBED_ALBANO2013V4_FUZZYQE_APPLICATION_MANAGER_HPP
 
 
 #include <boost/smart_ptr.hpp>
@@ -36,7 +36,7 @@
 #include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
-//#include <dcs/testbed/data_estimators.hpp>
+#include <dcs/testbed/data_estimators.hpp>
 #include <dcs/testbed/data_smoothers.hpp>
 #include <dcs/testbed/virtual_machine_performance_category.hpp>
 #include <fl/Headers.h>
@@ -65,7 +65,7 @@ namespace dcs { namespace testbed {
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  */
 template <typename TraitsT>
-class albano2013v3_application_manager: public base_application_manager<TraitsT>
+class albano2013v4_fuzzyqe_application_manager: public base_application_manager<TraitsT>
 {
 	private: typedef base_application_manager<TraitsT> base_type;
 	public: typedef typename base_type::traits_type traits_type;
@@ -84,7 +84,7 @@ class albano2013v3_application_manager: public base_application_manager<TraitsT>
 	private: static const ::std::string deltac_fuzzy_var_name;
 
 
-	public: albano2013v3_application_manager()
+	public: albano2013v4_fuzzyqe_application_manager()
 	: beta_(0.9),
 	  p_fuzzy_eng_(new fl::Engine()),
 	  ctl_count_(0),
@@ -119,9 +119,9 @@ class albano2013v3_application_manager: public base_application_manager<TraitsT>
 		p_iv->setEnabled(true);
 		p_iv->setName(cres_fuzzy_var_name);
 		p_iv->setRange(0.0, 1.0);
-		p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
+		p_iv->addTerm(new fl::Ramp("LOW", 0.25, 0.10));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
-		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
+		p_iv->addTerm(new fl::Ramp("HIGH", 0.25, 0.65));
 		p_fuzzy_eng_->addInputVariable(p_iv);
 
 		p_iv = new fl::InputVariable();
@@ -130,7 +130,7 @@ class albano2013v3_application_manager: public base_application_manager<TraitsT>
 		p_iv->setRange(-1, 1);
 		p_iv->addTerm(new fl::Ramp("LOW", 0.20, -0.40));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.20, 0.30));
-		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
+		p_iv->addTerm(new fl::Ramp("HIGH", 0.20, 0.65));
 		p_fuzzy_eng_->addInputVariable(p_iv);
 
 		fl::OutputVariable* p_ov = 0;
@@ -209,9 +209,8 @@ class albano2013v3_application_manager: public base_application_manager<TraitsT>
 		//this->data_smoother(cpu_util_virtual_machine_performance).reset();
 		for (::std::size_t i = 0; i < nvms; ++i)
 		{
-			//this->data_estimator(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::mean_estimator<real_type> >());
 			this->data_smoother(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
-			//this->data_smoother(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::holt_winters_double_exponential_smoother<real_type> >(beta_));
+			//this->data_estimator(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::mean_estimator<real_type> >());
 		}
 
 		// Reset output data file
@@ -235,7 +234,7 @@ class albano2013v3_application_manager: public base_application_manager<TraitsT>
 
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
-				*p_dat_ofs_ << ",\"Cap_{" << vms[i]->id() << "}\",\"Share_{" << vms[i]->id() << "}\"";
+				*p_dat_ofs_ << ",\"Cap_{" << i << "}\",\"Share_{" << i << "}\"";
 			}
 			for (target_iterator tgt_it = this->target_values().begin();
 				 tgt_it != tgt_end_it;
@@ -243,11 +242,7 @@ class albano2013v3_application_manager: public base_application_manager<TraitsT>
 			{
 				const application_performance_category cat = tgt_it->first;
 
-				*p_dat_ofs_ << ",\"r_{" << cat << "}\",\"y_{" << cat << "}\",\"Rgain_{" << cat << "}\"";
-			}
-			for (::std::size_t i = 0; i < nvms; ++i)
-			{
-				*p_dat_ofs_ << ",\"Cres_{" << vms[i]->id() << "}\"";
+				*p_dat_ofs_ << ",\"y_{" << cat << "}\",\"yn_{" << cat << "}\",\"r_{" << cat << "}\"";
 			}
 			*p_dat_ofs_ << ",\"# Controls\",\"# Skip Controls\",\"# Fail Controls\"";
 			*p_dat_ofs_ << ::std::endl;
@@ -526,13 +521,8 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 				}
 				const real_type yh = this->data_estimator(cat).estimate();
 				const real_type yr = tgt_it->second;
-				const real_type rgain = rgains.begin()->second; //FIXME: only one performance index is managed
-				*p_dat_ofs_ << yr << "," << yh << "," << rgain;
-			}
-			for (::std::size_t i = 0; i < nvms; ++i)
-			{
-				const real_type cres = cress.begin()->second.at(i); //FIXME: only one physical resource is managed
-				*p_dat_ofs_ << "," << cres;
+				const real_type yn = yh/yr;
+				*p_dat_ofs_ << yh << "," << yn << "," << yr;
 			}
 			*p_dat_ofs_ << "," << ctl_count_ << "," << ctl_skip_count_ << "," << ctl_fail_count_;
 			*p_dat_ofs_ << ::std::endl;
@@ -551,17 +541,17 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 	private: out_sensor_map out_sensors_;
 	private: ::std::string dat_fname_;
 	private: ::boost::shared_ptr< ::std::ofstream > p_dat_ofs_;
-}; // albano2013v3_application_manager
+}; // albano2013v4_fuzzyqe_application_manager
 
 template <typename T>
-const ::std::string albano2013v3_application_manager<T>::rgain_fuzzy_var_name = "Rgain";
+const ::std::string albano2013v4_fuzzyqe_application_manager<T>::rgain_fuzzy_var_name = "Rgain";
 
 template <typename T>
-const ::std::string albano2013v3_application_manager<T>::cres_fuzzy_var_name = "Cres";
+const ::std::string albano2013v4_fuzzyqe_application_manager<T>::cres_fuzzy_var_name = "Cres";
 
 template <typename T>
-const ::std::string albano2013v3_application_manager<T>::deltac_fuzzy_var_name = "DeltaC";
+const ::std::string albano2013v4_fuzzyqe_application_manager<T>::deltac_fuzzy_var_name = "DeltaC";
 
 }} // Namespace dcs::testbed
 
-#endif // DCS_TESTBED_ALBANO2013V3_APPLICATION_MANAGER_HPP
+#endif // DCS_TESTBED_ALBANO2013V4_FUZZYQE_APPLICATION_MANAGER_HPP

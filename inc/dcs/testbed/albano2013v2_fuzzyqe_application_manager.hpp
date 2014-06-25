@@ -1,7 +1,7 @@
 /**
- * \file dcs/testbed/albano2013v4_application_manager.hpp
+ * \file dcs/testbed/albano2013v2_fuzzyqe_application_manager.hpp
  *
- * \brief Application manager based on the work by (Albano et al., 2013)
+ * \brief Application manager based on a variation of the work by (Albano et al., 2013)
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
@@ -22,8 +22,8 @@
  * limitations under the License.
  */
 
-#ifndef DCS_TESTBED_ALBANO2013V4_APPLICATION_MANAGER_HPP
-#define DCS_TESTBED_ALBANO2013V4_APPLICATION_MANAGER_HPP
+#ifndef DCS_TESTBED_ALBANO2013V2_FUZZYQE_APPLICATION_MANAGER_HPP
+#define DCS_TESTBED_ALBANO2013V2_FUZZYQE_APPLICATION_MANAGER_HPP
 
 
 #include <boost/smart_ptr.hpp>
@@ -65,7 +65,7 @@ namespace dcs { namespace testbed {
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  */
 template <typename TraitsT>
-class albano2013v4_application_manager: public base_application_manager<TraitsT>
+class albano2013v2_fuzzyqe_application_manager: public base_application_manager<TraitsT>
 {
 	private: typedef base_application_manager<TraitsT> base_type;
 	public: typedef typename base_type::traits_type traits_type;
@@ -84,7 +84,7 @@ class albano2013v4_application_manager: public base_application_manager<TraitsT>
 	private: static const ::std::string deltac_fuzzy_var_name;
 
 
-	public: albano2013v4_application_manager()
+	public: albano2013v2_fuzzyqe_application_manager()
 	: beta_(0.9),
 	  p_fuzzy_eng_(new fl::Engine()),
 	  ctl_count_(0),
@@ -119,9 +119,9 @@ class albano2013v4_application_manager: public base_application_manager<TraitsT>
 		p_iv->setEnabled(true);
 		p_iv->setName(cres_fuzzy_var_name);
 		p_iv->setRange(0.0, 1.0);
-		p_iv->addTerm(new fl::Ramp("LOW", 0.25, 0.10));
+		p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.10));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
-		p_iv->addTerm(new fl::Ramp("HIGH", 0.25, 0.65));
+		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 0.65));
 		p_fuzzy_eng_->addInputVariable(p_iv);
 
 		p_iv = new fl::InputVariable();
@@ -130,7 +130,7 @@ class albano2013v4_application_manager: public base_application_manager<TraitsT>
 		p_iv->setRange(-1, 1);
 		p_iv->addTerm(new fl::Ramp("LOW", 0.20, -0.40));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.20, 0.30));
-		p_iv->addTerm(new fl::Ramp("HIGH", 0.20, 0.65));
+		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 0.65));
 		p_fuzzy_eng_->addInputVariable(p_iv);
 
 		fl::OutputVariable* p_ov = 0;
@@ -142,11 +142,13 @@ class albano2013v4_application_manager: public base_application_manager<TraitsT>
 		p_ov->setDefuzzifier(new fl::Centroid());
 		p_ov->setDefaultValue(fl::nan);
 		p_ov->setLockValidOutput(false);
-		p_ov->addTerm(new fl::Triangle("BDW", -1.00, -0.55, -0.10));
+		//p_ov->addTerm(new fl::Ramp("BDW", -0.10, -0.20));
+		p_ov->addTerm(new fl::Ramp("BDW", -0.10, -0.55));
 		p_ov->addTerm(new fl::Triangle("DWN", -0.20, -0.125, -0.05));
 		p_ov->addTerm(new fl::Triangle("STY", -0.10, 0.0, 0.10));
 		p_ov->addTerm(new fl::Triangle("UP", 0.05, 0.125, 0.20));
-		p_ov->addTerm(new fl::Triangle("BUP", 0.10, 0.55, 1.00));
+		//p_ov->addTerm(new fl::Ramp("BUP", 0.10, 0.20));
+		p_ov->addTerm(new fl::Ramp("BUP", 0.10, 0.55));
 		p_fuzzy_eng_->addOutputVariable(p_ov);
 
 		fl::RuleBlock* p_rules = new fl::RuleBlock();
@@ -541,17 +543,17 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 	private: out_sensor_map out_sensors_;
 	private: ::std::string dat_fname_;
 	private: ::boost::shared_ptr< ::std::ofstream > p_dat_ofs_;
-}; // albano2013v4_application_manager
+}; // albano2013v2_fuzzyqe_application_manager
 
 template <typename T>
-const ::std::string albano2013v4_application_manager<T>::rgain_fuzzy_var_name = "Rgain";
+const ::std::string albano2013v2_fuzzyqe_application_manager<T>::rgain_fuzzy_var_name = "Rgain";
 
 template <typename T>
-const ::std::string albano2013v4_application_manager<T>::cres_fuzzy_var_name = "Cres";
+const ::std::string albano2013v2_fuzzyqe_application_manager<T>::cres_fuzzy_var_name = "Cres";
 
 template <typename T>
-const ::std::string albano2013v4_application_manager<T>::deltac_fuzzy_var_name = "DeltaC";
+const ::std::string albano2013v2_fuzzyqe_application_manager<T>::deltac_fuzzy_var_name = "DeltaC";
 
 }} // Namespace dcs::testbed
 
-#endif // DCS_TESTBED_ALBANO2013V4_APPLICATION_MANAGER_HPP
+#endif // DCS_TESTBED_ALBANO2013V2_FUZZYQE_APPLICATION_MANAGER_HPP

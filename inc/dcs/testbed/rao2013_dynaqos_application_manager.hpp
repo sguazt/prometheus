@@ -1,5 +1,5 @@
 /**
- * \file dcs/testbed/rao2013_application_manager.hpp
+ * \file dcs/testbed/rao2013_dynaqos_application_manager.hpp
  *
  * \brief Application manager based on the work by (RAO et al., 2013)
  *
@@ -22,8 +22,8 @@
  * limitations under the License.
  */
 
-#ifndef DCS_TESTBED_RAO2013_APPLICATION_MANAGER_HPP
-#define DCS_TESTBED_RAO2013_APPLICATION_MANAGER_HPP
+#ifndef DCS_TESTBED_RAO2013_DYNAQOS_APPLICATION_MANAGER_HPP
+#define DCS_TESTBED_RAO2013_DYNAQOS_APPLICATION_MANAGER_HPP
 
 
 #include <boost/smart_ptr.hpp>
@@ -69,7 +69,7 @@ namespace dcs { namespace testbed {
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  */
 template <typename TraitsT>
-class rao2013_application_manager: public base_application_manager<TraitsT>
+class rao2013_dynaqos_application_manager: public base_application_manager<TraitsT>
 {
 	private: typedef base_application_manager<TraitsT> base_type;
 	public: typedef typename base_type::traits_type traits_type;
@@ -91,7 +91,7 @@ class rao2013_application_manager: public base_application_manager<TraitsT>
 	private: static const ::std::string du_fuzzy_var_name;
 
 
-	public: rao2013_application_manager()
+	public: rao2013_dynaqos_application_manager()
 	: gamma_(0.8),
 	  Ke_(0),
 	  Kde_(0),
@@ -731,20 +731,20 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 	private: app_sensor_map app_sensors_;
 	private: ::std::string dat_fname_;
 	private: ::boost::shared_ptr< ::std::ofstream > p_dat_ofs_;
-}; // rao2013_application_manager
+}; // rao2013_dynaqos_application_manager
 
 template <typename T>
-const ::std::string rao2013_application_manager<T>::alpha_fuzzy_var_name = "alpha";
+const ::std::string rao2013_dynaqos_application_manager<T>::alpha_fuzzy_var_name = "alpha";
 
 template <typename T>
-const ::std::string rao2013_application_manager<T>::de_fuzzy_var_name = "DeltaE";
+const ::std::string rao2013_dynaqos_application_manager<T>::de_fuzzy_var_name = "DeltaE";
 
 template <typename T>
-const ::std::string rao2013_application_manager<T>::du_fuzzy_var_name = "DeltaU";
+const ::std::string rao2013_dynaqos_application_manager<T>::du_fuzzy_var_name = "DeltaU";
 
 template <typename T>
-const ::std::string rao2013_application_manager<T>::e_fuzzy_var_name = "E";
+const ::std::string rao2013_dynaqos_application_manager<T>::e_fuzzy_var_name = "E";
 
 }} // Namespace dcs::testbed
 
-#endif // DCS_TESTBED_RAO2013_APPLICATION_MANAGER_HPP
+#endif // DCS_TESTBED_RAO2013_DYNAQOS_APPLICATION_MANAGER_HPP

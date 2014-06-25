@@ -87,14 +87,11 @@ enum data_smoother_category
 
 enum app_manager_category
 {
-	albano2013_app_manager,
-	albano2013v2_app_manager,
-	albano2013v3_app_manager,
-	albano2013v4_app_manager,
-	albano2013v5_app_manager,
+	albano2013_fuzzyqe_app_manager,
+	anglano2014_fc2q_app_manager,
 	dummy_app_manager,
-	padala2009_app_manager,
-	rao2013_app_manager
+	padala2009_autocontrol_app_manager,
+	rao2013_dynaqos_app_manager
 };
 
 
@@ -289,35 +286,23 @@ inline
 
 	if (!s.compare("albano2013"))
 	{
-		cat = albano2013_app_manager;
+		cat = albano2013_fuzzyqe_app_manager;
 	}
-	else if (!s.compare("albano2013v2"))
+	else if (!s.compare("anglano2014_fc2q"))
 	{
-		cat = albano2013v2_app_manager;
-	}
-	else if (!s.compare("albano2013v3"))
-	{
-		cat = albano2013v3_app_manager;
-	}
-	else if (!s.compare("albano2013v4"))
-	{
-		cat = albano2013v4_app_manager;
-	}
-	else if (!s.compare("albano2013v5"))
-	{
-		cat = albano2013v5_app_manager;
+		cat = anglano2014_fc2q_app_manager;
 	}
 	else if (!s.compare("dummy"))
 	{
 		cat = dummy_app_manager;
 	}
-	else if (!s.compare("padala2009"))
+	else if (!s.compare("padala2009_autocontrol"))
 	{
-		cat = padala2009_app_manager;
+		cat = padala2009_autocontrol_app_manager;
 	}
-	else if (!s.compare("rao2013"))
+	else if (!s.compare("rao2013_dynaqos"))
 	{
-		cat = rao2013_app_manager;
+		cat = rao2013_dynaqos_app_manager;
 	}
 	else
 	{
@@ -334,29 +319,20 @@ inline
 {
 	switch (cat)
 	{
-		case albano2013_app_manager:
+		case albano2013_fuzzyqe_app_manager:
 			os << "albano2013";
 			break;
-		case albano2013v2_app_manager:
-			os << "albano2013v2";
-			break;
-		case albano2013v3_app_manager:
-			os << "albano2013v3";
-			break;
-		case albano2013v4_app_manager:
-			os << "albano2013v4";
-			break;
-		case albano2013v5_app_manager:
-			os << "albano2013v5";
+		case anglano2014_fc2q_app_manager:
+			os << "anglano2014_fc2q";
 			break;
 		case dummy_app_manager:
 			os << "dummy";
 			break;
-		case padala2009_app_manager:
-			os << "padala2009";
+		case padala2009_autocontrol_app_manager:
+			os << "padala2009_autocontrol";
 			break;
-		case rao2013_app_manager:
-			os << "rao2013";
+		case rao2013_dynaqos_app_manager:
+			os << "rao2013_dynaqos";
 			break;
 	}
 
@@ -375,13 +351,10 @@ void usage(char const* progname)
 				<< "   The name of the application manager to use to manage applications." << ::std::endl
 				<< "   Possible values are:" << ::std::endl
 				<< "   - 'albano2013': the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
-				<< "   - 'albano2013v2': a variant of the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
-				<< "   - 'albano2013v3': a variant of the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
-				<< "   - 'albano2013v4': a variant of the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
-				<< "   - 'albano2013v5': a variant of the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
+				<< "   - 'anglano2014_fc2q': a variant of the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
 				<< "   - 'dummy': a 'do-nothing' application manager" << ::std::endl
-				<< "   - 'padala2009': the LQ controller described in (Padala et al., 2009)" << ::std::endl
-				<< "   - 'rao2013': the fuzzy controller described in (Rao et al., 2013)" << ::std::endl
+				<< "   - 'padala2009_autocontrol': the LQ controller described in (Padala et al., 2009)" << ::std::endl
+				<< "   - 'rao2013_dynaqos': the fuzzy controller described in (Rao et al., 2013)" << ::std::endl
 				<< "   [default: '" << default_app_manager << "']." << ::std::endl
 				<< " --data-estimator <name>" << ::std::endl
 				<< "   The name of the estimator to use to estimate summary statistics from observed data." << ::std::endl
@@ -965,74 +938,32 @@ int main(int argc, char *argv[])
 		//p_mgr = boost::make_shared< testbed::lqry_application_manager<traits_type> >();
 		switch (opt_app_manager)
 		{
-			case detail::albano2013_app_manager:
+			case detail::albano2013_fuzzyqe_app_manager:
 				{
 					const real_type beta = 0.9;
 
-					testbed::albano2013_application_manager<traits_type> albano2013_mgr;
-					albano2013_mgr.smoothing_factor(beta);
+					testbed::albano2013_fuzzyqe_application_manager<traits_type> albano2013_fuzzyqe_mgr;
+					albano2013_fuzzyqe_mgr.smoothing_factor(beta);
 					if (!opt_app_manager_stats_file.empty())
 					{
-						albano2013_mgr.export_data_to(opt_app_manager_stats_file);
+						albano2013_fuzzyqe_mgr.export_data_to(opt_app_manager_stats_file);
 					}
 
-					p_mgr = boost::make_shared< testbed::albano2013_application_manager<traits_type> >(albano2013_mgr);
+					p_mgr = boost::make_shared< testbed::albano2013_fuzzyqe_application_manager<traits_type> >(albano2013_fuzzyqe_mgr);
 				}
 				break;
-			case detail::albano2013v2_app_manager:
+			case detail::anglano2014_fc2q_app_manager:
 				{
 					const real_type beta = 0.9;
 
-					testbed::albano2013v2_application_manager<traits_type> albano2013v2_mgr;
-					albano2013v2_mgr.smoothing_factor(beta);
+					testbed::anglano2014_fc2q_application_manager<traits_type> anglano2014_fc2q_mgr;
+					anglano2014_fc2q_mgr.smoothing_factor(beta);
 					if (!opt_app_manager_stats_file.empty())
 					{
-						albano2013v2_mgr.export_data_to(opt_app_manager_stats_file);
+						anglano2014_fc2q_mgr.export_data_to(opt_app_manager_stats_file);
 					}
 
-					p_mgr = boost::make_shared< testbed::albano2013v2_application_manager<traits_type> >(albano2013v2_mgr);
-				}
-				break;
-			case detail::albano2013v3_app_manager:
-				{
-					const real_type beta = 0.9;
-
-					testbed::albano2013v3_application_manager<traits_type> albano2013v3_mgr;
-					albano2013v3_mgr.smoothing_factor(beta);
-					if (!opt_app_manager_stats_file.empty())
-					{
-						albano2013v3_mgr.export_data_to(opt_app_manager_stats_file);
-					}
-
-					p_mgr = boost::make_shared< testbed::albano2013v3_application_manager<traits_type> >(albano2013v3_mgr);
-				}
-				break;
-			case detail::albano2013v4_app_manager:
-				{
-					const real_type beta = 0.9;
-
-					testbed::albano2013v4_application_manager<traits_type> albano2013v4_mgr;
-					albano2013v4_mgr.smoothing_factor(beta);
-					if (!opt_app_manager_stats_file.empty())
-					{
-						albano2013v4_mgr.export_data_to(opt_app_manager_stats_file);
-					}
-
-					p_mgr = boost::make_shared< testbed::albano2013v4_application_manager<traits_type> >(albano2013v4_mgr);
-				}
-				break;
-			case detail::albano2013v5_app_manager:
-				{
-					const real_type beta = 0.9;
-
-					testbed::albano2013v5_application_manager<traits_type> albano2013v5_mgr;
-					albano2013v5_mgr.smoothing_factor(beta);
-					if (!opt_app_manager_stats_file.empty())
-					{
-						albano2013v5_mgr.export_data_to(opt_app_manager_stats_file);
-					}
-
-					p_mgr = boost::make_shared< testbed::albano2013v5_application_manager<traits_type> >(albano2013v5_mgr);
+					p_mgr = boost::make_shared< testbed::anglano2014_fc2q_application_manager<traits_type> >(anglano2014_fc2q_mgr);
 				}
 				break;
 //TODO
@@ -1074,7 +1005,7 @@ int main(int argc, char *argv[])
 					p_mgr = boost::make_shared< testbed::dummy_application_manager<traits_type> >(dummy_mgr);
 				}
 				break;
-			case detail::padala2009_app_manager:
+			case detail::padala2009_autocontrol_app_manager:
 				{
 					const std::size_t na(2);
 					const std::size_t nb(2);
@@ -1085,31 +1016,31 @@ int main(int argc, char *argv[])
 					const real_type q(2);
 
 					sysid_strategy_pointer p_sysid_alg = boost::make_shared< testbed::rls_ff_arx_miso_proxy<traits_type> >(na, nb, nk, ny, nu, ff);
-					testbed::padala2009_application_manager<traits_type> padala2009_mgr;
-					padala2009_mgr.sysid_strategy(p_sysid_alg);
-					//padala2009_mgr.target_value(testbed::response_time_application_performance, rt_q99*(1-0.20));
-					//padala2009_mgr.target_value(testbed::response_time_application_performance, opt_slo_value);
-					padala2009_mgr.stability_factor(q);
+					testbed::padala2009_autocontrol_application_manager<traits_type> padala2009_autocontrol_mgr;
+					padala2009_autocontrol_mgr.sysid_strategy(p_sysid_alg);
+					//padala2009_autocontrol_mgr.target_value(testbed::response_time_application_performance, rt_q99*(1-0.20));
+					//padala2009_autocontrol_mgr.target_value(testbed::response_time_application_performance, opt_slo_value);
+					padala2009_autocontrol_mgr.stability_factor(q);
 					if (!opt_app_manager_stats_file.empty())
 					{
-						padala2009_mgr.export_data_to(opt_app_manager_stats_file);
+						padala2009_autocontrol_mgr.export_data_to(opt_app_manager_stats_file);
 					}
 
-					p_mgr = boost::make_shared< testbed::padala2009_application_manager<traits_type> >(padala2009_mgr);
+					p_mgr = boost::make_shared< testbed::padala2009_autocontrol_application_manager<traits_type> >(padala2009_autocontrol_mgr);
 				}
 				break;
-			case detail::rao2013_app_manager:
+			case detail::rao2013_dynaqos_app_manager:
 				{
 					const real_type gamma = 0.8;
 
-					testbed::rao2013_application_manager<traits_type> rao2013_mgr;
-					rao2013_mgr.discount_factor(gamma);
+					testbed::rao2013_dynaqos_application_manager<traits_type> rao2013_dynaqos_mgr;
+					rao2013_dynaqos_mgr.discount_factor(gamma);
 					if (!opt_app_manager_stats_file.empty())
 					{
-						rao2013_mgr.export_data_to(opt_app_manager_stats_file);
+						rao2013_dynaqos_mgr.export_data_to(opt_app_manager_stats_file);
 					}
 
-					p_mgr = boost::make_shared< testbed::rao2013_application_manager<traits_type> >(rao2013_mgr);
+					p_mgr = boost::make_shared< testbed::rao2013_dynaqos_application_manager<traits_type> >(rao2013_dynaqos_mgr);
 				}
 				break;
 			default:
