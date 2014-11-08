@@ -30,9 +30,9 @@ namespace dcs { namespace testbed {
 enum virtual_machine_performance_category
 {
 	//cpu_share_virtual_machine_performance,
-	cpu_util_virtual_machine_performance/*,
-	//ram_share_virtual_machine_performance,
-	ram_util_virtual_machine_performance*/
+	cpu_util_virtual_machine_performance,
+	//memory_share_virtual_machine_performance,
+	memory_util_virtual_machine_performance
 };
 
 }} // Namespace dcs::testbed
