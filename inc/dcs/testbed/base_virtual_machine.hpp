@@ -113,6 +113,42 @@ class base_virtual_machine
 		return do_num_vcpus();
 	}
 
+	/// Get the memory cap
+	public: real_type memory_cap() const
+	{
+		return do_memory_cap();
+	}
+
+	/// Set the memory cap
+	public: void memory_cap(real_type value)
+	{
+		do_memory_cap(value);
+	}
+
+	/// Get the memory share
+	public: real_type memory_share() const
+	{
+		return do_memory_share();
+	}
+
+	/// Set the memory share
+	public: void memory_share(real_type value)
+	{
+		do_memory_share(value);
+	}
+
+	// Get the maximum amount of memory (in kB) that can be allocated to this VM
+	public: uint_type max_memory() const
+	{
+		return do_max_memory();
+	}
+
+	// Get the amount of memory (in kB) that can be used by this VM
+	public: uint_type memory() const
+	{
+		return do_memory();
+	}
+
 	public: sensor_pointer sensor(virtual_machine_performance_category cat) const
 	{
 		return do_sensor(cat);
@@ -137,6 +173,18 @@ class base_virtual_machine
 	private: virtual uint_type do_max_num_vcpus() const = 0;
 
 	private: virtual uint_type do_num_vcpus() const = 0;
+
+	private: virtual real_type do_memory_cap() const = 0;
+
+	private: virtual void do_memory_cap(real_type value) = 0;
+
+	private: virtual real_type do_memory_share() const = 0;
+
+	private: virtual void do_memory_share(real_type value) = 0;
+
+	private: virtual uint_type do_max_memory() const = 0;
+
+	private: virtual uint_type do_memory() const = 0;
 
 	public: virtual sensor_pointer do_sensor(virtual_machine_performance_category cat) const = 0;
 }; // base_virtual_machine

@@ -548,9 +548,7 @@ int num_vcpus(virConnectPtr conn, virDomainPtr dom, int flags)
 	DCS_DEBUG_ASSERT( conn );
 	DCS_DEBUG_ASSERT( dom );
 
-	int ret(0);
-
-	ret = virDomainGetVcpusFlags(dom, flags);
+	int ret = virDomainGetVcpusFlags(dom, flags);
 	if (0 > ret)
 	{
 		::std::ostringstream oss;
@@ -594,7 +592,7 @@ int num_cpus(virConnectPtr conn, virDomainPtr dom, int flags)
 	int ncpu = 0;
 	for (int cpu = 0; cpu < maxncpus; ++cpu)
 	{
-		for (int vcpu = 0; vcpu < cpumaplen; ++vcpu)
+		for (std::size_t vcpu = 0; vcpu < cpumaplen; ++vcpu)
 		{
 			//if (VIR_CPU_USED(VIR_GET_CPUMAP(cpumaps, cpumaplen, vcpu), cpu))
 			if (VIR_CPU_USABLE(cpumaps, cpumaplen, vcpu, cpu))
@@ -644,6 +642,57 @@ unsigned int domain_id(virConnectPtr conn, virDomainPtr dom)
 	}
 
 	return ret;
+}
+
+unsigned long current_memory(virConnectPtr conn, virDomainPtr dom)
+{
+	::virDomainInfo node_info;
+	int ret = ::virDomainGetInfo(dom, &node_info);
+	if (0 > ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to query the current memory for domain \"" << ::virDomainGetName(dom) << "\": " << last_error(conn);
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+
+	return node_info.memory;
+}
+
+void current_memory(virConnectPtr conn, virDomainPtr dom, unsigned long mem)
+{
+	int ret = ::virDomainSetMemory(dom, mem);
+	//int ret = ::virDomainSetMemoryFlags(dom, mem, VIR_DOMAIN_AFFECT_CURRENT);
+	if (0 > ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to set the current memory for domain \"" << ::virDomainGetName(dom) << "\": " << last_error(conn);
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+}
+
+unsigned long max_memory(virConnectPtr conn, virDomainPtr dom)
+{
+	::virDomainInfo node_info;
+	int ret = ::virDomainGetInfo(dom, &node_info);
+	if (0 > ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to query the max memory for domain \"" << ::virDomainGetName(dom) << "\": " << last_error(conn);
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+
+	return node_info.maxMem;
+}
+
+void max_memory(virConnectPtr conn, virDomainPtr dom, unsigned long mem)
+{
+	int ret = ::virDomainSetMaxMemory(dom, mem);
+	if (0 > ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to set the max memory for domain \"" << ::virDomainGetName(dom) << "\": " << last_error(conn);
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
 }
 
 }}}} // Namespace dcs::testbed::libvirt::detail

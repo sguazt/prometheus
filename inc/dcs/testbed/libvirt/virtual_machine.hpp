@@ -296,12 +296,103 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		return share > 0 ? share : 1; //Note: cap == 0 ==> No upper cap
 	}
 
+	private: uint_type do_max_memory() const
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		unsigned long max_mem = detail::max_memory(p_vmm_->connection(), p_dom_);
+
+		return static_cast<uint_type>(max_mem);
+	}
+
+	private: uint_type do_memory() const
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		unsigned long cur_mem = detail::current_memory(p_vmm_->connection(), p_dom_);
+
+		return static_cast<uint_type>(cur_mem);
+	}
+
+	private: void do_memory_cap(real_type cap)
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		detail::current_memory(p_vmm_->connection(), p_dom_, cap);
+	}
+
+	private: real_type do_memory_cap() const
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		return static_cast<real_type>(detail::current_memory(p_vmm_->connection(), p_dom_));
+	}
+
+	private: void do_memory_share(real_type share)
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		unsigned long mem = share*detail::max_memory(p_vmm_->connection(), p_dom_);
+		detail::current_memory(p_vmm_->connection(), p_dom_, share*mem);
+	}
+
+	private: real_type do_memory_share() const
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		return 100.0*detail::current_memory(p_vmm_->connection(), p_dom_)/static_cast<real_type>(detail::max_memory(p_vmm_->connection(), p_dom_));
+	}
+
 	private: sensor_pointer do_sensor(virtual_machine_performance_category cat) const
 	{
 		switch (cat)
 		{
 			case cpu_util_virtual_machine_performance:
 				return ::boost::make_shared< cpu_utilization_sensor<traits_type> >(p_vmm_->connection(), p_dom_);
+			case memory_util_virtual_machine_performance:
+				return ::boost::make_shared< memory_utilization_sensor<traits_type> >(p_vmm_->connection(), p_dom_);
 		}
 
 		DCS_EXCEPTION_THROW(::std::runtime_error, "Sensor not available");
