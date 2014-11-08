@@ -32,6 +32,7 @@
 //#include <dcs/testbed/albano2013v4_fuzzyqe_application_manager.hpp>
 //#include <dcs/testbed/albano2013v5_fuzzyqe_application_manager.hpp>
 #include <dcs/testbed/anglano2014_fc2q_application_manager.hpp>
+#include <dcs/testbed/anglano2014_fc2q_mimo_application_manager.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
 #include <dcs/testbed/dummy_application_manager.hpp>
 #include <dcs/testbed/lq_application_manager.hpp>
