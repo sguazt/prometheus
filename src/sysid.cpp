@@ -148,6 +148,7 @@ const double default_signal_uniform_max = 1;
 const double default_signal_gaussian_mean = 0;
 const double default_signal_gaussian_sd = 1;
 const std::string default_slo_metric_str("rt");
+const dcs::testbed::virtual_machine_performance_category default_vm_performance = dcs::testbed::cpu_util_virtual_machine_performance;
 
 
 template <typename CharT, typename CharTraitsT>
@@ -562,7 +563,9 @@ void usage(char const* progname)
 				<< "   The standard deviation value for the Gaussian signal." << std::endl
 				<< "   [default: " << default_signal_gaussian_sd << "]." << std::endl
 				<< " --slo-metric <name>" << ::std::endl
-				<< "   The SLO metric. Possible values are: 'rt' (response time), 'tput' (throughput)" << ::std::endl
+				<< "   The SLO metric. Possible values are:" << std::endl
+				<< "   - 'rt': response time," << ::std::endl
+				<< "   - 'tput': throughput" << ::std::endl
 				<< "   [default: '" << default_slo_metric_str << "']." << ::std::endl
 				<< " --ts <time in secs>" << ::std::endl
 				<< "   Sampling time (in seconds)." << ::std::endl
@@ -570,10 +573,22 @@ void usage(char const* progname)
 				<< " --verbose" << ::std::endl
 				<< "   Show verbose messages." << ::std::endl
 				<< "   [default: disabled]." << ::std::endl
+				<< " --vm-perf <category>" << ::std::endl
+				<< "   The performance category to monitor from VMs." << ::std::endl
+				<< "   Possible values:" << std::endl
+				<< "   - 'cpu-util': CPU utilization," << std::endl
+				<< "   - 'mem-util': memory utilization." << ::std::endl
+				<< "   To specifiy more than one category, repeat the option multiple times." << std::endl
+				<< "   [default: '" << default_vm_performance << "']." << ::std::endl
 				<< " --vm-uri <URI>" << ::std::endl
 				<< "   The URI used to connect to a VM." << ::std::endl
+				<< "   To specifiy more than one category, repeat the option multiple times." << std::endl
 				<< " --wkl <name>" << ::std::endl
-				<< "   The workload to generate. Possible values are: 'cassandra', 'olio', 'rubis'." << ::std::endl
+				<< "   The workload to generate." << std::endl
+				<< "   Possible values are:" << std::endl
+				<< "   -'cassandra'," << std::endl
+				<< "   - 'olio'," << std::endl
+				<< "   - 'rubis'." << ::std::endl
 				<< "   [default: '" << default_workload << "']." << ::std::endl
 				<< " --wkl-driver <name>" << ::std::endl
 				<< "   The workload driver to use. Possible values are: 'rain'." << ::std::endl
@@ -598,6 +613,53 @@ void usage(char const* progname)
 }
 
 }} // Namespace detail::<unnamed>
+
+template <typename CharT, typename CharTraitsT>
+::std::basic_istream<CharT,CharTraitsT>& operator>>(::std::basic_istream<CharT,CharTraitsT>& is, dcs::testbed::virtual_machine_performance_category& cat)
+{
+	::std::string str;
+
+	is >> str;
+
+	if (!str.compare("cpu-util"))
+	{
+		cat = dcs::testbed::cpu_util_virtual_machine_performance;
+	}
+	else if (!str.compare("mem-util"))
+	{
+		cat = dcs::testbed::memory_util_virtual_machine_performance;
+	}
+	else
+	{
+		DCS_EXCEPTION_THROW(::std::invalid_argument,
+							"Cannot find a valid virtual machine performance category");
+	}
+
+	return is;
+}
+
+template <typename CharT, typename CharTraitsT>
+::std::basic_ostream<CharT,CharTraitsT>& operator>>(::std::basic_ostream<CharT,CharTraitsT>& os, dcs::testbed::virtual_machine_performance_category cat)
+{
+	::std::string str;
+
+	os >> str;
+
+	switch (cat)
+	{
+		case dcs::testbed::cpu_util_virtual_machine_performance:
+			os << "cpu-util";
+			break;
+		case dcs::testbed::memory_util_virtual_machine_performance:
+			os << "mem-util";
+			break;
+		default:
+			DCS_EXCEPTION_THROW(::std::invalid_argument,
+								"Cannot find a valid virtual machine performance category");
+	}
+
+	return os;
+}
 
 
 int main(int argc, char *argv[])
@@ -656,6 +718,7 @@ int main(int argc, char *argv[])
 	real_type opt_sig_square_high;
 	real_type opt_sig_unif_min;
 	real_type opt_sig_unif_max;
+	std::vector<testbed::virtual_machine_performance_category> opt_vm_perfs;
 	testbed::application_performance_category opt_slo_metric;
 	std::string opt_str;
 	real_type opt_tc;
@@ -723,6 +786,11 @@ int main(int argc, char *argv[])
 		opt_tc = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--tc", detail::default_control_time);
 		opt_ts = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--ts", detail::default_sampling_time);
 		opt_verbose = dcs::cli::simple::get_option(argv, argv+argc, "--verbose");
+		opt_vm_perfs = dcs::cli::simple::get_options<testbed::virtual_machine_performance_category>(argv, argv+argc, "--vm-perf");
+		if (opt_vm_perfs.size() == 0)
+		{
+			opt_vm_perfs.push_back(detail::default_vm_performance);
+		}
 		opt_vm_uris = dcs::cli::simple::get_options<std::string>(argv, argv+argc, "--vm-uri");
 		opt_wkl = dcs::cli::simple::get_option<testbed::workload_category>(argv, argv+argc, "--wkl", detail::default_workload);
 		opt_wkl_driver = dcs::cli::simple::get_option<testbed::workload_generator_category>(argv, argv+argc, "--wkl-driver", detail::default_workload_driver);
@@ -940,6 +1008,17 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
+		for (std::size_t i = 0; i < opt_vm_perfs.size(); ++i)
+		{
+			if (i > 0)
+			{
+				oss << ", ";
+			}
+			oss << "VM performance category: " << opt_vm_perfs[i];
+		}
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
 		oss << "Workload: " << opt_wkl;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
@@ -1117,94 +1196,110 @@ int main(int argc, char *argv[])
 
 		// - Setup signal generator
 		random_generator_type rng(opt_rng_seed);
-		boost::shared_ptr< testbed::base_signal_generator<real_type> > p_sig_gen;
-		// Specialized params
-		switch (opt_sig)
+		std::map< testbed::virtual_machine_performance_category, boost::shared_ptr< testbed::base_signal_generator<real_type> > > sig_gens;
+		for (std::size_t k = 0; k < opt_vm_perfs.size(); ++k)
 		{
-			case detail::constant_signal:
-				{
-					std::vector<real_type> u0(nt, opt_sig_const_val);
-					p_sig_gen = boost::make_shared< testbed::constant_signal_generator<real_type> >(u0);
-				}
-				break;
-			case detail::gaussian_signal:
-				{
-					std::vector<real_type> mean(nt, opt_sig_gauss_mean);
-					std::vector<real_type> sd(nt, opt_sig_gauss_sd);
-					//p_sig_gen = boost::make_shared< testbed::gaussian_signal_generator<real_type,random_generator_type> >(mean, sd, rng);
-					p_sig_gen = boost::shared_ptr< testbed::base_signal_generator<real_type> >(new testbed::gaussian_signal_generator<real_type,random_generator_type>(mean, sd, rng));
-				}
-				break;
-			case detail::half_sinusoidal_signal:
-				{
-					std::vector<real_type> ampl(nt, opt_sig_half_sine_ampl);
-					std::vector<uint_type> freq(nt, opt_sig_half_sine_freq);
-					std::vector<uint_type> phase(nt, opt_sig_half_sine_phase);
-					std::vector<real_type> bias(nt, opt_sig_half_sine_bias);
-					p_sig_gen = boost::make_shared< testbed::half_sinusoidal_signal_generator<real_type,uint_type> >(ampl, freq, phase, bias);
-				}
-				break;
-			case detail::half_sinusoidal_mesh_signal:
-				{
-					std::vector<real_type> ampl(nt, opt_sig_half_sine_mesh_ampl);
-					std::vector<uint_type> freq(nt, opt_sig_half_sine_mesh_freq);
-					std::vector<uint_type> phase(nt, opt_sig_half_sine_mesh_phase);
-					std::vector<real_type> bias(nt, opt_sig_half_sine_mesh_bias);
-					p_sig_gen = boost::make_shared< testbed::half_sinusoidal_mesh_signal_generator<real_type,uint_type> >(ampl, freq, phase, bias);
-				}
-				break;
-			case detail::sawtooth_signal:
-				{
-					std::vector<real_type> low(nt, opt_sig_sawtooth_low);
-					std::vector<real_type> high(nt, opt_sig_sawtooth_high);
-					std::vector<real_type> incr(nt, opt_sig_sawtooth_incr);
-					p_sig_gen = boost::make_shared< testbed::sawtooth_signal_generator<real_type> >(low, high, incr);
-				}
-				break;
-			case detail::sinusoidal_signal:
-				{
-					std::vector<real_type> ampl(nt, opt_sig_sine_ampl);
-					std::vector<uint_type> freq(nt, opt_sig_sine_freq);
-					std::vector<uint_type> phase(nt, opt_sig_sine_phase);
-					std::vector<real_type> bias(nt, opt_sig_sine_bias);
-					p_sig_gen = boost::make_shared< testbed::sinusoidal_signal_generator<real_type,uint_type> >(ampl, freq, phase, bias);
-				}
-				break;
-			case detail::sinusoidal_mesh_signal:
-				{
-					std::vector<real_type> ampl(nt, opt_sig_sine_mesh_ampl);
-					std::vector<uint_type> freq(nt, opt_sig_sine_mesh_freq);
-					std::vector<uint_type> phase(nt, opt_sig_sine_mesh_phase);
-					std::vector<real_type> bias(nt, opt_sig_sine_mesh_bias);
-					p_sig_gen = boost::make_shared< testbed::sinusoidal_mesh_signal_generator<real_type,uint_type> >(ampl, freq, phase, bias);
-				}
-				break;
-			case detail::square_signal:
-				{
-					std::vector<real_type> low(nt, opt_sig_square_low);
-					std::vector<real_type> high(nt, opt_sig_square_high);
-					p_sig_gen = boost::make_shared< testbed::square_signal_generator<real_type> >(low, high);
-				}
-				break;
-			case detail::uniform_signal:
-				{
-					std::vector<real_type> min(nt, opt_sig_unif_min);
-					std::vector<real_type> max(nt, opt_sig_unif_max);
-					//p_sig_gen = boost::make_shared< testbed::uniform_signal_generator<real_type,random_generator_type> >(min, max, rng);
-					p_sig_gen = boost::shared_ptr< testbed::base_signal_generator<real_type> >(new testbed::uniform_signal_generator<real_type,random_generator_type>(min, max, rng));
-				}
-				break;
-			default:
-				DCS_EXCEPTION_THROW(::std::runtime_error, "Unknown signal generator");
-				break;
+			const testbed::virtual_machine_performance_category cat = opt_vm_perfs[k];
+
+			boost::shared_ptr< testbed::base_signal_generator<real_type> > p_sig_gen;
+
+			// Specialized params
+			switch (opt_sig)
+			{
+				case detail::constant_signal:
+					{
+						std::vector<real_type> u0(nt, opt_sig_const_val);
+						p_sig_gen = boost::make_shared< testbed::constant_signal_generator<real_type> >(u0);
+					}
+					break;
+				case detail::gaussian_signal:
+					{
+						std::vector<real_type> mean(nt, opt_sig_gauss_mean);
+						std::vector<real_type> sd(nt, opt_sig_gauss_sd);
+						//p_sig_gen = boost::make_shared< testbed::gaussian_signal_generator<real_type,random_generator_type> >(mean, sd, rng);
+						p_sig_gen = boost::shared_ptr< testbed::base_signal_generator<real_type> >(new testbed::gaussian_signal_generator<real_type,random_generator_type>(mean, sd, rng));
+					}
+					break;
+				case detail::half_sinusoidal_signal:
+					{
+						std::vector<real_type> ampl(nt, opt_sig_half_sine_ampl);
+						std::vector<uint_type> freq(nt, opt_sig_half_sine_freq);
+						std::vector<uint_type> phase(nt, opt_sig_half_sine_phase);
+						std::vector<real_type> bias(nt, opt_sig_half_sine_bias);
+						p_sig_gen = boost::make_shared< testbed::half_sinusoidal_signal_generator<real_type,uint_type> >(ampl, freq, phase, bias);
+					}
+					break;
+				case detail::half_sinusoidal_mesh_signal:
+					{
+						std::vector<real_type> ampl(nt, opt_sig_half_sine_mesh_ampl);
+						std::vector<uint_type> freq(nt, opt_sig_half_sine_mesh_freq);
+						std::vector<uint_type> phase(nt, opt_sig_half_sine_mesh_phase);
+						std::vector<real_type> bias(nt, opt_sig_half_sine_mesh_bias);
+						p_sig_gen = boost::make_shared< testbed::half_sinusoidal_mesh_signal_generator<real_type,uint_type> >(ampl, freq, phase, bias);
+					}
+					break;
+				case detail::sawtooth_signal:
+					{
+						std::vector<real_type> low(nt, opt_sig_sawtooth_low);
+						std::vector<real_type> high(nt, opt_sig_sawtooth_high);
+						std::vector<real_type> incr(nt, opt_sig_sawtooth_incr);
+						p_sig_gen = boost::make_shared< testbed::sawtooth_signal_generator<real_type> >(low, high, incr);
+					}
+					break;
+				case detail::sinusoidal_signal:
+					{
+						std::vector<real_type> ampl(nt, opt_sig_sine_ampl);
+						std::vector<uint_type> freq(nt, opt_sig_sine_freq);
+						std::vector<uint_type> phase(nt, opt_sig_sine_phase);
+						std::vector<real_type> bias(nt, opt_sig_sine_bias);
+						p_sig_gen = boost::make_shared< testbed::sinusoidal_signal_generator<real_type,uint_type> >(ampl, freq, phase, bias);
+					}
+					break;
+				case detail::sinusoidal_mesh_signal:
+					{
+						std::vector<real_type> ampl(nt, opt_sig_sine_mesh_ampl);
+						std::vector<uint_type> freq(nt, opt_sig_sine_mesh_freq);
+						std::vector<uint_type> phase(nt, opt_sig_sine_mesh_phase);
+						std::vector<real_type> bias(nt, opt_sig_sine_mesh_bias);
+						p_sig_gen = boost::make_shared< testbed::sinusoidal_mesh_signal_generator<real_type,uint_type> >(ampl, freq, phase, bias);
+					}
+					break;
+				case detail::square_signal:
+					{
+						std::vector<real_type> low(nt, opt_sig_square_low);
+						std::vector<real_type> high(nt, opt_sig_square_high);
+						p_sig_gen = boost::make_shared< testbed::square_signal_generator<real_type> >(low, high);
+					}
+					break;
+				case detail::uniform_signal:
+					{
+						std::vector<real_type> min(nt, opt_sig_unif_min);
+						std::vector<real_type> max(nt, opt_sig_unif_max);
+						//p_sig_gen = boost::make_shared< testbed::uniform_signal_generator<real_type,random_generator_type> >(min, max, rng);
+						p_sig_gen = boost::shared_ptr< testbed::base_signal_generator<real_type> >(new testbed::uniform_signal_generator<real_type,random_generator_type>(min, max, rng));
+					}
+					break;
+				default:
+					DCS_EXCEPTION_THROW(::std::runtime_error, "Unknown signal generator");
+					break;
+			}
+			// Common params
+			p_sig_gen->upper_bound(opt_sig_common_up_bound);
+			p_sig_gen->lower_bound(opt_sig_common_lo_bound);
+
+			sig_gens[cat] = p_sig_gen;
 		}
-		// Common params
-		p_sig_gen->upper_bound(opt_sig_common_up_bound);
-		p_sig_gen->lower_bound(opt_sig_common_lo_bound);
 
 		// - Setup system identificator
 		app_manager_pointer p_mgr;
-		testbed::sysid_application_manager<traits_type> sysid_mgr(p_sig_gen);
+		testbed::sysid_application_manager<traits_type> sysid_mgr;
+		for (typename std::map< testbed::virtual_machine_performance_category,boost::shared_ptr< testbed::base_signal_generator<real_type> > >::const_iterator it = sig_gens.begin(),
+																																							   end_it = sig_gens.end();
+			 it != end_it;
+			 ++it)
+		{
+			sysid_mgr.signal_generator(it->first, it->second);
+		}
 		sysid_mgr.export_data_to(opt_out_dat_file);
 		sysid_mgr.output_extended_format(true);
 		p_mgr = boost::make_shared< testbed::sysid_application_manager<traits_type> >(sysid_mgr);

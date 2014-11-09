@@ -88,9 +88,14 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 		//this->data_smoother(cpu_util_virtual_machine_performance, ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
 	}
 
-	/// A constructor.
-	public: explicit sysid_application_manager(signal_generator_pointer const& p_sig_gen)
-	: p_sig_gen_(p_sig_gen),
+	/**
+ 	 * Constructs a system identificators from the range of pairs
+ 	 * <<virtual machine performance category>,<pointer to signal generator>>
+ 	 * defined by the pair of iterators [first, last).
+ 	 */
+	public: template <typename IterT>
+			sysid_application_manager(IterT first, IterT last)
+	: sig_gens_(first, last),
 	  out_ext_fmt_(false)
 	{
 		this->sampling_time(default_sampling_time);
@@ -116,30 +121,51 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 		out_ext_fmt_ = val;
 	}
 
-	public: template <typename IterT>
-			void initial_shares(IterT first_share, IterT last_share)
+	public: void signal_generator(virtual_machine_performance_category cat, signal_generator_pointer const& p_sig_gen)
 	{
-		init_shares_.assign(first_share, last_share);
+		sig_gens_[cat] = p_sig_gen;
+	}
+
+	public: template <typename IterT>
+			void initial_shares(virtual_machine_performance_category cat, IterT first_share, IterT last_share)
+	{
+		init_shares_[cat].assign(first_share, last_share);
 	}
 
 	private: void do_reset()
 	{
 		typedef typename base_type::target_value_map::const_iterator target_iterator;
 		typedef typename app_type::vm_pointer vm_pointer;
+		typedef typename std::map<virtual_machine_performance_category, std::vector<real_type> >::const_iterator share_iterator;
+		typedef typename std::map<virtual_machine_performance_category,signal_generator_pointer>::const_iterator sig_gen_iterator;
 
-		::std::vector<vm_pointer> vms = this->app().vms();
+		std::vector<vm_pointer> vms = this->app().vms();
 		const ::std::size_t nvms = vms.size();
 
 		// Initialize initial shares
-		for (::std::size_t i = init_shares_.size(); i < nvms; ++i)
+		for (share_iterator it = init_shares_.begin(),
+							end_it = init_shares_.end();
+			 it != end_it;
+			 ++it)
 		{
-			init_shares_.push_back(1);
-		}
-		// Set initial shares and write output file header
-		for (::std::size_t i = 0; i < nvms; ++i)
-		{
-			// Set share
-			vms[i]->cpu_share(init_shares_[i]);
+			const virtual_machine_performance_category cat = it->first;
+
+			// Set initial shares and write output file header
+			for (::std::size_t i = 0; i < nvms; ++i)
+			{
+				const real_type share = it->second.at(i);
+
+				// Set share
+				switch (cat)
+				{
+					case cpu_util_virtual_machine_performance:
+						vms[i]->cpu_share(share);
+						break;
+					case memory_util_virtual_machine_performance:
+						vms[i]->memory_share(share);
+						break;
+				}
+			}
 		}
 
 		// Reset app perf sensors
@@ -158,10 +184,17 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 		vm_sensors_.clear();
 		for (::std::size_t i = 0; i < nvms; ++i)
 		{
-			const virtual_machine_performance_category cat = cpu_util_virtual_machine_performance;
 			const vm_pointer p_vm = vms[i];
 
-			vm_sensors_[cat][p_vm->id()] = p_vm->sensor(cat);
+			for (sig_gen_iterator it = sig_gens_.begin(),
+								  end_it = sig_gens_.end();
+				 it != end_it;
+				 ++it)
+			{
+				const virtual_machine_performance_category cat = it->first;
+
+				vm_sensors_[cat][p_vm->id()] = p_vm->sensor(cat);
+			}
 		}
 
 		// Reset counters
@@ -202,12 +235,28 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 			// Write first part of header to output file
 			*p_dat_ofs_ << "\"Sampling Time\"";
 
+			// Write VM-related stuff of header to output file
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
 				const vm_pointer p_vm = vms[i];
 
-				// Write VM-related stuff of header to output file
-				*p_dat_ofs_ << ",\"" << p_vm->name() << " CPU Share\",\"" << p_vm->name() << " CPU Utilization\"";
+				for (sig_gen_iterator it = sig_gens_.begin(),
+									  end_it = sig_gens_.end();
+					 it != end_it;
+					 ++it)
+				{
+					const virtual_machine_performance_category cat = it->first;
+
+					switch (cat)
+					{
+						case cpu_util_virtual_machine_performance:
+							*p_dat_ofs_ << ",\"" << p_vm->name() << " CPU Share\",\"" << p_vm->name() << " CPU Utilization\"";
+							break;
+						case memory_util_virtual_machine_performance:
+							*p_dat_ofs_ << ",\"" << p_vm->name() << " Memory Share\",\"" << p_vm->name() << " Memory Utilization\"";
+							break;
+					}
+				}
 			}
 
 			// Write last part of header to output file
@@ -228,7 +277,7 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 		const ::std::vector<vm_pointer> vms = this->app().vms();
 		const ::std::size_t nvms = vms.size();
 
-		::std::map<vm_identifier_type,obs_container> vm_obs;
+		std::map< vm_identifier_type, std::map<virtual_machine_performance_category,obs_container> > vm_obs;
 		obs_container app_obs;
 
 		::std::size_t max_nobs = 0;
@@ -245,10 +294,6 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 		{
 			const virtual_machine_performance_category cat = vm_sens_it->first;
 
-//			const ::std::size_t n = vm_sens_it->second.size();
-//			for (::std::size_t i = 0; i < n; ++i)
-//			{
-//				sensor_pointer p_sens = vm_sens_it->second.at(i);
             const typename vm_sensor_map::mapped_type::const_iterator vm_end_it = vm_sens_it->second.end();
             for (typename vm_sensor_map::mapped_type::const_iterator vm_it = vm_sens_it->second.begin();
                  vm_it != vm_end_it;
@@ -273,7 +318,7 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 
 						if (out_ext_fmt_)
 						{
-							vm_obs[vm_id].push_back(*it);
+							vm_obs[vm_id][cat].push_back(*it);
 						}
 					}
 
@@ -322,11 +367,29 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 			::std::ostringstream oss;
 
 			// Cache VM shares (they will not change until the next control interval)
-			::std::map<vm_identifier_type,real_type> vm_shares;
+			std::map< vm_identifier_type, std::map<virtual_machine_performance_category,real_type> > vm_shares;
 			for (::std::size_t j = 0; j < nvms; ++j)
 			{
 				const vm_pointer p_vm = vms[j];
-				vm_shares[p_vm->id()] = p_vm->cpu_share();
+
+				for (vm_sensor_iterator vm_sens_it = vm_sensors_.begin();
+					 vm_sens_it != vm_sens_end_it;
+					 ++vm_sens_it)
+				{
+					const virtual_machine_performance_category cat = vm_sens_it->first;
+
+					real_type share = 0;
+					switch (cat)
+					{
+						case cpu_util_virtual_machine_performance:
+							share = p_vm->cpu_share();
+							break;
+						case memory_util_virtual_machine_performance:
+							share = p_vm->memory_share();
+							break;
+					}
+					vm_shares[p_vm->id()][cat] = share;
+				}
 			}
 
 			for (::std::size_t i = 0; i < max_nobs; ++i)
@@ -336,21 +399,28 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 				for (::std::size_t j = 0; j < nvms; ++j)
 				{
 					const vm_pointer p_vm = vms[j];
-					const obs_container& obs = vm_obs.at(p_vm->id());
-					const ::std::size_t nobs = obs.size();
-					const real_type share = vm_shares.at(p_vm->id());
 
-					if (i < nobs)
+					for (vm_sensor_iterator vm_sens_it = vm_sensors_.begin();
+						 vm_sens_it != vm_sens_end_it;
+						 ++vm_sens_it)
 					{
-						*p_dat_ofs_ << "," << share << "," << obs[i].value();
-					}
-					else if (nobs > 0)
-					{
-						*p_dat_ofs_ << "," << share << "," << obs.back().value();
-					}
-					else
-					{
-						*p_dat_ofs_ << ",na,na";
+						const virtual_machine_performance_category cat = vm_sens_it->first;
+						const obs_container& obs = vm_obs.at(p_vm->id()).at(cat);
+						const ::std::size_t nobs = obs.size();
+						const real_type share = vm_shares.at(p_vm->id()).at(cat);
+
+						if (i < nobs)
+						{
+							*p_dat_ofs_ << "," << share << "," << obs[i].value();
+						}
+						else if (nobs > 0)
+						{
+							*p_dat_ofs_ << "," << share << "," << obs.back().value();
+						}
+						else
+						{
+							*p_dat_ofs_ << ",na,na";
+						}
 					}
 				}
 				// Write App data
@@ -381,6 +451,7 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 		typedef typename app_type::vm_pointer vm_pointer;
 		typedef typename signal_generator_type::vector_type share_container;
 		typedef typename base_type::target_value_map::const_iterator target_iterator;
+		typedef typename std::map<virtual_machine_performance_category,signal_generator_pointer>::const_iterator sig_gen_iterator;
 
 		DCS_DEBUG_TRACE("(" << this << ") BEGIN Do CONTROL - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << ctl_fail_count_);
 
@@ -393,32 +464,54 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 	   ::std::vector<vm_pointer> vms = this->app().vms();
 		const ::std::size_t nvms = vms.size();
 
+		std::map<virtual_machine_performance_category,share_container> old_shares;
+
 		// Set shares according to the given signal
 
 		// Generate new shares
-		share_container old_shares(nvms);
-		share_container new_shares = (*p_sig_gen_)();
-
-		// check: consistency
-		DCS_DEBUG_ASSERT( new_shares.size() == nvms );
-
-		//DCS_DEBUG_TRACE( "   Generated shares: " << dcs::debug::to_string(new_shares.begin(), new_shares.end()) );
-
-		// Set new shares to every VM
-		for (::std::size_t i = 0; i < nvms; ++i)
+		for (sig_gen_iterator it = sig_gens_.begin(),
+							  end_it = sig_gens_.end();
+			 it != end_it;
+			 ++it)
 		{
-			vm_pointer p_vm = vms[i];
+			const virtual_machine_performance_category cat = it->first;
+			const signal_generator_pointer p_sig_gen = it->second;
 
-			// check: not null
-			DCS_DEBUG_ASSERT( p_vm );
+			share_container new_shares = (*p_sig_gen)();
 
-			old_shares[i] = p_vm->cpu_share();
-			if (!::dcs::math::float_traits<real_type>::essentially_equal(old_shares[i], new_shares[i]))
+			// check: consistency
+			DCS_DEBUG_ASSERT( new_shares.size() == nvms );
+
+			//DCS_DEBUG_TRACE( "   Generated shares: " << dcs::debug::to_string(new_shares.begin(), new_shares.end()) );
+
+			// Set new shares to every VM
+			for (::std::size_t i = 0; i < nvms; ++i)
 			{
-				p_vm->cpu_share(new_shares[i]);
-			}
+				vm_pointer p_vm = vms[i];
 
-			DCS_DEBUG_TRACE( "   VM '" << p_vm->name() << "' :: Old CPU share: " << old_shares[i] << " :: New CPU share: " << new_shares[i] );
+				// check: not null
+				DCS_DEBUG_ASSERT( p_vm );
+
+				switch (cat)
+				{
+					case cpu_util_virtual_machine_performance:
+						old_shares[cat][i] = p_vm->cpu_share();
+						if (!::dcs::math::float_traits<real_type>::essentially_equal(old_shares.at(cat).at(i), new_shares[i]))
+						{
+							p_vm->cpu_share(new_shares[i]);
+						}
+						break;
+					case memory_util_virtual_machine_performance:
+						old_shares[cat][i] = p_vm->memory_share();
+						if (!::dcs::math::float_traits<real_type>::essentially_equal(old_shares.at(cat).at(i), new_shares[i]))
+						{
+							p_vm->memory_share(new_shares[i]);
+						}
+						break;
+				}
+
+				DCS_DEBUG_TRACE( "   VM '" << p_vm->name() << "' :: Performance category: " << cat << " :: Old share: " << old_shares[cat][i] << " :: New share: " << new_shares[i] );
+			}
 		}
 
 		// Write output data
@@ -427,21 +520,28 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 			*p_dat_ofs_ << ts;
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
-				const virtual_machine_performance_category cat = cpu_util_virtual_machine_performance;
 				const vm_pointer p_vm = vms[i];
 
-				*p_dat_ofs_ << "," << old_shares[i];
-
-				if (this->data_estimator(cat, p_vm->id()).count() > 0)
+				for (sig_gen_iterator it = sig_gens_.begin(),
+									  end_it = sig_gens_.end();
+					 it != end_it;
+					 ++it)
 				{
-					*p_dat_ofs_ << "," << this->data_estimator(cat, p_vm->id()).estimate();
-				}
-				else
-				{
-					*p_dat_ofs_ << ",na";
-				}
+					const virtual_machine_performance_category cat = cpu_util_virtual_machine_performance;
 
-				this->data_estimator(cat, p_vm->id()).reset();
+					*p_dat_ofs_ << "," << old_shares.at(cat).at(i);
+
+					if (this->data_estimator(cat, p_vm->id()).count() > 0)
+					{
+						*p_dat_ofs_ << "," << this->data_estimator(cat, p_vm->id()).estimate();
+					}
+					else
+					{
+						*p_dat_ofs_ << ",na";
+					}
+
+					this->data_estimator(cat, p_vm->id()).reset();
+				}
 			}
             const target_iterator tgt_end_it = this->target_values().end();
             for (target_iterator tgt_it = this->target_values().begin();
@@ -476,17 +576,17 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 	}
 
 
-	private: signal_generator_pointer p_sig_gen_; ///< Ptr to signal generator used to excite VMs
-	private: ::std::string dat_fname_; ///< The path to the output data file
-	private: ::boost::shared_ptr< ::std::ofstream > p_dat_ofs_; ///< The output stream for the output data file
+	private: std::map<virtual_machine_performance_category,signal_generator_pointer> sig_gens_; ///< Pointer to signal generators used to excite VMs
+	private: std::string dat_fname_; ///< The path to the output data file
+	private: boost::shared_ptr< ::std::ofstream > p_dat_ofs_; ///< The output stream for the output data file
 	private: bool out_ext_fmt_; ///< Flag to control whether to produce an output data file with extended format
-	private: ::std::size_t ctl_count_; ///< Number of times control function has been invoked
-	private: ::std::size_t ctl_skip_count_; ///< Number of times control has been skipped
-	private: ::std::size_t ctl_fail_count_; ///< Number of times control has failed
-	private: ::std::vector<real_type> init_shares_; ///< The initial shares to assign to each VM
+	private: std::size_t ctl_count_; ///< Number of times control function has been invoked
+	private: std::size_t ctl_skip_count_; ///< Number of times control has been skipped
+	private: std::size_t ctl_fail_count_; ///< Number of times control has failed
+	private: std::map< virtual_machine_performance_category, std::vector<real_type> > init_shares_; ///< The initial shares to assign to each VM
 	private: vm_sensor_map vm_sensors_;
 	private: app_sensor_map app_sensors_;
-	private: ::std::time_t t0_;
+	private: std::time_t t0_;
 }; // sysid_application_manager
 
 template <typename T>
