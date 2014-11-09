@@ -339,7 +339,7 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 				ok = false;
 			}
 #else // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
-			dcs::log_warn(DCS_LOGGING_AT, std::string("Unsupported precise domain memory stats: ") + utility::last_error(conn_));
+			dcs::log_warn(DCS_LOGGING_AT, std::string("Unsupported precise domain memory stats: ") + detail::last_error(conn_));
 
 			// The most supported solution in libvirt is to use the following information:
 			// - memory: the memory used by the domain (in kB)
