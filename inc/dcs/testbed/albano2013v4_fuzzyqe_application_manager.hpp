@@ -141,7 +141,7 @@ class albano2013v4_fuzzyqe_application_manager: public base_application_manager<
 		p_ov->fuzzyOutput()->setAccumulation(new fl::AlgebraicSum());
 		p_ov->setDefuzzifier(new fl::Centroid());
 		p_ov->setDefaultValue(fl::nan);
-		p_ov->setLockValidOutput(false);
+		p_ov->setPreviousOutputValue(false);
 		p_ov->addTerm(new fl::Triangle("BDW", -1.00, -0.55, -0.10));
 		p_ov->addTerm(new fl::Triangle("DWN", -0.20, -0.125, -0.05));
 		p_ov->addTerm(new fl::Triangle("STY", -0.10, 0.0, 0.10));

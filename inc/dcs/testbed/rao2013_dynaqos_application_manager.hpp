@@ -164,7 +164,7 @@ class rao2013_dynaqos_application_manager: public base_application_manager<Trait
 		p_ov->fuzzyOutput()->setAccumulation(new ::fl::AlgebraicSum());
 		p_ov->setDefuzzifier(new ::fl::Centroid());
 		p_ov->setDefaultValue(::fl::nan);
-		p_ov->setLockValidOutput(false);
+		p_ov->setLockPreviousOutputValue(false);
 		p_ov->addTerm(new ::fl::Ramp("NL", -two_third, -1));
 		p_ov->addTerm(new ::fl::Triangle("NM", -1, -two_third, -one_third));
 		p_ov->addTerm(new ::fl::Triangle("NS", -two_third, -one_third, 0));
@@ -264,7 +264,7 @@ class rao2013_dynaqos_application_manager: public base_application_manager<Trait
 		p_ov->fuzzyOutput()->setAccumulation(new ::fl::AlgebraicSum());
 		p_ov->setDefuzzifier(new ::fl::Centroid());
 		p_ov->setDefaultValue(::fl::nan);
-		p_ov->setLockValidOutput(false);
+		p_ov->setLockPreviousOutputValue(false);
 		p_ov->addTerm(new ::fl::Ramp("ZE", 0, two_third));
 		p_ov->addTerm(new ::fl::Triangle("VS", 0, one_sixth, one_third));
 		p_ov->addTerm(new ::fl::Triangle("SM", one_sixth, one_third, 0.5));
