@@ -315,13 +315,30 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 					bool parse_ok = reader.parse(meminfo, root);
 					if (parse_ok)
 					{
-						//long double mem_tot = 0;
+						//NOTE: MemAvailable is not available in all kernels
+
 						long double mem_avail = 0;
-						std::istringstream iss;
-						//iss.str(root.get("MemTotal", "").asString());
-						//iss >> mem_tot;
-						iss.str(root.get("MemAvailable", "").asString());
-						iss >> mem_avail;
+						if (root.isMember("MemAvailable"))
+						{
+							//long double mem_tot = 0;
+							std::istringstream iss;
+							//iss.str(root.get("MemTotal", "").asString());
+							//iss >> mem_tot;
+							iss.str(root.get("MemAvailable", "").asString());
+							iss >> mem_avail;
+						}
+						else if (root.isMember("MemFree"))
+						{
+							long double mem_free = 0;
+							std::istringstream iss;
+							iss.str(root.get("MemFree", "").asString());
+							iss >> mem_free;
+							long double mem_srecl = 0;
+							iss.str(root.get("SReclaimable", "0").asString());
+							iss >> mem_srecl;
+
+							mem_avail = mem_free+mem_srecl;
+						}
 
 						mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.maxMem));
 					}
