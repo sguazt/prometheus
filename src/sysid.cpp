@@ -1310,8 +1310,13 @@ int main(int argc, char *argv[])
 		{
 			const vm_pointer p_vm = vms[i];
 
-			p_mgr->data_estimator(testbed::cpu_util_virtual_machine_performance, p_vm->id(), boost::make_shared< testbed::mean_estimator<real_type> >());
-			p_mgr->data_smoother(testbed::cpu_util_virtual_machine_performance, p_vm->id(), boost::make_shared< testbed::dummy_smoother<real_type> >());
+			for (std::size_t k = 0; k < opt_vm_perfs.size(); ++k)
+			{
+				const testbed::virtual_machine_performance_category cat = opt_vm_perfs[k];
+
+				p_mgr->data_estimator(cat, p_vm->id(), boost::make_shared< testbed::mean_estimator<real_type> >());
+				p_mgr->data_smoother(cat, p_vm->id(), boost::make_shared< testbed::dummy_smoother<real_type> >());
+			}
 		}
 		p_mgr->sampling_time(opt_ts);
 		p_mgr->control_time(opt_tc);
