@@ -99,6 +99,14 @@ class dom_stats
 	  first_(true),
 	  pct_cpu_(0)
 	{
+		try
+		{
+			hname_ = utility::domain_hostname(conn_, dom_);
+		}
+		catch (...)
+		{
+			hname_ = "<NA>";
+		}
 	}
 
 	public: int num_cpus(int flags)
@@ -263,6 +271,11 @@ class dom_stats
 		return pct_ram_;
 	}
 
+	public: std::string hostname() const
+	{
+		return hname_;
+	}
+
 	private: int max_num_cpus()
 	{
 		assert( conn_ );
@@ -301,7 +314,8 @@ class dom_stats
 	private: ::virDomainInfo cur_node_info_;
 	private: double pct_cpu_;
 	private: double pct_ram_;
-};
+	private: std::string hname_; ///< The domain host name
+}; // dom_stats
 
 int main(int argc, char* argv[])
 {
@@ -323,10 +337,9 @@ int main(int argc, char* argv[])
 
 		virDomainPtr dom = utility::connect_domain(conn, dom_name);
 
-		std::string hostname = utility::domain_hostname(conn, dom);
-		std::cout << "DOMAIN: " << dom_name << " (hostname: " << hostname << ")" << std::endl;
-
 		dom_stats stats(conn, dom);
+
+		std::cout << "DOMAIN: " << dom_name << " (hostname: " << stats.hostname() << ")" << std::endl;
 
 		std::cout << "#CPUs: " << stats.num_cpus(VIR_DOMAIN_AFFECT_CURRENT) << std::endl;
 
