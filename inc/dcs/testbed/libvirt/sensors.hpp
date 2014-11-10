@@ -266,7 +266,9 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 			{
 				namespace asio = boost::asio;
 
-				std::string server_addr = DCS_TESTBED_SENSOR_MEMINFO_SERVER_ADDRESS;
+				//std::string server_addr = DCS_TESTBED_SENSOR_MEMINFO_SERVER_ADDRESS;
+				//std::string server_port = DCS_TESTBED_SENSOR_MEMINFO_SERVER_PORT;
+				std::string server_addr = detail::domain_name(p_conn_, p_dom_);
 				std::string server_port = DCS_TESTBED_SENSOR_MEMINFO_SERVER_PORT;
 
 				std::cout << "Connecting to " << server_addr << " on port " << server_port << std::endl;

@@ -626,18 +626,36 @@ unsigned int domain_id(virConnectPtr conn, virDomainPtr dom)
 	return ret;
 }
 
-::std::string name(virConnectPtr conn, virDomainPtr dom)
+::std::string domain_name(virConnectPtr conn, virDomainPtr dom)
 {
 	DCS_DEBUG_ASSERT( conn );
 	DCS_DEBUG_ASSERT( dom );
 
-	char const* ret(0);
+	char const* ret = 0;
 
 	ret = virDomainGetName(dom);
 	if (0 == ret)
 	{
 		::std::ostringstream oss;
 		oss << "Failed to query the name for domain: " << last_error(conn);
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+
+	return ret;
+}
+
+::std::string domain_hostname(virConnectPtr conn, virDomainPtr dom)
+{
+	DCS_DEBUG_ASSERT( conn );
+	DCS_DEBUG_ASSERT( dom );
+
+	char const* ret = 0;
+
+	ret = virDomainGetHostname(dom, 0);
+	if (0 == ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to query the hostname for domain: " << last_error(conn);
 		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 
