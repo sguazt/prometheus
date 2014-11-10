@@ -26,6 +26,7 @@
 #define DCS_TESTBED_LIBVIRT_VIRTUAL_MACHINE_HPP
 
 
+#include <algorithm>
 #include <dcs/assert.hpp>
 #include <dcs/debug.hpp>
 #include <dcs/logging.hpp>
@@ -367,8 +368,9 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
-		unsigned long mem = share*detail::max_memory(p_vmm_->connection(), p_dom_);
-		detail::current_memory(p_vmm_->connection(), p_dom_, share*mem);
+		unsigned long max_mem = detail::max_memory(p_vmm_->connection(), p_dom_);
+		unsigned long mem = std::max(static_cast<unsigned long>(share*max_mem), max_mem);
+		detail::current_memory(p_vmm_->connection(), p_dom_, mem);
 	}
 
 	private: real_type do_memory_share() const
