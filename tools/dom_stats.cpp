@@ -76,6 +76,19 @@ virDomainPtr connect_domain(virConnectPtr conn, ::std::string const& name)
 	return dom;
 }
 
+std::string domain_hostname(virConnectPtr conn, virDomainPtr dom)
+{
+	const char* hn = virDomainGetHostname(dom, 0);
+	if (0 == hn)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to get hostname for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+		throw ::std::runtime_error(oss.str());
+	}
+
+	return hn;
+}
+
 } // Namespace utility
 
 class dom_stats
@@ -309,6 +322,9 @@ int main(int argc, char* argv[])
 		virConnectPtr conn = utility::connect(uri);
 
 		virDomainPtr dom = utility::connect_domain(conn, dom_name);
+
+		std::string hostname = utility::domain_hostname(conn, dom);
+		std::cout << "DOMAIN: " << dom_name << " (hostname: " << hostname << ")" << std::endl;
 
 		dom_stats stats(conn, dom);
 
