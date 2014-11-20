@@ -257,7 +257,10 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 				}
 			}
 
-			mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.maxMem));
+			//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
+			//      So use the 'memory' field which should give a reasonable value.
+			//mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.maxMem));
+			mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.memory));
 		}
 		else
 		{
@@ -315,7 +318,20 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 					bool parse_ok = reader.parse(meminfo, root);
 					if (parse_ok)
 					{
-						//NOTE: MemAvailable is not available in all kernels
+						// From linux kernel 3.x:
+						//  Many load balancing and workload placing programs check /proc/meminfo to
+						//  estimate how much free memory is available.
+						//  They generally do this by adding up "free" and "cached", which was fine ten
+						//  years ago, but is pretty much guaranteed to be wrong today.
+						//  It is wrong because Cached includes memory that is not freeable as page
+						//  cache, for example shared memory segments, tmpfs, and ramfs, and it does not
+						//  include reclaimable slab memory, which can take up a large fraction of
+						//  system memory on mostly idle systems with lots of files.
+						//  Currently, the amount of memory that is available for a new workload,
+						//  without pushing the system into swap, can be estimated from MemFree,
+						//  Active(file), Inactive(file), and SReclaimable, as well as the "low"
+						//  watermarks from /proc/zoneinfo.
+						//  See also '<linux-kernel-source>/fs/proc/meminfo.c'.
 
 						long double mem_avail = 0;
 						if (root.isMember("MemAvailable"))
@@ -329,18 +345,23 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 						}
 						else if (root.isMember("MemFree"))
 						{
+							// Use the old (and unreliable) method
+
 							long double mem_free = 0;
 							std::istringstream iss;
 							iss.str(root.get("MemFree", "").asString());
 							iss >> mem_free;
-							long double mem_srecl = 0;
-							iss.str(root.get("SReclaimable", "0").asString());
-							iss >> mem_srecl;
+							long double mem_cache = 0;
+							iss.str(root.get("Cached", "0").asString());
+							iss >> mem_cache;
 
-							mem_avail = mem_free+mem_srecl;
+							mem_avail = mem_free+mem_cache;
 						}
 
-						mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.maxMem));
+						//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
+						//      So use the 'memory' field which should give a reasonable value.
+						//mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.maxMem));
+						mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.memory));
 					}
 					else
 					{
@@ -364,7 +385,10 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 			// - memory: the memory used by the domain (in kB)
 			// - maxMem: the maximum memory allowed by the domain (in kB)
 			// However, note that 'memory' is a static value (i.e., the currently allocated memory) that doesn't reflect the amount of memory effectively used by the domain
-			mem_util_ = static_cast<double>(cur_node_info_.memory/static_cast<long double>(cur_node_info_.maxMem));
+			//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
+			//      So use the 'memory' field which should give a reasonable value.
+			//mem_util_ = static_cast<double>(cur_node_info_.memory/static_cast<long double>(cur_node_info_.maxMem));
+			mem_util_ = 1; // Always full utilization
 #endif // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 		}
 
