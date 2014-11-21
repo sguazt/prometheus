@@ -255,9 +255,12 @@ class dom_stats
 
 				std::clog << "[warning] Failed to get precise domain memory stats: " << utility::last_error(conn_) << std::endl;
 
+				std::cerr << "DEBUG> MEM current (from node info): " << cur_node_info_.memory << std::endl;
+				std::cerr << "DEBUG> MEM max (from node info): " << cur_node_info_.maxMem << std::endl;
+				std::cerr << "DEBUG> MEM max (from API): " << virDomainGetMaxMemory(dom_) << std::endl;
+
 				pct_ram_ = static_cast<double>(cur_node_info_.memory/static_cast<long double>(cur_node_info_.maxMem))*100.0;
 			}
-
 		}
 	}
 
