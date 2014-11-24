@@ -688,6 +688,31 @@ void current_memory(virConnectPtr conn, virDomainPtr dom, unsigned long mem)
 	}
 }
 
+unsigned long config_max_memory(virConnectPtr conn, virDomainPtr dom)
+{
+	::virDomainInfo node_info;
+	int ret = ::virDomainGetInfo(dom, &node_info);
+	if (0 > ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to query the config max memory for domain \"" << ::virDomainGetName(dom) << "\": " << last_error(conn);
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+
+	return node_info.maxMem;
+}
+
+void config_max_memory(virConnectPtr conn, virDomainPtr dom, unsigned long mem)
+{
+	int ret = ::virDomainSetMemoryFlags(dom, mem, VIR_DOMAIN_MEM_CONFIG | VIR_DOMAIN_MEM_MAXIMUM);
+	if (0 > ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to set the config max memory for domain \"" << ::virDomainGetName(dom) << "\": " << last_error(conn);
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+}
+
 unsigned long max_memory(virConnectPtr conn, virDomainPtr dom)
 {
 	::virDomainInfo node_info;

@@ -339,7 +339,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
-		const unsigned long max_mem = detail::max_memory(p_vmm_->connection(), p_dom_);
+		const unsigned long max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
 
 		detail::current_memory(p_vmm_->connection(), p_dom_, std::min(static_cast<unsigned long>(cap), max_mem));
 	}
@@ -369,7 +369,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
-		const unsigned long max_mem = detail::max_memory(p_vmm_->connection(), p_dom_);
+		const unsigned long max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
 		const unsigned long mem = std::min(static_cast<unsigned long>(share*max_mem), max_mem);
 
 		detail::current_memory(p_vmm_->connection(), p_dom_, mem);
@@ -386,7 +386,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
-		const unsigned long max_mem = detail::max_memory(p_vmm_->connection(), p_dom_);
+		const unsigned long max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
 		const unsigned long cur_mem = detail::current_memory(p_vmm_->connection(), p_dom_);
 
 		return cur_mem/static_cast<real_type>(max_mem);
