@@ -496,6 +496,7 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 				{
 					case cpu_util_virtual_machine_performance:
 						old_shares[cat].push_back(p_vm->cpu_share());
+						DCS_DEBUG_TRACE( "   VM '" << p_vm->name() << "' :: Performance category: CPU :: Old share: " << old_shares[cat][i] << " :: New share: " << new_shares[i] );//XXX
 						if (!::dcs::math::float_traits<real_type>::essentially_equal(old_shares.at(cat).at(i), new_shares[i]))
 						{
 							p_vm->cpu_share(new_shares[i]);
@@ -503,6 +504,7 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 						break;
 					case memory_util_virtual_machine_performance:
 						old_shares[cat].push_back(p_vm->memory_share());
+						DCS_DEBUG_TRACE( "   VM '" << p_vm->name() << "' :: Performance category: MEMORY :: Old share: " << old_shares[cat][i] << " :: New share: " << new_shares[i] );//XXX
 						if (!::dcs::math::float_traits<real_type>::essentially_equal(old_shares.at(cat).at(i), new_shares[i]))
 						{
 							p_vm->memory_share(new_shares[i]);
