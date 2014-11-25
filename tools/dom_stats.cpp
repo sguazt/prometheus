@@ -134,9 +134,14 @@ class dom_stats
 		ret = virDomainGetVcpuPinInfo(dom_, info.nrVirtCpu, cpumaps, cpumaplen, flags);
 		if (0 > ret)
 		{
-			::std::ostringstream oss;
-			oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom_) << "\": " << utility::last_error(conn_);
-			throw ::std::runtime_error(oss.str());
+			ret = virDomainGetVcpusFlags(dom_, flags | VIR_DOMAIN_VCPU_MAXIMUM);
+
+			if (0 > ret)
+			{
+				::std::ostringstream oss;
+				oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom_) << "\": " << utility::last_error(conn_);
+				throw ::std::runtime_error(oss.str());
+			}
 		}
 
 		int ncpu = 0;
