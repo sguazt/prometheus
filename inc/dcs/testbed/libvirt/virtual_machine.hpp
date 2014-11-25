@@ -372,6 +372,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		const unsigned long max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
 		const unsigned long mem = std::min(static_cast<unsigned long>(share*max_mem), max_mem);
 
+DCS_DEBUG_TRACE("Setting Memory: " << mem << " (share: " << share << ")");//XXX
 		detail::current_memory(p_vmm_->connection(), p_dom_, mem);
 	}
 
@@ -389,6 +390,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		const unsigned long max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
 		const unsigned long cur_mem = detail::current_memory(p_vmm_->connection(), p_dom_);
 
+DCS_DEBUG_TRACE("Getting Memory: " << cur_mem << " (share: " << (cur_mem/static_cast<real_type>(max_mem)) << ")");//XXX
 		return cur_mem/static_cast<real_type>(max_mem);
 	}
 
