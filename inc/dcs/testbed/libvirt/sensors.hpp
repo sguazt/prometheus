@@ -361,7 +361,7 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 						//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
 						//      So use the 'memory' field which should give a reasonable value.
 						//mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.maxMem));
-						mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.memory));
+						mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.memory));
 					}
 					else
 					{
@@ -388,7 +388,7 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 			//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
 			//      So use the 'memory' field which should give a reasonable value.
 			//mem_util_ = static_cast<double>(cur_node_info_.memory/static_cast<long double>(cur_node_info_.maxMem));
-			mem_util_ = 1; // Always full utilization
+			mem_util_ = static_cast<double>(cur_node_info_.memory/static_cast<long double>(cur_node_info_.maxMem));
 #endif // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 		}
 
