@@ -274,7 +274,7 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 				std::string server_addr = detail::domain_name(p_conn_, p_dom_);
 				std::string server_port = DCS_TESTBED_SENSOR_MEMINFO_SERVER_PORT;
 
-				std::cout << "Connecting to " << server_addr << " on port " << server_port << std::endl;
+				DCS_DEBUG_TRACE("Connecting to " << server_addr << " on port " << server_port);
 
 				asio::io_service io_service;
 
