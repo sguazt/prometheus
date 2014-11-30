@@ -358,10 +358,23 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 							mem_avail = mem_free+mem_cache;
 						}
 
+						long double mem_tot = 0;
+						if (root.isMember("MemTotal"))
+						{
+							std::istringstream iss;
+							iss.str(root.get("MemTotal", "").asString());
+							iss >> mem_tot;
+						}
+						else
+						{
+							mem_tot = static_cast<long double>(cur_node_info_.memory);
+						}
+
 						//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
 						//      So use the 'memory' field which should give a reasonable value.
 						//mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.maxMem));
-						mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.memory));
+						//mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.memory));
+						mem_util_ = 1.0-static_cast<double>(mem_avail/mem_tot);
 					}
 					else
 					{
