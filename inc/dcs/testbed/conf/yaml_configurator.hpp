@@ -683,7 +683,7 @@ class yaml_configurator
 				}
 
 				// Setup SLO information
-				if (yaml["slos"])
+				if (mgr_node["slos"])
 				{
 					for (YAML::const_iterator slo_it = mgr_node["slos"].begin(),
 											  slo_end_it = mgr_node["slos"].end();
