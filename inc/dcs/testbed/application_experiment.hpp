@@ -38,6 +38,7 @@
 #include <dcs/testbed/base_workload_driver.hpp>
 #include <dcs/testbed/detail/runnable.hpp>
 #include <map>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
@@ -189,10 +190,27 @@ class application_experiment
 		return next_id_++;
 	}
 
+	private: static std::string make_name(identifier_type id)
+	{
+		std::ostringstream oss;
+		oss << "Experiment " << id;
+		return oss.str();
+	}
+
+	public: application_experiment()
+	: id_(make_id()),
+	  name_(make_name(id_)),
+	  restore_state_(true),
+	  p_sta_sig_(new signal_type()),
+	  p_sto_sig_(new signal_type())
+	{
+	}
+
 	public: application_experiment(app_pointer const& p_app,
 								   driver_pointer const& p_drv,
 								   manager_pointer const& p_mgr)
 	: id_(make_id()),
+	  name_(make_name(id_)),
 	  p_app_(p_app),
 	  p_drv_(p_drv),
 	  p_mgr_(p_mgr),
@@ -216,6 +234,16 @@ class application_experiment
 	public: identifier_type id() const
 	{
 		return id_;
+	}
+
+	public: std::string name() const
+	{
+		return name_;
+	}
+
+	public: void name(std::string const& s)
+	{
+		name_ = s;
 	}
 
 	public: void app(app_pointer const& p_app)
@@ -444,6 +472,7 @@ class application_experiment
 
 
 	private: const identifier_type id_; ///< The unique experiment identifier
+	private: std::string name_; ///< A mnemonic name for the experiment
 	private: app_pointer p_app_; ///< Pointer to the application
 	private: driver_pointer p_drv_; ///< Pointer to the application driver
 	private: manager_pointer p_mgr_; ///< Pointer to the application manager
