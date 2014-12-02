@@ -546,7 +546,7 @@ class yaml_configurator
 								p_app_mgr_impl->output_extended_format(detail::yaml_value(mgr_node["report"]["extended"], defaults::app_manager_sysid_report_extended));
 								p_app_mgr_impl->export_data_to(detail::yaml_value(mgr_node["report"]["path"], defaults::app_manager_sysid_report_path));
 							}
-							if (yaml["signals"])
+							if (mgr_node["signals"])
 							{
 								for (YAML::const_iterator sig_it = mgr_node["signals"].begin(),
 														  sig_end_it = mgr_node["signals"].end();
@@ -555,9 +555,9 @@ class yaml_configurator
 								{
 									const YAML::Node& sig_node = *sig_it;
 
-									const dcs::testbed::virtual_machine_performance_category vm_perf_cat  = detail::yaml_value<dcs::testbed::virtual_machine_performance_category>(sig_node["knob"], defaults::vm_performance);
-
+									// Setup signal generator
 									boost::shared_ptr< base_signal_generator<real_type> > p_sig_gen;
+
 									const signal_category sig_cat = detail::yaml_value(sig_node["category"], defaults::signal);
 									switch (sig_cat)
 									{
@@ -672,6 +672,8 @@ class yaml_configurator
 									}
 									p_sig_gen->lower_bound( detail::yaml_value(sig_node["lower-bound"], static_cast<real_type>(defaults::signal_lower_bound)) );
 									p_sig_gen->upper_bound( detail::yaml_value(sig_node["upper-bound"], static_cast<real_type>(defaults::signal_upper_bound)) );
+
+									const dcs::testbed::virtual_machine_performance_category vm_perf_cat  = detail::yaml_value<dcs::testbed::virtual_machine_performance_category>(sig_node["knob"], defaults::vm_performance);
 
 									p_app_mgr_impl->signal_generator(vm_perf_cat, p_sig_gen);
 								}
