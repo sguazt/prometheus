@@ -443,99 +443,108 @@ class yaml_configurator
 				{
 					case albano2013_fuzzyqe_app_manager:
 						{
-							const real_type beta = detail::yaml_value(mgr_node["beta"], defaults::app_manager_albano2013_fuzzyqe_beta);
-
 							boost::shared_ptr< dcs::testbed::albano2013_fuzzyqe_application_manager<TraitsT> > p_app_mgr_impl;
 							p_app_mgr_impl = boost::make_shared< dcs::testbed::albano2013_fuzzyqe_application_manager<TraitsT> >();
 
+							const real_type beta = detail::yaml_value(mgr_node["beta"], defaults::app_manager_albano2013_fuzzyqe_beta);
 							p_app_mgr_impl->smoothing_factor(beta);
+
 							if (mgr_node["report"])
 							{
-								p_app_mgr_impl->export_data_to(detail::yaml_value(mgr_node["report"]["path"], defaults::app_manager_albano2013_fuzzyqe_report_path));
+								p_app_mgr_impl->export_data_to(detail::yaml_value(mgr_node["report"]["path"], defaults::app_manager_report_file_path));
 							}
 
 							p_app_mgr = p_app_mgr_impl;
 						}
 						break;
-/*
 					case anglano2014_fc2q_app_manager:
 						{
-							const real_type beta = 0.9;
+							boost::shared_ptr< dcs::testbed::anglano2014_fc2q_application_manager<TraitsT> > p_app_mgr_impl;
+							p_app_mgr_impl = boost::make_shared< dcs::testbed::anglano2014_fc2q_application_manager<TraitsT> >();
 
-							testbed::anglano2014_fc2q_application_manager<traits_type> anglano2014_fc2q_mgr;
-							anglano2014_fc2q_mgr.smoothing_factor(beta);
-							if (!opt_app_manager_stats_file.empty())
+							const real_type beta = detail::yaml_value(mgr_node["beta"], defaults::app_manager_anglano2014_fc2q_beta);
+							p_app_mgr_impl->smoothing_factor(beta);
+
+							if (mgr_node["report"])
 							{
-								anglano2014_fc2q_mgr.export_data_to(opt_app_manager_stats_file);
+								p_app_mgr_impl->export_data_to(detail::yaml_value(mgr_node["report"]["path"], defaults::app_manager_report_file_path));
 							}
 
-							p_app_mgr = boost::make_shared< testbed::anglano2014_fc2q_application_manager<traits_type> >(anglano2014_fc2q_mgr);
+							p_app_mgr = p_app_mgr_impl;
 						}
 						break;
 					case anglano2014_fc2q_mimo_app_manager:
 						{
-							const real_type beta = 0.9;
+							boost::shared_ptr< dcs::testbed::anglano2014_fc2q_mimo_application_manager<TraitsT> > p_app_mgr_impl;
+							p_app_mgr_impl = boost::make_shared< dcs::testbed::anglano2014_fc2q_mimo_application_manager<TraitsT> >();
 
-							testbed::anglano2014_fc2q_mimo_application_manager<traits_type> anglano2014_fc2q_mimo_mgr;
-							anglano2014_fc2q_mimo_mgr.smoothing_factor(beta);
-							if (!opt_app_manager_stats_file.empty())
+							const real_type beta = detail::yaml_value(mgr_node["beta"], defaults::app_manager_anglano2014_fc2q_beta);
+							p_app_mgr_impl->smoothing_factor(beta);
+
+							if (mgr_node["report"])
 							{
-								anglano2014_fc2q_mimo_mgr.export_data_to(opt_app_manager_stats_file);
+								p_app_mgr_impl->export_data_to(detail::yaml_value(mgr_node["report"]["path"], defaults::app_manager_report_file_path));
 							}
 
-							p_app_mgr = boost::make_shared< testbed::anglano2014_fc2q_mimo_application_manager<traits_type> >(anglano2014_fc2q_mimo_mgr);
+							p_app_mgr = p_app_mgr_impl;
 						}
 						break;
 					case dummy_app_manager:
 						{
-							testbed::dummy_application_manager<traits_type> dummy_mgr;
-							if (!opt_app_manager_stats_file.empty())
+							boost::shared_ptr< dcs::testbed::dummy_application_manager<TraitsT> > p_app_mgr_impl;
+							p_app_mgr_impl = boost::make_shared< dcs::testbed::dummy_application_manager<TraitsT> >();
+
+							if (mgr_node["report"])
 							{
-								dummy_mgr.export_data_to(opt_app_manager_stats_file);
+								p_app_mgr_impl->export_data_to(detail::yaml_value(mgr_node["report"]["path"], defaults::app_manager_report_file_path));
 							}
 
-							p_app_mgr = boost::make_shared< testbed::dummy_application_manager<traits_type> >(dummy_mgr);
+							p_app_mgr = p_app_mgr_impl;
 						}
 						break;
 					case padala2009_autocontrol_app_manager:
 						{
-							const std::size_t na = 2;
-							const std::size_t nb = 2;
-							const std::size_t nk = 1;
+							boost::shared_ptr< dcs::testbed::padala2009_autocontrol_application_manager<TraitsT> > p_app_mgr_impl;
+							p_app_mgr_impl = boost::make_shared< dcs::testbed::padala2009_autocontrol_application_manager<TraitsT> >();
+
+							const std::size_t na = detail::yaml_value(mgr_node["na"], defaults::app_manager_padala2009_autocontrol_na);
+							const std::size_t nb = detail::yaml_value(mgr_node["nb"], defaults::app_manager_padala2009_autocontrol_nb);
+							const std::size_t nk = detail::yaml_value(mgr_node["nk"], defaults::app_manager_padala2009_autocontrol_nk);
 							const std::size_t ny = 1;
 							const std::size_t nu = num_tiers;
-							const real_type ff = 0.98;
-							const real_type q = 2;
+							const real_type ff = detail::yaml_value(mgr_node["ff"], static_cast<real_type>(defaults::app_manager_padala2009_autocontrol_ff));
+							const real_type q = detail::yaml_value(mgr_node["q"], static_cast<real_type>(defaults::app_manager_padala2009_autocontrol_q));
 
-							sysid_strategy_pointer p_sysid_alg = boost::make_shared< testbed::rls_ff_arx_miso_proxy<traits_type> >(na, nb, nk, ny, nu, ff);
-							testbed::padala2009_autocontrol_application_manager<traits_type> padala2009_autocontrol_mgr;
-							padala2009_autocontrol_mgr.sysid_strategy(p_sysid_alg);
-							//padala2009_autocontrol_mgr.target_value(testbed::response_time_application_performance, rt_q99*(1-0.20));
-							//padala2009_autocontrol_mgr.target_value(testbed::response_time_application_performance, opt_slo_value);
-							padala2009_autocontrol_mgr.stability_factor(q);
-							if (!opt_app_manager_stats_file.empty())
+							boost::shared_ptr< dcs::testbed::base_arx_system_identification_strategy<TraitsT> >  p_sysid_alg;
+							p_sysid_alg = boost::make_shared< dcs::testbed::rls_ff_arx_miso_proxy<TraitsT> >(na, nb, nk, ny, nu, ff);
+							p_app_mgr_impl->sysid_strategy(p_sysid_alg);
+
+							p_app_mgr_impl->stability_factor(q);
+
+							if (mgr_node["report"])
 							{
-								padala2009_autocontrol_mgr.export_data_to(opt_app_manager_stats_file);
+								p_app_mgr_impl->export_data_to(detail::yaml_value(mgr_node["report"]["path"], defaults::app_manager_report_file_path));
 							}
 
-							p_app_mgr = boost::make_shared< testbed::padala2009_autocontrol_application_manager<traits_type> >(padala2009_autocontrol_mgr);
+							p_app_mgr = p_app_mgr_impl;
 						}
 						break;
 					case rao2013_dynaqos_app_manager:
 						{
-							const real_type gamma = 0.8;
+							boost::shared_ptr< dcs::testbed::rao2013_dynaqos_application_manager<TraitsT> > p_app_mgr_impl;
+							p_app_mgr_impl = boost::make_shared< dcs::testbed::rao2013_dynaqos_application_manager<TraitsT> >();
 
-							testbed::rao2013_dynaqos_application_manager<traits_type> rao2013_dynaqos_mgr;
-							rao2013_dynaqos_mgr.discount_factor(gamma);
-							if (!opt_app_manager_stats_file.empty())
+							const real_type gamma = detail::yaml_value(mgr_node["gamma"], defaults::app_manager_rao2013_dynaqos_gamma);
+							p_app_mgr_impl->discount_factor(gamma);
+
+							if (mgr_node["report"])
 							{
-								rao2013_dynaqos_mgr.export_data_to(opt_app_manager_stats_file);
+								p_app_mgr_impl->export_data_to(detail::yaml_value(mgr_node["report"]["path"], defaults::app_manager_report_file_path));
 							}
 
-							p_app_mgr = boost::make_shared< testbed::rao2013_dynaqos_application_manager<traits_type> >(rao2013_dynaqos_mgr);
+							p_app_mgr = p_app_mgr_impl;
 						}
 						break;
-*/
 					case sysid_app_manager:
 						{
 							boost::shared_ptr< dcs::testbed::sysid_application_manager<TraitsT> > p_app_mgr_impl;
@@ -544,7 +553,7 @@ class yaml_configurator
 							if (mgr_node["report"])
 							{
 								p_app_mgr_impl->output_extended_format(detail::yaml_value(mgr_node["report"]["extended"], defaults::app_manager_sysid_report_extended));
-								p_app_mgr_impl->export_data_to(detail::yaml_value(mgr_node["report"]["path"], defaults::app_manager_sysid_report_path));
+								p_app_mgr_impl->export_data_to(detail::yaml_value(mgr_node["report"]["path"], defaults::app_manager_report_file_path));
 							}
 							if (mgr_node["signals"])
 							{

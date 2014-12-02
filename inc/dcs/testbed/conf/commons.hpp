@@ -396,10 +396,18 @@ namespace defaults
 {
 	const bool app_experiment_restore_vms = true;
 	const app_manager_category app_manager = dummy_app_manager;
-	const bool app_manager_sysid_report_extended = false;
-	const std::string app_manager_sysid_report_path("./sysid-out.dat");
+	const std::string app_manager_report_file_path("./appmgr-out.dat");
 	const double app_manager_albano2013_fuzzyqe_beta = 0.9;
-	const std::string app_manager_albano2013_fuzzyqe_report_path("./albano2013_fuzzyqe-out.dat");
+	const double app_manager_anglano2014_fc2q_beta = 0.9;
+	const std::size_t app_manager_padala2009_autocontrol_na = 2;
+	const std::size_t app_manager_padala2009_autocontrol_nb = 2;
+	const std::size_t app_manager_padala2009_autocontrol_nk = 1;
+	const std::size_t app_manager_padala2009_autocontrol_ny = 1;
+	const std::size_t app_manager_padala2009_autocontrol_nu = 1;
+	const double app_manager_padala2009_autocontrol_ff = 0.98;
+	const double app_manager_padala2009_autocontrol_q = 2;
+	const double app_manager_rao2013_dynaqos_gamma = 0.8;
+	const bool app_manager_sysid_report_extended = false;
 	const double sampling_time = 10;
 	const double control_time = 3*sampling_time;
 	const double exciting_time = 3*sampling_time;
