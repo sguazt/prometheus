@@ -771,7 +771,7 @@ class yaml_configurator
 			{
 				p_app_exp->name(detail::yaml_value<std::string>(exp_node["name"]));
 			}
-			//p_app_exp->restore_state(!opt_no_restore_vms);
+			p_app_exp->restore_state(detail::yaml_value(exp_node["restore-vms"], defaults::app_experiment_restore_vms));
 
 			p_sys_exp_->add_app_experiment(p_app_exp);
 		}
