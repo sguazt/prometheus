@@ -337,6 +337,7 @@ class yaml_configurator
 					{
 						p_vmm = boost::make_shared< dcs::testbed::libvirt::virtual_machine_manager<TraitsT> >(vmm_uri);
 						vmm_map[vmm_uri] = p_vmm;
+						p_sys_exp_->vmm(vmm_uri, p_vmm);
 					}
 					else
 					{
