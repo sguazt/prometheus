@@ -54,6 +54,7 @@ class system_experiment
 {
 	private: typedef system_experiment<TraitsT> self_type;
 	public: typedef TraitsT traits_type;
+	public: typedef typename traits_type::rng_type rng_type;
 	//public: typedef typename traits_type::real_type real_type;
 //	private: typedef base_application<traits_type> app_type;
 //	public: typedef ::boost::shared_ptr<app_type> app_pointer;
@@ -71,7 +72,8 @@ class system_experiment
 	public: system_experiment()
 	: running_(false),
 	  p_sta_sig_(new signal_type()),
-	  p_sto_sig_(new signal_type())
+	  p_sto_sig_(new signal_type()),
+	  p_rng_(new rng_type())
 	{
 	}
 
@@ -114,6 +116,16 @@ class system_experiment
 //	{
 //		app_exps_.push_back(::boost::make_shared<app_experiment_type>(p_app, p_drv, p_mgr, first_mon, last_mon));
 //	}
+
+	public: void rng(boost::shared_ptr<rng_type> const& p_rng)
+	{
+		p_rng_ = p_rng;
+	}
+
+	public: boost::shared_ptr<rng_type> const& rng_ptr() const
+	{
+		return p_rng_;
+	}
 
 	/**
 	 * \brief Perform system experiment.
@@ -180,6 +192,7 @@ class system_experiment
 //	private: monitor_container mons_; ///< Experiment monitors container
 	private: signal_pointer p_sta_sig_;
 	private: signal_pointer p_sto_sig_;
+	private: boost::shared_ptr<rng_type> p_rng_;
 }; // system_experiment
 
 }} // Namespace dcs::testbed
