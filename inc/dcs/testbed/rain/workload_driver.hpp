@@ -46,7 +46,7 @@
 #include <exception>
 #include <fstream>
 #include <istream>
-#include <list>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -113,7 +113,7 @@ inline
 		default:
 		{
 			::std::ostringstream oss;
-			oss << "Workload '" << to_string(wkl_cat) << "' not handled";
+			oss << "Workload '" << wkl_cat << "' not handled";
 			DCS_EXCEPTION_THROW(::std::invalid_argument, oss.str());
 		}
 	}
@@ -159,7 +159,7 @@ inline
 		default:
 		{
 			::std::ostringstream oss;
-			oss << "Workload '" << to_string(wkl_cat) << "' not handled";
+			oss << "Workload '" << wkl_cat << "' not handled";
 			DCS_EXCEPTION_THROW(::std::invalid_argument, oss.str());
 		}
 	}
@@ -315,6 +315,16 @@ class workload_driver: public base_workload_driver<TraitsT>
 		oss << "Application performance metric '" << cat << "' not handled";
 		DCS_EXCEPTION_THROW(::std::invalid_argument, oss.str());
 	}
+
+	public: std::map<application_performance_category,sensor_pointer> sensors() const
+	{
+		std::map<application_performance_category,sensor_pointer> map;
+
+		map[response_time_application_performance] = this->sensor(response_time_application_performance);
+
+		return map;
+	}
+
 
 	private: void ready(bool val)
 	{
