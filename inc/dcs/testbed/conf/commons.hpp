@@ -394,6 +394,7 @@ std::basic_ostream<CharT,CharTraitsT>& operator<<(std::basic_ostream<CharT,CharT
 
 namespace defaults
 {
+	const bool app_experiment_restore_vms = true;
 	const app_manager_category app_manager = dummy_app_manager;
 	const bool app_manager_sysid_report_extended = false;
 	const std::string app_manager_sysid_report_path("./sysid-out.dat");
