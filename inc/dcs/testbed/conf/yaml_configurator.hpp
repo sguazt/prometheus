@@ -727,7 +727,7 @@ class yaml_configurator
 				}
 
 				// Setup control knobs information
-				if (yaml["knobs"])
+				if (mgr_node["knobs"])
 				{
 					for (YAML::const_iterator knob_it = mgr_node["knobs"].begin(),
 											  knob_end_it = mgr_node["knobs"].end();
