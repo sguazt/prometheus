@@ -423,6 +423,7 @@ class yaml_configurator
 					default:
 						DCS_EXCEPTION_THROW(std::runtime_error, "Uknown workload generator category");
 				}
+				p_wkl_drv->app(p_app);
 			}
 			else
 			{
@@ -443,7 +444,9 @@ class yaml_configurator
 						{
 							const real_type beta = detail::yaml_value(mgr_node["beta"], defaults::app_manager_albano2013_fuzzyqe_beta);
 
-							boost::shared_ptr< dcs::testbed::albano2013_fuzzyqe_application_manager<TraitsT> > p_app_mgr_impl(new dcs::testbed::albano2013_fuzzyqe_application_manager<TraitsT>());
+							boost::shared_ptr< dcs::testbed::albano2013_fuzzyqe_application_manager<TraitsT> > p_app_mgr_impl;
+							p_app_mgr_impl = boost::make_shared< dcs::testbed::albano2013_fuzzyqe_application_manager<TraitsT> >();
+
 							p_app_mgr_impl->smoothing_factor(beta);
 							if (mgr_node["report"])
 							{
@@ -534,11 +537,13 @@ class yaml_configurator
 */
 					case sysid_app_manager:
 						{
-							boost::shared_ptr< dcs::testbed::sysid_application_manager<TraitsT> > p_sysid_mgr;
+							boost::shared_ptr< dcs::testbed::sysid_application_manager<TraitsT> > p_app_mgr_impl;
+							p_app_mgr_impl = boost::make_shared< dcs::testbed::sysid_application_manager<TraitsT> >();
+
 							if (mgr_node["report"])
 							{
-								p_sysid_mgr->output_extended_format(detail::yaml_value(mgr_node["report"]["extended"], defaults::app_manager_sysid_report_extended));
-								p_sysid_mgr->export_data_to(detail::yaml_value(mgr_node["report"]["path"], defaults::app_manager_sysid_report_path));
+								p_app_mgr_impl->output_extended_format(detail::yaml_value(mgr_node["report"]["extended"], defaults::app_manager_sysid_report_extended));
+								p_app_mgr_impl->export_data_to(detail::yaml_value(mgr_node["report"]["path"], defaults::app_manager_sysid_report_path));
 							}
 							if (yaml["signals"])
 							{
@@ -667,10 +672,10 @@ class yaml_configurator
 									p_sig_gen->lower_bound( detail::yaml_value(sig_node["lower-bound"], static_cast<real_type>(defaults::signal_lower_bound)) );
 									p_sig_gen->upper_bound( detail::yaml_value(sig_node["upper-bound"], static_cast<real_type>(defaults::signal_upper_bound)) );
 
-									p_sysid_mgr->signal_generator(vm_perf_cat, p_sig_gen);
+									p_app_mgr_impl->signal_generator(vm_perf_cat, p_sig_gen);
 								}
 							}
-							p_app_mgr = p_sysid_mgr;
+							p_app_mgr = p_app_mgr_impl;
 						}
 						break;
 					default:
