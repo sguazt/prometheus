@@ -25,6 +25,7 @@
 #ifndef DCS_TESTBED_APPLICATION_PERFORMANCE_CATEGORY_HPP
 #define DCS_TESTBED_APPLICATION_PERFORMANCE_CATEGORY_HPP
 
+
 namespace dcs { namespace testbed {
 
 enum application_performance_category
