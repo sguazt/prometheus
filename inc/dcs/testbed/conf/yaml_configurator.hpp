@@ -254,11 +254,6 @@ boost::shared_ptr< dcs::testbed::base_smoother<RealT> > parse_data_smoother(YAML
 template <typename TraitsT>
 class yaml_configurator
 {
-	private: typedef typename TraitsT::real_type real_type;
-	private: typedef typename TraitsT::uint_type uint_type;
-	private: typedef typename TraitsT::rng_type rng_type;
-
-
 	public: yaml_configurator()
 	{
 	}
@@ -287,6 +282,10 @@ class yaml_configurator
 
 	private: void parse(std::string const& fname)
 	{
+		typedef typename TraitsT::real_type real_type;
+		typedef typename TraitsT::uint_type uint_type;
+		typedef typename TraitsT::rng_type rng_type;
+
 		YAML::Node yaml = YAML::LoadFile(fname);
 
 		p_sys_exp_ = boost::make_shared< dcs::testbed::system_experiment<TraitsT> >();
