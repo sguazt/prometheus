@@ -107,6 +107,9 @@ inline
 		case olio_workload:
 			workload = "olio";
 			break;
+		case redis_workload:
+			workload = "redis";
+			break;
 		case rubis_workload:
 			workload = "rubis";
 			break;
@@ -152,6 +155,9 @@ inline
 		case olio_workload:
 			//workload = "cloudstone";
 			workload = "olio";
+			break;
+		case redis_workload:
+			workload = "redis";
 			break;
 		case rubis_workload:
 			workload = "rubis";

@@ -149,6 +149,9 @@ template <typename WklIterT, typename ArgIterT>
 			case cassandra_workload:
 				wkl_class = "com.yahoo.ycsb.db.CassandraClient7";
 				break;
+			case redis_workload:
+				wkl_class = "com.yahoo.ycsb.db.RedisClient";
+				break;
 			default:
 			{
 				::std::ostringstream oss;
@@ -202,6 +205,9 @@ inline
 	{
 		case cassandra_workload:
 			workload = "cassandra";
+			break;
+		case redis_workload:
+			workload = "redis";
 			break;
 		default:
 		{
