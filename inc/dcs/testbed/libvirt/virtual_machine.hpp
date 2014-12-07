@@ -340,8 +340,10 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 									   "Not attached to a domain"));
 
 		const unsigned long max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
+		const unsigned long mem = std::min(static_cast<unsigned long>(cap), max_mem);
 
-		detail::current_memory(p_vmm_->connection(), p_dom_, std::min(static_cast<unsigned long>(cap), max_mem));
+		detail::max_memory(p_vmm_->connection(), p_dom_, mem);
+		detail::current_memory(p_vmm_->connection(), p_dom_, mem);
 	}
 
 	private: real_type do_memory_cap() const
@@ -373,6 +375,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		const unsigned long mem = std::min(static_cast<unsigned long>(share*max_mem), max_mem);
 
 DCS_DEBUG_TRACE("Setting Memory: " << mem << " (share: " << share << ")");//XXX
+		detail::max_memory(p_vmm_->connection(), p_dom_, mem);
 		detail::current_memory(p_vmm_->connection(), p_dom_, mem);
 	}
 
