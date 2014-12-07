@@ -622,7 +622,7 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 					*p_dat_ofs_ << ",";
 				}
 				*p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share()
-							<< p_vm->memory_cap() << "," << p_vm->memory_share();
+							<< "," << p_vm->memory_cap() << "," << p_vm->memory_share();
 			}
 			*p_dat_ofs_ << ",";
 			const target_iterator tgt_end_it = this->target_values().end();
