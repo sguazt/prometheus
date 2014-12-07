@@ -291,7 +291,8 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 
 			for (std::size_t i = 0; i < nvms; ++i)
 			{
-				*p_dat_ofs_ << ",\"Cap_{" << vms[i]->id() << "}\",\"Share_{" << vms[i]->id() << "}\"";
+				*p_dat_ofs_ << ",\"CPU Cap_{" << vms[i]->id() << "}\",\"CPU Share_{" << vms[i]->id() << "}\""
+							<< ",\"Mem Cap_{" << vms[i]->id() << "}\",\"Mem Share_{" << vms[i]->id() << "}\"";
 			}
 			for (target_iterator tgt_it = this->target_values().begin();
 				 tgt_it != tgt_end_it;
@@ -303,7 +304,8 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 			}
 			for (std::size_t i = 0; i < nvms; ++i)
 			{
-				*p_dat_ofs_ << ",\"Cres_{" << vms[i]->id() << "}\"";
+				*p_dat_ofs_ << ",\"Cres_{" << vms[i]->id() << "}\""
+							<< ",\"Mres_{" << vms[i]->id() << "}\"";
 			}
 			*p_dat_ofs_ << ",\"# Controls\",\"# Skip Controls\",\"# Fail Controls\"";
 			*p_dat_ofs_ << std::endl;
@@ -619,7 +621,8 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 				{
 					*p_dat_ofs_ << ",";
 				}
-				*p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share();
+				*p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share()
+							<< p_vm->memory_cap() << "," << p_vm->memory_share();
 			}
 			*p_dat_ofs_ << ",";
 			const target_iterator tgt_end_it = this->target_values().end();
@@ -639,8 +642,13 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 			}
 			for (std::size_t i = 0; i < nvms; ++i)
 			{
-				const real_type cres = xress.begin()->second.at(i); //FIXME: only one physical resource is managed
-				*p_dat_ofs_ << "," << cres;
+				for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
+				{
+					const virtual_machine_performance_category vm_cat = vm_perf_cats_[j];
+					const real_type xres = xress.at(vm_cat).at(i);
+
+					*p_dat_ofs_ << "," << xres;
+				}
 			}
 			*p_dat_ofs_ << "," << ctl_count_ << "," << ctl_skip_count_ << "," << ctl_fail_count_;
 			*p_dat_ofs_ << std::endl;
