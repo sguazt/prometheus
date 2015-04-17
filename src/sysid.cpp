@@ -38,6 +38,7 @@
 #include <dcs/testbed/data_estimators.hpp>
 #include <dcs/testbed/data_smoothers.hpp>
 #include <dcs/testbed/experiment_stats_gatherer.hpp>
+#include <dcs/testbed/io.hpp>
 #include <dcs/testbed/signal_generators.hpp>
 #include <dcs/testbed/system_experiment.hpp>
 #include <dcs/testbed/sysid_application_manager.hpp>
@@ -613,53 +614,6 @@ void usage(char const* progname)
 }
 
 }} // Namespace detail::<unnamed>
-
-template <typename CharT, typename CharTraitsT>
-::std::basic_istream<CharT,CharTraitsT>& operator>>(::std::basic_istream<CharT,CharTraitsT>& is, dcs::testbed::virtual_machine_performance_category& cat)
-{
-	::std::string str;
-
-	is >> str;
-
-	if (!str.compare("cpu-util"))
-	{
-		cat = dcs::testbed::cpu_util_virtual_machine_performance;
-	}
-	else if (!str.compare("mem-util"))
-	{
-		cat = dcs::testbed::memory_util_virtual_machine_performance;
-	}
-	else
-	{
-		DCS_EXCEPTION_THROW(::std::invalid_argument,
-							"Cannot find a valid virtual machine performance category");
-	}
-
-	return is;
-}
-
-template <typename CharT, typename CharTraitsT>
-::std::basic_ostream<CharT,CharTraitsT>& operator>>(::std::basic_ostream<CharT,CharTraitsT>& os, dcs::testbed::virtual_machine_performance_category cat)
-{
-	::std::string str;
-
-	os >> str;
-
-	switch (cat)
-	{
-		case dcs::testbed::cpu_util_virtual_machine_performance:
-			os << "cpu-util";
-			break;
-		case dcs::testbed::memory_util_virtual_machine_performance:
-			os << "mem-util";
-			break;
-		default:
-			DCS_EXCEPTION_THROW(::std::invalid_argument,
-								"Cannot find a valid virtual machine performance category");
-	}
-
-	return os;
-}
 
 
 int main(int argc, char *argv[])

@@ -26,14 +26,6 @@
 #define DCS_TESTBED_WORKLOAD_CATEGORY_HPP
 
 
-#include <dcs/exception.hpp>
-#include <dcs/string/algorithm/to_lower.hpp>
-#include <iostream>
-#include <sstream>
-#include <stdexcept>
-#include <string>
-
-
 namespace dcs { namespace testbed {
 
 enum workload_category
@@ -45,5 +37,6 @@ enum workload_category
 };
 
 }} // Namespace dcs::testbed
+
 
 #endif // DCS_TESTBED_WORKLOAD_CATEGORY_HPP
