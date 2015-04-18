@@ -221,15 +221,21 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 	{
 		int ret;
 
-		// Get the RAM time used (in ns)
-		ret = ::virDomainGetInfo(p_dom_, &cur_node_info_);
-		if (-1 == ret)
-		{
-			::std::ostringstream oss;
-			oss << "Failed to get domain info: " << detail::last_error(p_conn_);
+		// Get the max RAM assignable
+		const unsigned long cfg_max_mem = detail::config_max_memory(p_conn_, p_dom_);
+		const unsigned long cur_max_mem = detail::max_memory(p_conn_, p_dom_);
 
-			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
-		}
+//XXX: moved below
+//		// Get the RAM used
+//		::virDomainInfo node_info;
+//		ret = ::virDomainGetInfo(p_dom_, &node_info);
+//		if (-1 == ret)
+//		{
+//			::std::ostringstream oss;
+//			oss << "Failed to get domain info: " << detail::last_error(p_conn_);
+//
+//			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+//		}
 
 		bool ok = true;
 
@@ -257,10 +263,11 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 				}
 			}
 
-			//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
-			//      So use the 'memory' field which should give a reasonable value.
-			//mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.maxMem));
-			mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.memory));
+			////NOTE: Currently, it seems that 'maxMem' field gives a too high value.
+			////      So use the 'memory' field which should give a reasonable value.
+			////mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.maxMem));
+			//mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.memory));
+			mem_util_ = static_cast<double>((cur_max_mem-mem_avail)/static_cast<long double>(cfg_max_mem));
 		}
 		else
 		{
@@ -358,23 +365,24 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 							mem_avail = mem_free+mem_cache;
 						}
 
-						long double mem_tot = 0;
-						if (root.isMember("MemTotal"))
-						{
-							std::istringstream iss;
-							iss.str(root.get("MemTotal", "").asString());
-							iss >> mem_tot;
-						}
-						else
-						{
-							mem_tot = static_cast<long double>(cur_node_info_.memory);
-						}
+						//long double mem_tot = 0;
+						//if (root.isMember("MemTotal"))
+						//{
+						//	std::istringstream iss;
+						//	iss.str(root.get("MemTotal", "").asString());
+						//	iss >> mem_tot;
+						//}
+						//else
+						//{
+						//	mem_tot = static_cast<long double>(node_info.memory);
+						//}
 
 						//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
 						//      So use the 'memory' field which should give a reasonable value.
-						//mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.maxMem));
-						//mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(cur_node_info_.memory));
-						mem_util_ = 1.0-static_cast<double>(mem_avail/mem_tot);
+						////mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(node_info.maxMem));
+						////mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.memory));
+						//mem_util_ = 1.0-static_cast<double>(mem_avail/mem_tot);
+						mem_util_ = static_cast<double>((cur_max_mem-mem_avail)/static_cast<long double>(cfg_max_mem));
 					}
 					else
 					{
@@ -394,20 +402,35 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 #else // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 			dcs::log_warn(DCS_LOGGING_AT, std::string("Unsupported precise domain memory stats: ") + detail::last_error(p_conn_));
 
-			// The most supported solution in libvirt is to use the following information:
-			// - memory: the memory used by the domain (in kB)
-			// - maxMem: the maximum memory allowed by the domain (in kB)
-			// However, note that 'memory' is a static value (i.e., the currently allocated memory) that doesn't reflect the amount of memory effectively used by the domain
-			//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
-			//      So use the 'memory' field which should give a reasonable value.
-			//mem_util_ = static_cast<double>(cur_node_info_.memory/static_cast<long double>(cur_node_info_.maxMem));
-			mem_util_ = static_cast<double>(cur_node_info_.memory/static_cast<long double>(cur_node_info_.maxMem));
+			//// The most supported solution in libvirt is to use the following information:
+			//// - memory: the memory used by the domain (in kB)
+			//// - maxMem: the maximum memory allowed by the domain (in kB)
+			//// However, note that 'memory' is a static value (i.e., the currently allocated memory) that doesn't reflect the amount of memory effectively used by the domain
+			//mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(node_info.maxMem));
+
+			ok = false;
 #endif // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 		}
 
 		if (!ok)
 		{
-			mem_util_ = static_cast<double>(cur_node_info_.memory/static_cast<long double>(cur_node_info_.maxMem));
+			// Get the RAM used
+			::virDomainInfo node_info;
+			ret = ::virDomainGetInfo(p_dom_, &node_info);
+			if (-1 == ret)
+			{
+				::std::ostringstream oss;
+				oss << "Failed to get domain info: " << detail::last_error(p_conn_);
+
+				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+			}
+
+			// The most supported solution in libvirt is to use the following information:
+			// - memory: the memory used by the domain (in kB)
+			// - maxMem: the maximum memory allowed by the domain (in kB)
+			// However, note that 'memory' is a static value (i.e., the currently allocated memory) that doesn't reflect the amount of memory effectively used by the domain
+			//mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(node_info.maxMem));
+			mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(cfg_max_mem));
 		}
 
 		if (first_)
@@ -445,8 +468,8 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 	private: ::virDomainPtr p_dom_;
 	private: real_type mem_util_;
 	private: bool first_;
-	private: ::virDomainInfo prev_node_info_;
-	private: ::virDomainInfo cur_node_info_;
+	//private: ::virDomainInfo prev_node_info_;
+	//private: ::virDomainInfo cur_node_info_;
 }; // memory_utilization_sensor
 
 }}} // Namespace dcs::testbed::libvirt
