@@ -8,7 +8,7 @@
  * References:
  * -# C. Anglano, M. Canonico and M. Guazzone,
  *    "FC2Q: Exploiting Fuzzy Control in Server Consolidation for Cloud Applications with SLA Constraints,"
- *    Future Generation Computer Systems, Submitted for publication, 2014.
+ *    Concurrency and Computation: Practice and Experience, Accepted for publication, 2014.
  * .
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
