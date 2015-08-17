@@ -691,7 +691,7 @@ void current_memory(virConnectPtr conn, virDomainPtr dom, unsigned long mem)
 unsigned long config_max_memory(virConnectPtr conn, virDomainPtr dom)
 {
 	unsigned long mem = ::virDomainGetMaxMemory(dom);
-	if (0 > mem)
+	if (0 == mem)
 	{
 		::std::ostringstream oss;
 		oss << "Failed to query the config max memory for domain \"" << ::virDomainGetName(dom) << "\": " << last_error(conn);
