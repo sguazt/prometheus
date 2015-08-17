@@ -92,6 +92,7 @@ enum signal_category
 	uniform_signal
 };
 
+const std::string default_cfg_file("config.yaml");
 const dcs::testbed::workload_category default_workload = dcs::testbed::olio_workload;
 const dcs::testbed::workload_generator_category default_workload_driver = dcs::testbed::rain_workload_generator;
 const ::std::string default_workload_driver_rain_path("/usr/local/opt/rain-workload-toolkit");
@@ -615,7 +616,7 @@ void usage(char const* progname)
 
 }} // Namespace detail::<unnamed>
 
-
+#if 1
 int main(int argc, char *argv[])
 {
 	namespace testbed = ::dcs::testbed;
@@ -1041,17 +1042,17 @@ int main(int argc, char *argv[])
 			 it != uri_end_it;
 			 ++it)
 		{
-			std::string const& uri(*it);
+			std::string const& uri = *it;
 
 			vmm_pointer p_vmm;
-			if (!vmm_map.count(uri) > 0)
+			if (vmm_map.count(uri) > 0)
 			{
-				p_vmm = boost::make_shared< testbed::libvirt::virtual_machine_manager<traits_type> >(uri);
-				vmm_map[uri] = p_vmm;
+				p_vmm = vmm_map.at(uri);
 			}
 			else
 			{
-				p_vmm = vmm_map.at(uri);
+				p_vmm = boost::make_shared< testbed::libvirt::virtual_machine_manager<traits_type> >(uri);
+				vmm_map[uri] = p_vmm;
 			}
 
 			vm_pointer p_vm(p_vmm->vm(uri));
@@ -1302,3 +1303,261 @@ int main(int argc, char *argv[])
 
 	return ret;
 }
+
+#else // if 0
+
+int main(int argc, char *argv[])
+{
+	namespace testbed = ::dcs::testbed;
+
+	typedef double real_type;
+	typedef unsigned int uint_type;
+	typedef testbed::traits<real_type,uint_type> traits_type;
+
+	bool opt_help = false;
+	std::vector<std::string> opt_vm_uris;
+	std::string opt_cfg_file;
+	std::string opt_out_dat_file;
+	std::string opt_str;
+	bool opt_verbose = false;
+
+
+	// Parse command line options
+	try
+	{
+		opt_help = dcs::cli::simple::get_option(argv, argv+argc, "--help");
+//		opt_data_estimator = dcs::cli::simple::get_option<detail::data_estimator_category>(argv, argv+argc, "--data-estimator", detail::default_data_estimator);
+//		opt_chen2000_ewma_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewma-quantile", detail::default_chen2000_ewma_quantile_prob);
+//		opt_chen2000_ewma_w = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewma-w", detail::default_chen2000_ewma_w);
+//		opt_chen2000_ewsa_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewsa-quantile", detail::default_chen2000_ewsa_quantile_prob);
+//		opt_chen2000_ewsa_w = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewsa-w", detail::default_chen2000_ewsa_w);
+//		opt_chen2000_sa_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_sa-quantile", detail::default_chen2000_sa_quantile_prob);
+//		opt_jain1985_p2_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--jain1985_p2-quantile", detail::default_jain1985_p2_quantile_prob);
+//		opt_welsh2003_ewma_alpha = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--welsh2003_ewma-alpha", detail::default_welsh2003_ewma_alpha);
+//		opt_welsh2003_ewma_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--welsh2003_ewma-quantile", detail::default_welsh2003_ewma_quantile_prob);
+//		opt_data_smoother = dcs::cli::simple::get_option<detail::data_smoother_category>(argv, argv+argc, "--data-smoother", detail::default_data_smoother);
+//		opt_brown_single_exponential_alpha = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--brown_ses-alpha", detail::default_brown_single_exponential_alpha);
+//		opt_brown_double_exponential_alpha = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--brown_des-alpha", detail::default_brown_double_exponential_alpha);
+//		opt_holt_winters_double_exponential_alpha = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--holt_winters_des-alpha", detail::default_holt_winters_double_exponential_alpha);
+//		opt_holt_winters_double_exponential_beta = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--holt_winters_des-beta", detail::default_holt_winters_double_exponential_beta);
+//		opt_holt_winters_double_exponential_delta = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--holt_winters_des-delta", detail::default_holt_winters_double_exponential_delta);
+		opt_cfg_file = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--config", detail::default_cfg_file);
+		opt_out_dat_file = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--out-dat-file", detail::default_out_dat_file);
+//		opt_rng_seed = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--rng-seed", detail::default_rng_seed);
+//		opt_sig = dcs::cli::simple::get_option<detail::signal_category>(argv, argv+argc, "--sig", detail::default_signal_category);
+//		opt_sig_common_up_bound = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-upper-bound", detail::default_signal_common_upper_bound);
+//		opt_sig_common_lo_bound = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-lower-bound", detail::default_signal_common_lower_bound);
+//		opt_sig_const_val = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-constant-val", detail::default_signal_const_val);
+//		opt_sig_sawtooth_low = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-sawtooth-low", detail::default_signal_sawtooth_low);
+//		opt_sig_sawtooth_high = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-sawtooth-high", detail::default_signal_sawtooth_high);
+//		opt_sig_sawtooth_incr = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-sawtooth-incr", detail::default_signal_sawtooth_incr);
+//		opt_sig_sine_ampl = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-sine-ampl", detail::default_signal_sine_amplitude);
+//		opt_sig_sine_freq = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--sig-sine-freq", detail::default_signal_sine_frequency);
+//		opt_sig_sine_phase = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--sig-sine-phase", detail::default_signal_sine_phase);
+//		opt_sig_sine_bias = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-sine-bias", detail::default_signal_sine_bias);
+//		opt_sig_sine_mesh_ampl = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-sine-mesh-ampl", detail::default_signal_sine_mesh_amplitude);
+//		opt_sig_sine_mesh_freq = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--sig-sine-mesh-freq", detail::default_signal_sine_mesh_frequency);
+//		opt_sig_sine_mesh_phase = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--sig-sine-mesh-phase", detail::default_signal_sine_mesh_phase);
+//		opt_sig_sine_mesh_bias = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-sine-mesh-bias", detail::default_signal_sine_mesh_bias);
+//		opt_sig_half_sine_ampl = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-half-sine-ampl", detail::default_signal_half_sine_amplitude);
+//		opt_sig_half_sine_freq = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--sig-half-sine-freq", detail::default_signal_half_sine_frequency);
+//		opt_sig_half_sine_phase = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--sig-half-sine-phase", detail::default_signal_half_sine_phase);
+//		opt_sig_half_sine_bias = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-half-sine-bias", detail::default_signal_half_sine_bias);
+//		opt_sig_half_sine_mesh_ampl = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-half-sine-mesh-ampl", detail::default_signal_half_sine_mesh_amplitude);
+//		opt_sig_half_sine_mesh_freq = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--sig-half-sine-mesh-freq", detail::default_signal_half_sine_mesh_frequency);
+//		opt_sig_half_sine_mesh_phase = dcs::cli::simple::get_option<uint_type>(argv, argv+argc, "--sig-half-sine-mesh-phase", detail::default_signal_half_sine_mesh_phase);
+//		opt_sig_half_sine_mesh_bias = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-half-sine-mesh-bias", detail::default_signal_half_sine_mesh_bias);
+//		opt_sig_square_low = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-square-low", detail::default_signal_square_low);
+//		opt_sig_square_high = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-square-high", detail::default_signal_square_high);
+//		opt_sig_unif_min = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-uniform-min", detail::default_signal_uniform_min);
+//		opt_sig_unif_max = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-uniform-max", detail::default_signal_uniform_max);
+//		opt_sig_gauss_mean = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-gaussian-mean", detail::default_signal_gaussian_mean);
+//		opt_sig_gauss_sd = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--sig-gaussian-sd", detail::default_signal_gaussian_sd);
+//		opt_tc = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--tc", detail::default_control_time);
+//		opt_ts = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--ts", detail::default_sampling_time);
+		opt_verbose = dcs::cli::simple::get_option(argv, argv+argc, "--verbose");
+//		opt_vm_perfs = dcs::cli::simple::get_options<testbed::virtual_machine_performance_category>(argv, argv+argc, "--vm-perf");
+//		if (opt_vm_perfs.size() == 0)
+//		{
+//			opt_vm_perfs.push_back(detail::default_vm_performance);
+//		}
+		opt_vm_uris = dcs::cli::simple::get_options<std::string>(argv, argv+argc, "--vm-uri");
+//		opt_wkl = dcs::cli::simple::get_option<testbed::workload_category>(argv, argv+argc, "--wkl", detail::default_workload);
+//		opt_wkl_driver = dcs::cli::simple::get_option<testbed::workload_generator_category>(argv, argv+argc, "--wkl-driver", detail::default_workload_driver);
+//		opt_wkl_driver_rain_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-rain-path", detail::default_workload_driver_rain_path);
+//		opt_wkl_driver_ycsb_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-ycsb-path", detail::default_workload_driver_ycsb_path);
+//		opt_wkl_ycsb_classpath = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-ycsb-classpath", detail::default_workload_ycsb_classpath);
+//		opt_wkl_ycsb_db_class = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-ycsb-db-class", detail::default_workload_ycsb_db_class);
+//		opt_wkl_ycsb_prop_paths = dcs::cli::simple::get_options<std::string>(argv, argv+argc, "--wkl-ycsb-prop-path", detail::default_workload_ycsb_prop_path);
+//		opt_str = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--slo-metric", detail::default_slo_metric_str);
+//		opt_slo_metric = detail::make_slo_metric(opt_str);
+	}
+	catch (std::exception const& e)
+	{
+		std::ostringstream oss;
+		oss << "Error while parsing command-line options: " << e.what();
+		dcs::log_error(DCS_LOGGING_AT, oss.str());
+
+		detail::usage(argv[0]);
+		std::abort();
+		return EXIT_FAILURE;
+	}
+
+	if (opt_help)
+	{
+		detail::usage(argv[0]);
+		return EXIT_SUCCESS;
+	}
+
+	int ret = 0;
+
+	if (opt_verbose)
+	{
+		std::ostringstream oss;
+
+		for (std::size_t i = 0; i < opt_vm_uris.size(); ++i)
+		{
+			if (i > 0)
+			{
+				oss << ", ";
+			}
+			oss << "VM URI: " << opt_vm_uris[i];
+		}
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Config file: " << opt_cfg_file;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Output data file: " << opt_out_dat_file;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "Verbose output: " << std::boolalpha << opt_verbose;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+	}
+
+	typedef testbed::base_virtual_machine<traits_type> vm_type;
+	typedef boost::shared_ptr<vm_type> vm_pointer;
+	typedef testbed::base_virtual_machine_manager<traits_type> vmm_type;
+	typedef boost::shared_ptr<vmm_type> vmm_pointer;
+	typedef vmm_type::identifier_type vmm_identifier_type;
+    typedef testbed::base_application<traits_type> app_type;
+    typedef boost::shared_ptr<app_type> app_pointer;
+	typedef testbed::base_application_manager<traits_type> app_manager_type;
+	typedef boost::shared_ptr<app_manager_type> app_manager_pointer;
+	typedef testbed::base_workload_driver<traits_type> app_driver_type;
+	typedef boost::shared_ptr<app_driver_type> app_driver_pointer;
+	typedef boost::random::mt19937 random_generator_type;
+
+	try
+	{
+		const std::size_t nt = opt_vm_uris.size(); // Number of tiers
+
+		sysid_configuration<traits_type> config(opt_cfg_file, nt);
+
+		testbed::system_experiment<traits_type> sys_exp;
+
+		// Setup application experiment
+		//  - Setup application (and VMs)
+		std::map<vmm_identifier_type,vmm_pointer> vmm_map;
+		std::vector<vm_pointer> vms;
+		const std::vector<std::string>::const_iterator uri_end_it = opt_vm_uris.end();
+		for (std::vector<std::string>::const_iterator it = opt_vm_uris.begin();
+			 it != uri_end_it;
+			 ++it)
+		{
+			std::string const& uri = *it;
+
+			vmm_pointer p_vmm;
+			if (vmm_map.count(uri) > 0)
+			{
+				p_vmm = vmm_map.at(uri);
+			}
+			else
+			{
+				p_vmm = boost::make_shared< testbed::libvirt::virtual_machine_manager<traits_type> >(uri);
+				vmm_map[uri] = p_vmm;
+			}
+
+			vm_pointer p_vm = p_vmm->vm(uri);
+
+			// check: p_vm != null
+			DCS_DEBUG_ASSERT( p_vm );
+
+			vms.push_back(p_vm);
+		}
+		app_pointer p_app = boost::make_shared< testbed::application<traits_type> >(vms.begin(), vms.end());
+
+		const std::vector< testbed::conf::sys_output<traits_type> > sys_outputs = config.outputs();
+		if (sys_outputs.size() > 1)
+		{
+			DCS_EXCEPTION_THROW(std::runtime_error, "Multiple output not yet managed");
+		}
+		for (std::size_t i = 0; i < sys_outputs.size(); ++i)
+		{
+			const testbed::application_performance_category app_perf_cat = sys_outputs[i].application_performance;
+
+			// - Setup workload driver
+			p_app->register_sensor(app_perf_cat, sys_outputs[i].p_wkl_gen->sensor(app_perf_cat));
+			sys_outputs[i].p_wkl_gen->app(p_app);
+
+			// - Setup system identifier
+			boost::shared_ptr< testbed::sysid_application_manager<traits_type> > p_sysid_mgr(new testbed::sysid_application_manager<traits_type>());
+			const std::vector< testbed::conf::sys_input<traits_type> > sys_inputs = config.inputs();
+			for (std::size_t i = 0; i < sys_inputs.size(); ++i)
+			{
+				p_sysid_mgr->signal_generator(sys_inputs[i].vm_performance, sys_inputs[i].p_sig_gen);
+			}
+			p_sysid_mgr->export_data_to(config.output_data_file);
+			p_sysid_mgr->output_extended_format(true);
+			p_sysid_mgr->target_value(opt_slo_metric, std::numeric_limits<real_type>::quiet_NaN()); // SLO value not used
+			p_sysid_mgr->data_estimator(opt_slo_metric, p_estimator);
+			p_sysid_mgr->data_smoother(opt_slo_metric, p_smoother);
+			for (::std::size_t i = 0; i < vms.size(); ++i)
+			{
+				const vm_pointer p_vm = vms[i];
+
+				for (std::size_t k = 0; k < opt_vm_perfs.size(); ++k)
+				{
+					const testbed::virtual_machine_performance_category cat = opt_vm_perfs[k];
+
+					p_mgr->data_estimator(cat, p_vm->id(), boost::make_shared< testbed::mean_estimator<real_type> >());
+					p_mgr->data_smoother(cat, p_vm->id(), boost::make_shared< testbed::dummy_smoother<real_type> >());
+				}
+			}
+			p_mgr->sampling_time(opt_ts);
+			p_mgr->control_time(opt_tc);
+			p_mgr->app(p_app);
+
+			// Add to main experiment
+			boost::shared_ptr< testbed::application_experiment<traits_type> > p_app_exp;
+			p_app_exp = boost::make_shared< testbed::application_experiment<traits_type> >(p_app, p_drv, p_mgr);
+			//p_app_exp->restore_state(!opt_no_restore_vms);
+			sys_exp.add_app_experiment(p_app_exp);
+		}
+
+		// Set experiment trackers
+		testbed::utility::experiment_stats_gatherer<traits_type> exp_stats;
+		exp_stats.track(sys_exp);
+
+		// Run!
+		sys_exp.run();
+	}
+	catch (std::exception const& e)
+	{
+		ret = 1;
+		dcs::log_error(DCS_LOGGING_AT, e.what());
+	}
+	catch (...)
+	{
+		ret = 1;
+		dcs::log_error(DCS_LOGGING_AT, "Unknown error");
+	}
+
+	return ret;
+}
+
+#endif // if 0
