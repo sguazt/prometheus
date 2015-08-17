@@ -824,14 +824,14 @@ int main(int argc, char *argv[])
 			std::string const& uri(*it);
 
 			vmm_pointer p_vmm;
-			if (!vmm_map.count(uri) > 0)
+			if (vmm_map.count(uri) > 0)
 			{
-				p_vmm = boost::make_shared< testbed::libvirt::virtual_machine_manager<traits_type> >(uri);
-				vmm_map[uri] = p_vmm;
+				p_vmm = vmm_map.at(uri);
 			}
 			else
 			{
-				p_vmm = vmm_map.at(uri);
+				p_vmm = boost::make_shared< testbed::libvirt::virtual_machine_manager<traits_type> >(uri);
+				vmm_map[uri] = p_vmm;
 			}
 
 			vm_pointer p_vm(p_vmm->vm(uri));
