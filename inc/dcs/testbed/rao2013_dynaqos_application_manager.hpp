@@ -164,7 +164,7 @@ class rao2013_dynaqos_application_manager: public base_application_manager<Trait
 		p_ov->fuzzyOutput()->setAccumulation(new ::fl::AlgebraicSum());
 		p_ov->setDefuzzifier(new ::fl::Centroid());
 		p_ov->setDefaultValue(::fl::nan);
-		p_ov->setLockPreviousOutputValue(false);
+		p_ov->setLockPreviousValue(false);
 		p_ov->addTerm(new ::fl::Ramp("NL", -two_third, -1));
 		p_ov->addTerm(new ::fl::Triangle("NM", -1, -two_third, -one_third));
 		p_ov->addTerm(new ::fl::Triangle("NS", -two_third, -one_third, 0));
@@ -178,7 +178,7 @@ class rao2013_dynaqos_application_manager: public base_application_manager<Trait
 		p_rules->setEnabled(true);
 		p_rules->setConjunction(new ::fl::Minimum());
 		p_rules->setDisjunction(new ::fl::Maximum());
-		p_rules->setActivation(new ::fl::AlgebraicProduct());
+		p_rules->setImplication(new ::fl::AlgebraicProduct());
 		p_rules->addRule(::fl::Rule::parse("if " + e_fuzzy_var_name + " is NL and " + de_fuzzy_var_name + " is NL then " + du_fuzzy_var_name + " is PL", p_rc_fuzzy_eng_.get()));
 		p_rules->addRule(::fl::Rule::parse("if " + e_fuzzy_var_name + " is NL and " + de_fuzzy_var_name + " is NM then " + du_fuzzy_var_name + " is PL", p_rc_fuzzy_eng_.get()));
 		p_rules->addRule(::fl::Rule::parse("if " + e_fuzzy_var_name + " is NL and " + de_fuzzy_var_name + " is NS then " + du_fuzzy_var_name + " is PL", p_rc_fuzzy_eng_.get()));
@@ -264,7 +264,7 @@ class rao2013_dynaqos_application_manager: public base_application_manager<Trait
 		p_ov->fuzzyOutput()->setAccumulation(new ::fl::AlgebraicSum());
 		p_ov->setDefuzzifier(new ::fl::Centroid());
 		p_ov->setDefaultValue(::fl::nan);
-		p_ov->setLockPreviousOutputValue(false);
+		p_ov->setLockPreviousValue(false);
 		p_ov->addTerm(new ::fl::Ramp("ZE", 0, two_third));
 		p_ov->addTerm(new ::fl::Triangle("VS", 0, one_sixth, one_third));
 		p_ov->addTerm(new ::fl::Triangle("SM", one_sixth, one_third, 0.5));
@@ -278,7 +278,7 @@ class rao2013_dynaqos_application_manager: public base_application_manager<Trait
 		p_rules->setEnabled(true);
 		p_rules->setConjunction(new ::fl::Minimum());
 		p_rules->setDisjunction(new ::fl::Maximum());
-		p_rules->setActivation(new ::fl::AlgebraicProduct());
+		p_rules->setImplication(new ::fl::AlgebraicProduct());
 		p_rules->addRule(::fl::Rule::parse("if " + e_fuzzy_var_name + " is NL and " + de_fuzzy_var_name + " is NL then " + alpha_fuzzy_var_name + " is VL", p_sfc_fuzzy_eng_.get()));
 		p_rules->addRule(::fl::Rule::parse("if " + e_fuzzy_var_name + " is NL and " + de_fuzzy_var_name + " is NM then " + alpha_fuzzy_var_name + " is VL", p_sfc_fuzzy_eng_.get()));
 		p_rules->addRule(::fl::Rule::parse("if " + e_fuzzy_var_name + " is NL and " + de_fuzzy_var_name + " is NS then " + alpha_fuzzy_var_name + " is VL", p_sfc_fuzzy_eng_.get()));

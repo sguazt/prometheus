@@ -149,7 +149,7 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 		p_ov->fuzzyOutput()->setAccumulation(new fl::AlgebraicSum());
 		p_ov->setDefuzzifier(new fl::Centroid());
 		p_ov->setDefaultValue(fl::nan);
-		p_ov->setPreviousOutputValue(false);
+		p_ov->setPreviousValue(false);
 		p_ov->addTerm(new fl::Triangle("BDW", -1.00, -0.55, -0.10));
 		p_ov->addTerm(new fl::Triangle("DWN", -0.20, -0.125, -0.05));
 		p_ov->addTerm(new fl::Triangle("STY", -0.10, 0.0, 0.10));
@@ -161,7 +161,7 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 		p_rules->setEnabled(true);
 		p_rules->setConjunction(new fl::Minimum());
 		p_rules->setDisjunction(new fl::Maximum());
-		p_rules->setActivation(new fl::AlgebraicProduct());
+		p_rules->setImplication(new fl::AlgebraicProduct());
 		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is LOW and " + rgain_fuzzy_var_name + " is LOW then " + deltac_fuzzy_var_name + " is BUP", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is LOW and " + rgain_fuzzy_var_name + " is FINE then " + deltac_fuzzy_var_name + " is UP", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is LOW and " + rgain_fuzzy_var_name + " is HIGH then " + deltac_fuzzy_var_name + " is UP", p_fuzzy_eng_.get()));
