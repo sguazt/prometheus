@@ -62,9 +62,15 @@ class base_smoother
 		this->do_reset();
 	}
 
+	public: bool ready() const
+	{
+		return this->do_ready();
+	}
+
 	private: virtual value_type do_smooth(data_container const& data) = 0; 
 	private: virtual value_type do_forecast(unsigned int t) const = 0;
 	private: virtual void do_reset() = 0;
+	private: virtual bool do_ready() const = 0;
 };
 
 template <typename ValueT>
@@ -97,6 +103,11 @@ class dummy_smoother: public base_smoother<ValueT>
 	private: void do_reset()
 	{
 		v_ = ::std::numeric_limits<value_type>::quiet_NaN();
+	}
+
+	private: bool do_ready() const
+	{
+		return true;
 	}
 
 	private: value_type v_;
@@ -161,6 +172,11 @@ class brown_single_exponential_smoother: public base_smoother<ValueT>
 	{
 		init_ = true;
 		s_ = 0;
+	}
+
+	private: bool do_ready() const
+	{
+		return !init_;
 	}
 
 
@@ -237,6 +253,11 @@ class holt_winters_double_exponential_smoother: public base_smoother<ValueT>
 		s_ = b_ = 0;
 	}
 
+	private: bool do_ready() const
+	{
+		return !(init_s_ && init_b_);
+	}
+
 
 	private: double alpha_;
 	private: double beta_;
@@ -300,6 +321,11 @@ class brown_double_exponential_smoother: public base_smoother<ValueT>
 	{
 		init_s_ = true;
 		s1_ = s2_ = a_ = b_ = 0;
+	}
+
+	private: bool do_ready() const
+	{
+		return !init_s_;
 	}
 
 
