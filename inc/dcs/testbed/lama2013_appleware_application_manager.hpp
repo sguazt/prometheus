@@ -1079,9 +1079,9 @@ std::cerr << "C : " << C << std::endl;//XXX
         //FIXME: should we scale the output vector and the reference output vector so that the control input is computed wrt to relative error instead of absolute error?
 
 #ifdef DCS_TESTBED_USE_MATLAB_LINEAR_MPC
-        *p_mpc_ctrl_ = dcs::control::linear_mpc_controller<real_type>(Wy,
-#else
         *p_mpc_ctrl_ = dcs::control::matlab_linear_mpc_controller<real_type>(Wy,
+#else
+        *p_mpc_ctrl_ = dcs::control::linear_mpc_controller<real_type>(Wy,
 #endif // DCS_TESTBED_USE_MATLAB_LINEAR_MPC
                                                                     Wdu,
                                                                     ymin,
