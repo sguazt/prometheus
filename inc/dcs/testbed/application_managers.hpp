@@ -35,6 +35,8 @@
 #include <dcs/testbed/anglano2014_fc2q_mimo_application_manager.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
 #include <dcs/testbed/dummy_application_manager.hpp>
+#include <dcs/testbed/guazzone2015_anfis_ssmpc_application_manager.hpp>
+#include <dcs/testbed/lama2013_appleware_application_manager.hpp>
 #include <dcs/testbed/lq_application_manager.hpp>
 #include <dcs/testbed/padala2009_autocontrol_application_manager.hpp>
 #include <dcs/testbed/rao2013_dynaqos_application_manager.hpp>

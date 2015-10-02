@@ -590,6 +590,8 @@ void usage(char const* progname)
 				<< "   Possible values are:" << std::endl
 				<< "   -'cassandra'," << std::endl
 				<< "   - 'olio'," << std::endl
+				<< "   - 'redis'." << ::std::endl
+				<< "   - 'rubbos'." << ::std::endl
 				<< "   - 'rubis'." << ::std::endl
 				<< "   [default: '" << default_workload << "']." << ::std::endl
 				<< " --wkl-driver <name>" << ::std::endl

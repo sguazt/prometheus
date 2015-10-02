@@ -33,6 +33,7 @@ enum workload_category
 	cassandra_workload, ///< Workload for the Apache Cassandra project
 	olio_workload, ///< Workload for the Apache Olio project
 	redis_workload, ///< Workload for the Redis project
+	rubbos_workload, ///< Workload for the RUBBoS project
 	rubis_workload ///< Workload for the RUBiS project
 };
 

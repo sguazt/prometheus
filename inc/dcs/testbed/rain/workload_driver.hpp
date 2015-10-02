@@ -110,6 +110,9 @@ inline
 		case redis_workload:
 			workload = "redis";
 			break;
+		case rubbos_workload:
+			workload = "rubbos";
+			break;
 		case rubis_workload:
 			workload = "rubis";
 			break;
@@ -158,6 +161,9 @@ inline
 			break;
 		case redis_workload:
 			workload = "redis";
+			break;
+		case rubbos_workload:
+			workload = "rubbos";
 			break;
 		case rubis_workload:
 			workload = "rubis";

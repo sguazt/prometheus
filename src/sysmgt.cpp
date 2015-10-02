@@ -212,6 +212,8 @@ enum app_manager_category
 	anglano2014_fc2q_app_manager,
 	anglano2014_fc2q_mimo_app_manager,
 	dummy_app_manager,
+	guazzone2015_anfis_ssmpc_app_manager,
+	lama2013_appleware_app_manager,
 	padala2009_autocontrol_app_manager,
 	rao2013_dynaqos_app_manager
 };
@@ -422,6 +424,14 @@ inline
 	{
 		cat = dummy_app_manager;
 	}
+	else if (!s.compare("guazzone2015_anfis_ssmpc"))
+	{
+		cat = guazzone2015_anfis_ssmpc_app_manager;
+	}
+	else if (!s.compare("lama2013_appleware"))
+	{
+		cat = lama2013_appleware_app_manager;
+	}
 	else if (!s.compare("padala2009_autocontrol"))
 	{
 		cat = padala2009_autocontrol_app_manager;
@@ -569,7 +579,7 @@ void usage(char const* progname)
 				<< "   The VM URI to connect." << ::std::endl
 				<< "   Repeat this option as many times as is the number of your VMs." << ::std::endl
 				<< " --wkl <name>" << ::std::endl
-				<< "   The workload to generate. Possible values are: 'cassandra', 'olio', 'rubis'." << ::std::endl
+				<< "   The workload to generate. Possible values are: 'cassandra', 'olio', 'redis', 'rubbos', 'rubis'." << ::std::endl
 				<< "   [default: '" << default_workload << "']." << ::std::endl
 				<< " --wkl-driver <name>" << ::std::endl
 				<< "   The workload driver to use. Possible values are: 'rain', 'ycsb'." << ::std::endl
@@ -1147,6 +1157,31 @@ int main(int argc, char *argv[])
 					}
 
 					p_mgr = boost::make_shared< testbed::dummy_application_manager<traits_type> >(dummy_mgr);
+				}
+				break;
+			case detail::guazzone2015_anfis_ssmpc_app_manager:
+				{
+					const real_type beta = 0.9;
+
+					testbed::guazzone2015_anfis_ssmpc_application_manager<traits_type> guazzone2015_anfis_ssmpc_mgr;
+					guazzone2015_anfis_ssmpc_mgr.smoothing_factor(beta);
+					if (!opt_app_manager_stats_file.empty())
+					{
+						guazzone2015_anfis_ssmpc_mgr.export_data_to(opt_app_manager_stats_file);
+					}
+
+					p_mgr = boost::make_shared< testbed::guazzone2015_anfis_ssmpc_application_manager<traits_type> >(guazzone2015_anfis_ssmpc_mgr);
+				}
+				break;
+			case detail::lama2013_appleware_app_manager:
+				{
+					testbed::lama2013_appleware_application_manager<traits_type> lama2013_appleware_mgr;
+					if (!opt_app_manager_stats_file.empty())
+					{
+						lama2013_appleware_mgr.export_data_to(opt_app_manager_stats_file);
+					}
+
+					p_mgr = boost::make_shared< testbed::lama2013_appleware_application_manager<traits_type> >(lama2013_appleware_mgr);
 				}
 				break;
 			case detail::padala2009_autocontrol_app_manager:

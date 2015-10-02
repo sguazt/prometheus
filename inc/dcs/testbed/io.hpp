@@ -143,6 +143,10 @@ std::basic_istream<CharT,CharTraitsT>& operator>>(std::basic_istream<CharT,CharT
 	{
 		wkl_cat = redis_workload;
 	}
+	else if (!s.compare("rubbos"))
+	{
+		wkl_cat = rubbos_workload;
+	}
 	else if (!s.compare("rubis"))
 	{
 		wkl_cat = rubis_workload;
@@ -168,6 +172,9 @@ template <typename CharT, typename CharTraitsT>
 			break;
 		case redis_workload:
 			os << "redis";
+			break;
+		case rubbos_workload:
+			os << "rubbos";
 			break;
 		case rubis_workload:
 			os << "rubis";

@@ -206,7 +206,7 @@ class base_arx_system_identification_strategy
 		size_type nyna(this->num_outputs()*this->output_order());
 		size_type nd((this->input_delay()-1)*this->num_inputs());
 
-		vector_type delayed_phi(np-nd);
+		vector_type delayed_phi(np-nd, 0);
 		ublas::subrange(delayed_phi, 0, nyna) = ublas::subrange(phi, 0, nyna);
 		ublas::subrange(delayed_phi, nyna, np-nd) = ublas::subrange(phi, nyna+nd, np);
 
@@ -715,7 +715,7 @@ class rls_ff_arx_miso_proxy: public rls_arx_system_identification_strategy<Trait
 		const size_type nay(na*ny);
 		const size_type nbu(this->input_order()*this->num_inputs());
 		const size_type n(nay+nbu);
-		vector_type x(n);
+		vector_type x(n, 0);
 
 		for (size_type i = 0; i < ny; ++i)
 		{
@@ -808,7 +808,7 @@ DCS_DEBUG_TRACE("u(k): " << u);//XXX
 //::std::cerr << "BEGIN estimation" << ::std::endl;//XXX
 //::std::cerr << "y(k): " << y << ::std::endl;//XXX
 //::std::cerr << "u(k): " << u << ::std::endl;//XXX
-		vector_type y_hat(ny);
+		vector_type y_hat(ny, 0);
 		for (size_type i = 0; i < ny; ++i)
 		{
 DCS_DEBUG_TRACE("theta_hat["<< i << "](k): " << theta_hats_[i]);//XXX
@@ -926,7 +926,7 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 		//   y_k <- -[\phi(k-1)]
 
 		size_type ny(this->num_outputs());
-		vector_type yk(ny);
+		vector_type yk(ny, 0);
 
 		for (size_type i = 0; i < ny; ++i)
 		{
@@ -1058,7 +1058,7 @@ class rls_park1991_arx_miso_proxy: public rls_arx_system_identification_strategy
 		const size_type nay(na*ny);
 		const size_type nbu(nb*nu);
 		const size_type n(nay+nbu);
-		matrix_type X(n, ny, real_type/*zero()*/());
+		matrix_type X(n, ny, 0);
 
 		for (size_type i = 0; i < ny; ++i)
 		{
@@ -1240,7 +1240,7 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 		//                     b_{in_u}^{n_b}]
 		// So in \hat{\theta}_i the ith diagonal element of matrix A_k stays at:
 		//   A_k(i,i) <- \hat{\theta}_i(k)
-		matrix_type A_k(ny, ny, real_type/*zero*/());
+		matrix_type A_k(ny, ny, 0);
 		for (size_type i = 0; i < ny; ++i)
 		{
 			A_k(i,i) = theta_hats_[i](k-1);
@@ -1272,7 +1272,7 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 		//                     b_{in_u}^{n_b}]
 		// So in \hat{\theta}_i the ith row of matrix B_k stays at:
 		//   B_k(i,:) <- (\hat{\theta}_i(((n_a+k):n_b:n_u))^T
-		matrix_type B_k(ny, nu);
+		matrix_type B_k(ny, nu, 0);
 		for (size_type i = 0; i < ny; ++i)
 		{
 			ublas::row(B_k, i) = ublas::subslice(theta_hats_[i], na+k-1, nb, nu);
@@ -1408,7 +1408,7 @@ class rls_kulhavy1984_arx_miso_proxy: public rls_arx_system_identification_strat
 		const size_type nay(na*ny);
 		const size_type nbu(nb*nu);
 		const size_type n(nay+nbu);
-		matrix_type X(n, ny, real_type/*zero()*/());
+		matrix_type X(n, ny, 0);
 
 		for (size_type i = 0; i < ny; ++i)
 		{
@@ -1576,7 +1576,7 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 		//                     b_{in_u}^{n_b}]
 		// So in \hat{\theta}_i the ith diagonal element of matrix A_k stays at:
 		//   A_k(i,i) <- \hat{\theta}_i(k)
-		matrix_type A_k(ny, ny, real_type/*zero*/());
+		matrix_type A_k(ny, ny, 0);
 		for (size_type i = 0; i < ny; ++i)
 		{
 			A_k(i,i) = theta_hats_[i](k-1);
@@ -1608,7 +1608,7 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 		//                     b_{in_u}^{n_b}]
 		// So in \hat{\theta}_i the ith row of matrix B_k stays at:
 		//   B_k(i,:) <- (\hat{\theta}_i(((n_a+k):n_b:n_u))^T
-		matrix_type B_k(ny, nu);
+		matrix_type B_k(ny, nu, 0);
 		for (size_type i = 0; i < ny; ++i)
 		{
 			ublas::row(B_k, i) = ublas::subslice(theta_hats_[i], na+k-1, nb, nu);
@@ -1751,7 +1751,7 @@ class rls_bittanti1990_arx_miso_proxy: public rls_arx_system_identification_stra
 		const size_type nay(na*ny);
 		const size_type nbu(nb*nu);
 		const size_type n(nay+nbu);
-		matrix_type X(n, ny, real_type/*zero()*/());
+		matrix_type X(n, ny, 0);
 
 		for (size_type i = 0; i < ny; ++i)
 		{
@@ -1920,7 +1920,7 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 		//                     b_{in_u}^{n_b}]
 		// So in \hat{\theta}_i the ith diagonal element of matrix A_k stays at:
 		//   A_k(i,i) <- \hat{\theta}_i(k)
-		matrix_type A_k(ny, ny, real_type/*zero*/());
+		matrix_type A_k(ny, ny, 0);
 		for (size_type i = 0; i < ny; ++i)
 		{
 			A_k(i,i) = theta_hats_[i](k-1);
@@ -1952,7 +1952,7 @@ DCS_DEBUG_TRACE("END estimation");//XXX
 		//                     b_{in_u}^{n_b}]
 		// So in \hat{\theta}_i the ith row of matrix B_k stays at:
 		//   B_k(i,:) <- (\hat{\theta}_i(((n_a+k):n_b:n_u))^T
-		matrix_type B_k(ny, nu);
+		matrix_type B_k(ny, nu, 0);
 		for (size_type i = 0; i < ny; ++i)
 		{
 			ublas::row(B_k, i) = ublas::subslice(theta_hats_[i], na+k-1, nb, nu);
