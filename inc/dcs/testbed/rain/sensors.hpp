@@ -390,7 +390,7 @@ class throughput_sensor: public base_sensor<TraitsT>
 			}
 			else
 			{
-				obs_.push_back(observation_type(obs_ts, obs_op, num_obs/static_cast<double>(obs_ts-first_obs_ts)));
+				obs_.push_back(observation_type(obs_ts, obs_op, num_obs/((obs_ts-first_obs_ts)*1e-3)));
 			}
 		}
 
