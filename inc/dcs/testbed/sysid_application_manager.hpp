@@ -260,7 +260,12 @@ class sysid_application_manager: public base_application_manager<TraitsT>
 			}
 
 			// Write last part of header to output file
-			*p_dat_ofs_ << ",\"Operation Time\",\"Operation Name\",\"Performance Index\",\"# Controls\",\"# Control Skips\",\"# Control Fails\",\"Entry Type\"" << ::std::endl;
+			*p_dat_ofs_ << ",\"Operation Time\",\"Operation Name\",\"Performance Index\",\"# Controls\",\"# Control Skips\",\"# Control Fails\"";
+			if (out_ext_fmt_)
+			{
+				*p_dat_ofs_ << ",\"Entry Type\"";
+			}
+			*p_dat_ofs_ << ::std::endl;
 		}
 	}
 

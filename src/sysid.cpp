@@ -1258,7 +1258,7 @@ int main(int argc, char *argv[])
 			sysid_mgr.signal_generator(it->first, it->second);
 		}
 		sysid_mgr.export_data_to(opt_out_dat_file);
-		sysid_mgr.output_extended_format(true);
+		//sysid_mgr.output_extended_format(true);
 		p_mgr = boost::make_shared< testbed::sysid_application_manager<traits_type> >(sysid_mgr);
 		p_mgr->target_value(opt_slo_metric, std::numeric_limits<real_type>::quiet_NaN()); // SLO value not used
 		p_mgr->data_estimator(opt_slo_metric, p_estimator);
@@ -1514,7 +1514,7 @@ int main(int argc, char *argv[])
 				p_sysid_mgr->signal_generator(sys_inputs[i].vm_performance, sys_inputs[i].p_sig_gen);
 			}
 			p_sysid_mgr->export_data_to(config.output_data_file);
-			p_sysid_mgr->output_extended_format(true);
+			//p_sysid_mgr->output_extended_format(true);
 			p_sysid_mgr->target_value(opt_slo_metric, std::numeric_limits<real_type>::quiet_NaN()); // SLO value not used
 			p_sysid_mgr->data_estimator(opt_slo_metric, p_estimator);
 			p_sysid_mgr->data_smoother(opt_slo_metric, p_smoother);
