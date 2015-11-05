@@ -199,10 +199,10 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 		in_sensors_.clear();
 		for (::std::size_t i = 0; i < nvms; ++i)
 		{
-			const virtual_machine_performance_category cat = cpu_util_virtual_machine_performance;
 			vm_pointer p_vm = vms[i];
 
-			in_sensors_[cat][p_vm->id()] = p_vm->sensor(cat);
+			in_sensors_[cpu_util_virtual_machine_performance][p_vm->id()] = p_vm->sensor(cpu_util_virtual_machine_performance);
+			in_sensors_[memory_util_virtual_machine_performance][p_vm->id()] = p_vm->sensor(memory_util_virtual_machine_performance);
 		}
 
 		// Reset counters
@@ -221,6 +221,7 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 			//this->data_estimator(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::mean_estimator<real_type> >());
 			this->data_smoother(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
 			//this->data_smoother(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::holt_winters_double_exponential_smoother<real_type> >(beta_));
+			this->data_smoother(memory_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
 		}
 
 		// Reset output data file
@@ -252,7 +253,7 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 			}
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
-				*p_dat_ofs_ << ",\"Util_{" << vms[i]->id() << "}(k-1)\"";
+				*p_dat_ofs_ << ",\"CPUUtil_{" << vms[i]->id() << "}(k-1)\",\"MemUtil_{" << vms[i]->id() << "}(k-1)\"";
 			}
 			for (target_iterator tgt_it = this->target_values().begin(),
 							 	 tgt_end_it = this->target_values().end();
@@ -597,7 +598,8 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 				{
 					*p_dat_ofs_ << ",";
 				}
-				*p_dat_ofs_ << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0);
+				*p_dat_ofs_ << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0)
+							<< "," << this->data_smoother(memory_util_virtual_machine_performance, p_vm->id()).forecast(0);
 			}
 			*p_dat_ofs_ << ",";
 			for (target_iterator tgt_it = this->target_values().begin(),
