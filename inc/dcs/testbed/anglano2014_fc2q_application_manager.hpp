@@ -185,8 +185,8 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 
 		// Reset output sensors
 		out_sensors_.clear();
-		const target_iterator tgt_end_it = this->target_values().end();
-		for (target_iterator tgt_it = this->target_values().begin();
+		for (target_iterator tgt_it = this->target_values().begin(),
+							 tgt_end_it = this->target_values().end();
 			 tgt_it != tgt_end_it;
 			 ++tgt_it)
 		{
@@ -254,7 +254,8 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 			{
 				*p_dat_ofs_ << ",\"Util_{" << vms[i]->id() << "}(k-1)\"";
 			}
-			for (target_iterator tgt_it = this->target_values().begin();
+			for (target_iterator tgt_it = this->target_values().begin(),
+							 	 tgt_end_it = this->target_values().end();
 				 tgt_it != tgt_end_it;
 				 ++tgt_it)
 			{
@@ -404,8 +405,8 @@ DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " -
 
 		if (!skip_ctl)
 		{
-			const target_iterator tgt_end_it = this->target_values().end();
-			for (target_iterator tgt_it = this->target_values().begin();
+			for (target_iterator tgt_it = this->target_values().begin(),
+							 	 tgt_end_it = this->target_values().end();
 				 tgt_it != tgt_end_it;
 				 ++tgt_it)
 			{
@@ -548,6 +549,18 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 			{
 				cress.assign(nvms, std::numeric_limits<real_type>::quiet_NaN());
 			}
+			if (rgains.size() == 0)
+			{
+				for (target_iterator tgt_it = this->target_values().begin(),
+									 tgt_end_it = this->target_values().end();
+				tgt_it != tgt_end_it;
+				++tgt_it)
+				{
+					const application_performance_category cat = tgt_it->first;
+
+					rgains[cat] = std::numeric_limits<real_type>::quiet_NaN();
+				}
+			}
 
 			*p_dat_ofs_ << ::std::time(0) << ",";
 			for (::std::size_t i = 0; i < nvms; ++i)
@@ -587,10 +600,10 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 				*p_dat_ofs_ << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0);
 			}
 			*p_dat_ofs_ << ",";
-			const target_iterator tgt_end_it = this->target_values().end();
-			for (target_iterator tgt_it = this->target_values().begin();
-			tgt_it != tgt_end_it;
-			++tgt_it)
+			for (target_iterator tgt_it = this->target_values().begin(),
+								 tgt_end_it = this->target_values().end();
+				 tgt_it != tgt_end_it;
+				 ++tgt_it)
 			{
 				const application_performance_category cat = tgt_it->first;
 

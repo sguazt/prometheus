@@ -226,8 +226,8 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 
 		// Reset output sensors
 		out_sensors_.clear();
-		const target_iterator tgt_end_it = this->target_values().end();
-		for (target_iterator tgt_it = this->target_values().begin();
+		for (target_iterator tgt_it = this->target_values().begin(),
+							 tgt_end_it = this->target_values().end();
 			 tgt_it != tgt_end_it;
 			 ++tgt_it)
 		{
@@ -305,7 +305,8 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 				*p_dat_ofs_ << ",\"CPUUtil_{" << vms[i]->id() << "}(k-1)\""
 							<< ",\"MemUtil_{" << vms[i]->id() << "}(k-1)\"";
 			}
-			for (target_iterator tgt_it = this->target_values().begin();
+			for (target_iterator tgt_it = this->target_values().begin(),
+								 tgt_end_it = this->target_values().end();
 				 tgt_it != tgt_end_it;
 				 ++tgt_it)
 			{
@@ -421,7 +422,7 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 		std::map<virtual_machine_performance_category,std::vector<real_type> > old_xshares;
 		std::map<virtual_machine_performance_category,std::vector<real_type> > xress;
 		std::map< virtual_machine_performance_category, std::vector<real_type> > deltaxs;
-		real_type err;
+		real_type err = std::numeric_limits<real_type>::quiet_NaN();
 
 		std::vector<vm_pointer> vms = this->app().vms();
 		const std::size_t nvms = vms.size();
@@ -466,8 +467,8 @@ DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " -
 
 		if (!skip_ctl)
 		{
-			const target_iterator tgt_end_it = this->target_values().end();
-			for (target_iterator tgt_it = this->target_values().begin();
+			for (target_iterator tgt_it = this->target_values().begin(),
+							 	 tgt_end_it = this->target_values().end();
 				 tgt_it != tgt_end_it;
 				 ++tgt_it)
 			{
@@ -705,10 +706,10 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 							<< "," << this->data_smoother(memory_util_virtual_machine_performance, p_vm->id()).forecast(0);
             }
             *p_dat_ofs_ << ",";
-			const target_iterator tgt_end_it = this->target_values().end();
-			for (target_iterator tgt_it = this->target_values().begin();
-			tgt_it != tgt_end_it;
-			++tgt_it)
+			for (target_iterator tgt_it = this->target_values().begin(),
+								 tgt_end_it = this->target_values().end();
+				 tgt_it != tgt_end_it;
+				 ++tgt_it)
 			{
 				const application_performance_category cat = tgt_it->first;
 
