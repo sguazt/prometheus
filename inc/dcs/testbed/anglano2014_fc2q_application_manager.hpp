@@ -35,6 +35,7 @@
 
 
 #include <boost/smart_ptr.hpp>
+#include <boost/timer/timer.hpp>
 #include <cmath>
 #include <cstddef>
 #include <dcs/assert.hpp>
@@ -243,7 +244,15 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
-				*p_dat_ofs_ << ",\"Cap_{" << vms[i]->id() << "}\",\"Share_{" << vms[i]->id() << "}\"";
+				*p_dat_ofs_ << ",\"Cap_{" << vms[i]->id() << "}(k)\",\"Share_{" << vms[i]->id() << "}(k)\"";
+			}
+			for (::std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"Share_{" << vms[i]->id() << "}(k-1)\"";
+			}
+			for (::std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"Util_{" << vms[i]->id() << "}(k-1)\"";
 			}
 			for (target_iterator tgt_it = this->target_values().begin();
 				 tgt_it != tgt_end_it;
@@ -251,13 +260,18 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 			{
 				const application_performance_category cat = tgt_it->first;
 
-				*p_dat_ofs_ << ",\"r_{" << cat << "}\",\"y_{" << cat << "}\",\"Rgain_{" << cat << "}\"";
+				*p_dat_ofs_ << ",\"ReferenceOutput_{" << cat << "}(k-1)\",\"MeasureOutput_{" << cat << "}(k-1)\",\"RelativeOutputError_{" << cat << "}(k-1)\"";
 			}
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
-				*p_dat_ofs_ << ",\"Cres_{" << vms[i]->id() << "}\"";
+				*p_dat_ofs_ << ",\"Cres_{" << vms[i]->id() << "}(k-1)\"";
+			}
+			for (::std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"DeltaC_{" << vms[i]->id() << "}(k)\"";
 			}
 			*p_dat_ofs_ << ",\"# Controls\",\"# Skip Controls\",\"# Fail Controls\"";
+            *p_dat_ofs_ << ",\"Elapsed Time\"";
 			*p_dat_ofs_ << ::std::endl;
 		}
 	}
@@ -347,12 +361,16 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 
 		DCS_DEBUG_TRACE("(" << this << ") BEGIN Do CONTROL - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << ctl_fail_count_);
 
+        boost::timer::cpu_timer cpu_timer;
+
 		++ctl_count_;
 
 		bool skip_ctl = false;
 
-		::std::map<virtual_machine_performance_category,::std::vector<real_type> > cress;
-		::std::map<application_performance_category,real_type> rgains;
+		std::vector<real_type> old_shares;
+		std::vector<real_type> deltacs;
+		std::vector<real_type> cress;
+		std::map<application_performance_category,real_type> rgains;
 
 		::std::vector<vm_pointer> vms = this->app().vms();
 		const ::std::size_t nvms = vms.size();
@@ -380,8 +398,8 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 			const real_type uh = this->data_smoother(cat, p_vm->id()).forecast(0);
 			const real_type c = p_vm->cpu_share();
 
-			cress[cat].push_back(c-uh);
-DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << cress.at(cat).at(i));//XXX
+			cress.push_back(c-uh);
+DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << cress.at(i));//XXX
 		}
 
 		if (!skip_ctl)
@@ -425,18 +443,18 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
         if (!skip_ctl)
         {
 			//FIXME: actually we only handle SISO systems
-			DCS_ASSERT(cress.size() == 1 && rgains.size() == 1,
+			DCS_ASSERT(rgains.size() == 1,
 					   DCS_EXCEPTION_THROW(::std::runtime_error,
 					   "Only SISO system are currently managed"));
 
 			// Perform fuzzy control
 			bool ok = false;
-			::std::vector<real_type> deltacs(nvms);
+			//::std::vector<real_type> deltacs(nvms);
 			try
 			{
 				for (::std::size_t i = 0; i < nvms; ++i)
 				{
-					const real_type cres = cress.begin()->second.at(i);
+					const real_type cres = cress[i];
 					const real_type rgain = rgains.begin()->second;
 
 					p_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, cres);
@@ -446,7 +464,7 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 
 					const real_type deltac = p_fuzzy_eng_->getOutputValue(deltac_fuzzy_var_name);
 
-					deltacs[i] = deltac;
+					deltacs.push_back(deltac);
 DCS_DEBUG_TRACE("VM " << vms[i]->id() << " -> DeltaC(k+1): " << deltacs.at(i));//XXX
 				}
 
@@ -481,6 +499,8 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << " -> DeltaC(k+1): " << deltacs.at(i));/
 
 					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << old_share << " - new-share: " << new_share);
 
+					old_shares.push_back(old_share);
+
 					if (::std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share))
 					{
 						p_vm->cpu_share(new_share);
@@ -503,9 +523,32 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 			++ctl_skip_count_;
 		}
 
+        cpu_timer.stop();
+
 		// Export to file
 		if (p_dat_ofs_)
 		{
+			if (old_shares.size() == 0)
+			{
+				for (::std::size_t i = 0; i < nvms; ++i)
+				{
+					const vm_pointer p_vm = vms[i];
+
+					// check: p_vm != null
+					DCS_DEBUG_ASSERT( p_vm );
+
+					old_shares.push_back(p_vm->cpu_share());
+				}
+			}
+			if (deltacs.size() == 0)
+			{
+				deltacs.assign(nvms, std::numeric_limits<real_type>::quiet_NaN());
+			}
+			if (cress.size() == 0)
+			{
+				cress.assign(nvms, std::numeric_limits<real_type>::quiet_NaN());
+			}
+
 			*p_dat_ofs_ << ::std::time(0) << ",";
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
@@ -521,6 +564,29 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 				*p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share();
 			}
 			*p_dat_ofs_ << ",";
+            for (std::size_t i = 0; i < nvms; ++i)
+            {
+                if (i != 0)
+                {
+                    *p_dat_ofs_ << ",";
+                }
+                *p_dat_ofs_ << old_shares[i];
+            }
+			*p_dat_ofs_ << ",";
+			for (::std::size_t i = 0; i < nvms; ++i)
+			{
+				const vm_pointer p_vm = vms[i];
+
+				// check: p_vm != null
+				DCS_DEBUG_ASSERT( p_vm );
+
+				if (i != 0)
+				{
+					*p_dat_ofs_ << ",";
+				}
+				*p_dat_ofs_ << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0);
+			}
+			*p_dat_ofs_ << ",";
 			const target_iterator tgt_end_it = this->target_values().end();
 			for (target_iterator tgt_it = this->target_values().begin();
 			tgt_it != tgt_end_it;
@@ -534,13 +600,16 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 				}
 				const real_type yh = this->data_estimator(cat).estimate();
 				const real_type yr = tgt_it->second;
-				const real_type rgain = rgains.begin()->second; //FIXME: only one performance index is managed
+				const real_type rgain = rgains.at(cat);
 				*p_dat_ofs_ << yr << "," << yh << "," << rgain;
 			}
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
-				const real_type cres = cress.begin()->second.at(i); //FIXME: only one physical resource is managed
-				*p_dat_ofs_ << "," << cres;
+				*p_dat_ofs_ << "," << cress[i];
+			}
+			for (std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << "," << deltacs[i];
 			}
 			*p_dat_ofs_ << "," << ctl_count_ << "," << ctl_skip_count_ << "," << ctl_fail_count_;
 			*p_dat_ofs_ << ::std::endl;

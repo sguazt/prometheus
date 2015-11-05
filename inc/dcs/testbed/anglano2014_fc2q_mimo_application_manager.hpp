@@ -35,6 +35,7 @@
 
 
 #include <boost/smart_ptr.hpp>
+#include <boost/timer/timer.hpp>
 #include <cmath>
 #include <cstddef>
 #include <dcs/assert.hpp>
@@ -291,8 +292,18 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 
 			for (std::size_t i = 0; i < nvms; ++i)
 			{
-				*p_dat_ofs_ << ",\"CPU Cap_{" << vms[i]->id() << "}\",\"CPU Share_{" << vms[i]->id() << "}\""
-							<< ",\"Mem Cap_{" << vms[i]->id() << "}\",\"Mem Share_{" << vms[i]->id() << "}\"";
+				*p_dat_ofs_ << ",\"CPUCap_{" << vms[i]->id() << "}(k)\",\"CPUShare_{" << vms[i]->id() << "}(k)\""
+							<< ",\"MemCap_{" << vms[i]->id() << "}(k)\",\"MemShare_{" << vms[i]->id() << "}(k)\"";
+			}
+			for (std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"CPUShare_{" << vms[i]->id() << "}(k-1)\""
+							<< ",\"MemShare_{" << vms[i]->id() << "}(k-1)\"";
+			}
+			for (std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"CPUUtil_{" << vms[i]->id() << "}(k-1)\""
+							<< ",\"MemUtil_{" << vms[i]->id() << "}(k-1)\"";
 			}
 			for (target_iterator tgt_it = this->target_values().begin();
 				 tgt_it != tgt_end_it;
@@ -300,14 +311,20 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 			{
 				const application_performance_category cat = tgt_it->first;
 
-				*p_dat_ofs_ << ",\"r_{" << cat << "}\",\"y_{" << cat << "}\",\"E_{" << cat << "}\"";
+				*p_dat_ofs_ << ",\"ReferenceOutput_{" << cat << "}(k-1)\",\"MeasuredOutput_{" << cat << "}(k-1)\",\"RelativeOutputError_{" << cat << "}(k-1)\"";
 			}
 			for (std::size_t i = 0; i < nvms; ++i)
 			{
-				*p_dat_ofs_ << ",\"Cres_{" << vms[i]->id() << "}\""
-							<< ",\"Mres_{" << vms[i]->id() << "}\"";
+				*p_dat_ofs_ << ",\"Cres_{" << vms[i]->id() << "}(k-1)\""
+							<< ",\"Mres_{" << vms[i]->id() << "}(k-1)\"";
+			}
+			for (std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"DeltaC_{" << vms[i]->id() << "}(k)\""
+							<< ",\"DeltaM_{" << vms[i]->id() << "}(k)\"";
 			}
 			*p_dat_ofs_ << ",\"# Controls\",\"# Skip Controls\",\"# Fail Controls\"";
+            *p_dat_ofs_ << ",\"Elapsed Time\"";
 			*p_dat_ofs_ << std::endl;
 		}
 	}
@@ -393,13 +410,17 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 
 		DCS_DEBUG_TRACE("(" << this << ") BEGIN Do CONTROL - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << ctl_fail_count_);
 
+        boost::timer::cpu_timer cpu_timer;
+
 		const std::size_t num_vm_perf_cats = vm_perf_cats_.size();
 
 		++ctl_count_;
 
 		bool skip_ctl = false;
 
+		std::map<virtual_machine_performance_category,std::vector<real_type> > old_xshares;
 		std::map<virtual_machine_performance_category,std::vector<real_type> > xress;
+		std::map< virtual_machine_performance_category, std::vector<real_type> > deltaxs;
 		real_type err;
 
 		std::vector<vm_pointer> vms = this->app().vms();
@@ -485,7 +506,6 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
         {
 			// Perform fuzzy control
 			bool ok = false;
-			std::map< virtual_machine_performance_category, std::vector<real_type> > deltaxs;
 			try
 			{
 				for (std::size_t i = 0; i < nvms; ++i)
@@ -570,6 +590,7 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " 
 								old_share = p_vm->memory_share();
 								break;
 						}
+						old_xshares[cat].push_back(old_share);
 
 						const real_type new_share = std::max(std::min(old_share+deltaxs[cat][i], 1.0), 0.0);
 
@@ -606,9 +627,43 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 			++ctl_skip_count_;
 		}
 
+        cpu_timer.stop();
+
 		// Export to file
 		if (p_dat_ofs_)
 		{
+			if (old_xshares.size() == 0)
+			{
+				for (::std::size_t i = 0; i < nvms; ++i)
+				{
+					const vm_pointer p_vm = vms[i];
+
+					// check: p_vm != null
+					DCS_DEBUG_ASSERT( p_vm );
+
+					old_xshares[cpu_util_virtual_machine_performance].push_back(p_vm->cpu_share());
+					old_xshares[memory_util_virtual_machine_performance].push_back(p_vm->memory_share());
+				}
+			}
+			if (deltaxs.size() == 0)
+			{
+				for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
+				{
+					const virtual_machine_performance_category vm_cat = vm_perf_cats_[j];
+
+					deltaxs[vm_cat].assign(nvms, std::numeric_limits<real_type>::quiet_NaN());
+				}
+			}
+			if (xress.size() == 0)
+			{
+				for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
+				{
+					const virtual_machine_performance_category vm_cat = vm_perf_cats_[j];
+
+					xress[vm_cat].assign(nvms, std::numeric_limits<real_type>::quiet_NaN());
+				}
+			}
+
 			*p_dat_ofs_ << std::time(0) << ",";
 			for (std::size_t i = 0; i < nvms; ++i)
 			{
@@ -625,6 +680,31 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 							<< "," << p_vm->memory_cap() << "," << p_vm->memory_share();
 			}
 			*p_dat_ofs_ << ",";
+            for (std::size_t i = 0; i < nvms; ++i)
+            {
+                if (i != 0)
+                {
+                    *p_dat_ofs_ << ",";
+                }
+                *p_dat_ofs_ << old_xshares.at(cpu_util_virtual_machine_performance)[i]
+                            << "," << old_xshares.at(memory_util_virtual_machine_performance)[i];
+            }
+			*p_dat_ofs_ << ",";
+            for (std::size_t i = 0; i < nvms; ++i)
+            {
+                const vm_pointer p_vm = vms[i];
+
+                // check: p_vm != null
+                DCS_DEBUG_ASSERT( p_vm );
+
+                if (i != 0)
+                {
+                    *p_dat_ofs_ << ",";
+                }
+				*p_dat_ofs_ << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0)
+							<< "," << this->data_smoother(memory_util_virtual_machine_performance, p_vm->id()).forecast(0);
+            }
+            *p_dat_ofs_ << ",";
 			const target_iterator tgt_end_it = this->target_values().end();
 			for (target_iterator tgt_it = this->target_values().begin();
 			tgt_it != tgt_end_it;
@@ -650,7 +730,18 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 					*p_dat_ofs_ << "," << xres;
 				}
 			}
+			for (std::size_t i = 0; i < nvms; ++i)
+			{
+				for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
+				{
+					const virtual_machine_performance_category vm_cat = vm_perf_cats_[j];
+					const real_type deltax = deltaxs.at(vm_cat).at(i);
+
+					*p_dat_ofs_ << "," << deltax;
+				}
+			}
 			*p_dat_ofs_ << "," << ctl_count_ << "," << ctl_skip_count_ << "," << ctl_fail_count_;
+            *p_dat_ofs_ << "," << (cpu_timer.elapsed().user+cpu_timer.elapsed().system);
 			*p_dat_ofs_ << std::endl;
 		}
 

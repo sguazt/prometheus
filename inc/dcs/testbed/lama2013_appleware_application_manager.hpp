@@ -292,9 +292,19 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
 
             for (std::size_t i = 0; i < nvms; ++i)
             {
-                *p_dat_ofs_ << ",\"CPUCap_{" << vms[i]->id() << "}(k-1)\",\"CPUShare_{" << vms[i]->id() << "}(k-1)\""
-                            << ",\"MemCap_{" << vms[i]->id() << "}(k-1)\",\"MemShare_{" << vms[i]->id() << "}(k-1)\"";
+				*p_dat_ofs_ << ",\"CPUCap_{" << vms[i]->id() << "}(k)\",\"CPUShare_{" << vms[i]->id() << "}(k)\""
+							<< ",\"MemCap_{" << vms[i]->id() << "}(k)\",\"MemShare_{" << vms[i]->id() << "}(k)\"";
             }
+			for (std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"CPUShare_{" << vms[i]->id() << "}(k-1)\""
+							<< ",\"MemShare_{" << vms[i]->id() << "}(k-1)\"";
+			}
+			for (std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"CPUUtil_{" << vms[i]->id() << "}(k-1)\""
+							<< ",\"MemUtil_{" << vms[i]->id() << "}(k-1)\"";
+			}
             for (target_iterator tgt_it = this->target_values().begin(),
                                  tgt_end_it = this->target_values().end();
                  tgt_it != tgt_end_it;
@@ -302,7 +312,7 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
             {
                 const application_performance_category cat = tgt_it->first;
 
-                *p_dat_ofs_ << ",\"ReferenceOutput_{" << cat << "}(k)\",\"MeasuredOutput_{" << cat << "}(k)\",\"RelativeOutputError_{" << cat << "}(k)\"";
+                *p_dat_ofs_ << ",\"ReferenceOutput_{" << cat << "}(k-1)\",\"MeasuredOutput_{" << cat << "}(k-1)\",\"RelativeOutputError_{" << cat << "}(k-1)\"";
             }
             for (std::size_t i = 0,
                              ni = num_outputs_*output_order_ + num_inputs_;
@@ -488,6 +498,7 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
         }
 
         std::vector<real_type> new_shares;
+		std::map<virtual_machine_performance_category,std::vector<real_type> > old_xshares;
 
         if (!skip_ctrl)
         {
@@ -530,6 +541,7 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
                                 old_share = p_vm->memory_share();
                                 break;
                         }
+                        old_xshares[cat].push_back(old_share);
 
                         const real_type new_share = std::max(std::min(new_shares[k++], 1.0), 0.0);
 
@@ -571,6 +583,20 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
         // Export to file
         if (p_dat_ofs_)
         {
+			if (old_xshares.size() == 0)
+			{
+				for (::std::size_t i = 0; i < nvms; ++i)
+				{
+					const vm_pointer p_vm = vms[i];
+
+					// check: p_vm != null
+					DCS_DEBUG_ASSERT( p_vm );
+
+					old_xshares[cpu_util_virtual_machine_performance].push_back(p_vm->cpu_share());
+					old_xshares[memory_util_virtual_machine_performance].push_back(p_vm->memory_share());
+				}
+			}
+
             *p_dat_ofs_ << std::time(0) << ",";
             for (std::size_t i = 0; i < nvms; ++i)
             {
@@ -585,6 +611,31 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
                 }
                 *p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share()
                             << "," << p_vm->memory_cap() << "," << p_vm->memory_share();
+            }
+            *p_dat_ofs_ << ",";
+            for (std::size_t i = 0; i < nvms; ++i)
+            {
+                if (i != 0)
+                {
+                    *p_dat_ofs_ << ",";
+                }
+                *p_dat_ofs_ << old_xshares.at(cpu_util_virtual_machine_performance)[i]
+                            << "," << old_xshares.at(memory_util_virtual_machine_performance)[i];
+            }
+            *p_dat_ofs_ << ",";
+            for (std::size_t i = 0; i < nvms; ++i)
+            {
+                const vm_pointer p_vm = vms[i];
+
+                // check: p_vm != null
+                DCS_DEBUG_ASSERT( p_vm );
+
+                if (i != 0)
+                {
+                    *p_dat_ofs_ << ",";
+                }
+                *p_dat_ofs_ << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0)
+                            << "," << this->data_smoother(memory_util_virtual_machine_performance, p_vm->id()).forecast(0);
             }
             *p_dat_ofs_ << ",";
             for (target_iterator tgt_it = this->target_values().begin(),
