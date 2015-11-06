@@ -138,6 +138,7 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
 #else
       p_mpc_ctrl_(new dcs::control::linear_mpc_controller<real_type>()),
 #endif // DCS_TESTBED_USE_MATLAB_LINEAR_MPC
+	  beta_(0.9),
       ctrl_count_(0),
       ctrl_skip_count_(0),
       ctrl_fail_count_(0),
@@ -236,19 +237,6 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
             out_sensors_[cat] = this->app().sensor(cat);
         }
 
-        // Reset input sensors
-        in_sensors_.clear();
-        for (std::size_t i = 0; i < nvms; ++i)
-        {
-            for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
-            {
-                const virtual_machine_performance_category cat = vm_perf_cats_[j];
-                vm_pointer p_vm = vms[i];
-
-                in_sensors_[cat][p_vm->id()] = p_vm->sensor(cat);
-            }
-        }
-
         // Reset input history
         in_caps_.clear();
         in_caps_.resize(nvms);
@@ -333,6 +321,36 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
             *p_dat_ofs_ << ",\"Elapsed Time\"";
             *p_dat_ofs_ << std::endl;
         }
+
+        if (p_dat_ofs_)
+        {
+            // Reset input sensors
+            in_sensors_.clear();
+            for (std::size_t i = 0; i < nvms; ++i)
+            {
+                vm_pointer p_vm = vms[i];
+
+                for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
+                {
+                    const virtual_machine_performance_category cat = vm_perf_cats_[j];
+
+                    in_sensors_[cat][p_vm->id()] = p_vm->sensor(cat);
+                }
+            }
+
+            // Reset VM smoother
+            for (::std::size_t i = 0; i < nvms; ++i)
+            {
+                const vm_pointer p_vm = vms[i];
+
+                for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
+                {
+                    const virtual_machine_performance_category cat = vm_perf_cats_[j];
+
+                    this->data_smoother(cat, p_vm->id(), ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
+                }
+            }
+        }
     }
 
     private: void do_sample()
@@ -343,6 +361,43 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
         typedef typename obs_container::const_iterator obs_iterator;
 
         DCS_DEBUG_TRACE("(" << this << ") BEGIN Do SAMPLE - Count: " << ctrl_count_ << "/" << ctrl_skip_count_ << "/" << ctrl_fail_count_);
+
+        if (p_dat_ofs_)
+        {
+            // Collect input values
+            const in_sensor_iterator in_sens_end_it = in_sensors_.end();
+            for (in_sensor_iterator in_sens_it = in_sensors_.begin();
+                 in_sens_it != in_sens_end_it;
+                 ++in_sens_it)
+            {
+                const virtual_machine_performance_category cat = in_sens_it->first;
+
+                const typename in_sensor_map::mapped_type::const_iterator vm_end_it = in_sens_it->second.end();
+                for (typename in_sensor_map::mapped_type::const_iterator vm_it = in_sens_it->second.begin();
+                     vm_it != vm_end_it;
+                     ++vm_it)
+                {
+                    const vm_identifier_type vm_id = vm_it->first;
+                    sensor_pointer p_sens = vm_it->second;
+
+                    // check: p_sens != null
+                    DCS_DEBUG_ASSERT( p_sens );
+
+                    p_sens->sense();
+                    if (p_sens->has_observations())
+                    {
+                        const obs_container obs = p_sens->observations();
+                        const obs_iterator end_it = obs.end();
+                        for (obs_iterator it = obs.begin();
+                             it != end_it;
+                             ++it)
+                        {
+                            this->data_smoother(cat, vm_id).smooth(it->value());
+                        }
+                    }
+                }
+            }
+        }
 
         // Collect output values
         const out_sensor_iterator out_sens_end_it = out_sensors_.end();
@@ -593,7 +648,6 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 					DCS_DEBUG_ASSERT( p_vm );
 
 					old_xshares[cpu_util_virtual_machine_performance].push_back(p_vm->cpu_share());
-					old_xshares[memory_util_virtual_machine_performance].push_back(p_vm->memory_share());
 				}
 			}
 
@@ -609,8 +663,7 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
                 {
                     *p_dat_ofs_ << ",";
                 }
-                *p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share()
-                            << "," << p_vm->memory_cap() << "," << p_vm->memory_share();
+                *p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share();
             }
             *p_dat_ofs_ << ",";
             for (std::size_t i = 0; i < nvms; ++i)
@@ -619,8 +672,7 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
                 {
                     *p_dat_ofs_ << ",";
                 }
-                *p_dat_ofs_ << old_xshares.at(cpu_util_virtual_machine_performance)[i]
-                            << "," << old_xshares.at(memory_util_virtual_machine_performance)[i];
+                *p_dat_ofs_ << old_xshares.at(cpu_util_virtual_machine_performance)[i];
             }
             *p_dat_ofs_ << ",";
             for (std::size_t i = 0; i < nvms; ++i)
@@ -634,8 +686,18 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
                 {
                     *p_dat_ofs_ << ",";
                 }
-                *p_dat_ofs_ << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0)
-                            << "," << this->data_smoother(memory_util_virtual_machine_performance, p_vm->id()).forecast(0);
+				for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
+				{
+					const virtual_machine_performance_category vm_cat = vm_perf_cats_[j];
+
+                    if (j != 0)
+                    {
+                        *p_dat_ofs_ << ",";
+                    }
+					*p_dat_ofs_ << this->data_smoother(vm_cat, p_vm->id()).forecast(0);
+				}
+                //*p_dat_ofs_ << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0)
+                //            << "," << this->data_smoother(memory_util_virtual_machine_performance, p_vm->id()).forecast(0);
             }
             *p_dat_ofs_ << ",";
             for (target_iterator tgt_it = this->target_values().begin(),
@@ -1169,6 +1231,7 @@ DCS_DEBUG_TRACE("Optimal control from MPC: " << u_opt);///XXX
 #else
     private: ::boost::shared_ptr<dcs::control::linear_mpc_controller<real_type> > p_mpc_ctrl_; ///< The MPC controller
 #endif // DCS_TESTBED_USE_MATLAB_LINEAR_MPC
+    private: real_type beta_; ///< Smoothing factor for VM CPU and Memory utilization
     private: std::size_t ctrl_count_; ///< Number of times control function has been invoked
     private: std::size_t ctrl_skip_count_; ///< Number of times control has been skipped
     private: std::size_t ctrl_fail_count_; ///< Number of times control has failed
