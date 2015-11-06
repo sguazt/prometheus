@@ -245,11 +245,11 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
-				*p_dat_ofs_ << ",\"Cap_{" << vms[i]->id() << "}(k)\",\"Share_{" << vms[i]->id() << "}(k)\"";
+				*p_dat_ofs_ << ",\"CPUCap_{" << vms[i]->id() << "}(k)\",\"CPUShare_{" << vms[i]->id() << "}(k)\"";
 			}
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
-				*p_dat_ofs_ << ",\"Share_{" << vms[i]->id() << "}(k-1)\"";
+				*p_dat_ofs_ << ",\"CPUShare_{" << vms[i]->id() << "}(k-1)\"";
 			}
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
@@ -262,7 +262,7 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 			{
 				const application_performance_category cat = tgt_it->first;
 
-				*p_dat_ofs_ << ",\"ReferenceOutput_{" << cat << "}(k-1)\",\"MeasureOutput_{" << cat << "}(k-1)\",\"RelativeOutputError_{" << cat << "}(k-1)\"";
+				*p_dat_ofs_ << ",\"ReferenceOutput_{" << cat << "}(k-1)\",\"MeasuredOutput_{" << cat << "}(k-1)\",\"RelativeOutputError_{" << cat << "}(k-1)\"";
 			}
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
