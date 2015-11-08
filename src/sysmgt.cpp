@@ -1175,11 +1175,20 @@ int main(int argc, char *argv[])
 				break;
 			case detail::lama2013_appleware_app_manager:
 				{
+					const bool use_prebuilt_anfis = true;
+					std::string prebuilt_anfis_fname;
+
+					std::ostringstream oss;
+					oss << opt_wkl << "-anfis_trained.fis";
+					prebuilt_anfis_fname = oss.str();
+
 					testbed::lama2013_appleware_application_manager<traits_type> lama2013_appleware_mgr;
 					if (!opt_app_manager_stats_file.empty())
 					{
 						lama2013_appleware_mgr.export_data_to(opt_app_manager_stats_file);
 					}
+					lama2013_appleware_mgr.use_prebuilt_anfis(use_prebuilt_anfis);
+					lama2013_appleware_mgr.prebuilt_anfis_file(prebuilt_anfis_fname);
 
 					p_mgr = boost::make_shared< testbed::lama2013_appleware_application_manager<traits_type> >(lama2013_appleware_mgr);
 				}

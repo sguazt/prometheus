@@ -130,6 +130,7 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
       mpc_control_weight_(1),
       num_inputs_(0),
       num_outputs_(0),
+      use_prebuilt_fis_(false),
       p_anfis_eng_(new fl::anfis::Engine()),
       p_anfis_builder_(new fl::SubtractiveClusteringFisBuilder<fl::anfis::Engine>()),
       p_anfis_trainer_(new fl::anfis::Jang1993HybridLearningAlgorithm()),
@@ -210,6 +211,16 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
     public: void export_data_to(std::string const& fname)
     {
         dat_fname_ = fname;
+    }
+
+    public: void use_prebuilt_anfis(bool value)
+    {
+        use_prebuilt_fis_ = value;
+    }
+
+    public: void prebuilt_anfis_file(std::string const& fname)
+    {
+        prebuilt_fis_fname_ = fname;
     }
 
     private: void do_reset()
@@ -783,30 +794,33 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 
         p_anfis_eng_->clear();
 
-#if 1
-        std::ostringstream oss;
-        oss << "experiments/data/rubis-lama2013_appleware-order"
-            << "_out_" << output_order_
-            //<< "-users_30_45_15-sig_mesh_a05_f12_p3_b05_lb02_ub1"
-            //<< "-users_45-sig_mesh_a05_f12_p3_b05_lb02_ub1"
-            << "-users_45-sig_constant_v1_lb02_ub1"
-            << "-anfis_trained.fll";
-        const std::string prebuilt_fis_fname(oss.str());
+        if (use_prebuilt_fis_)
+        {
+            //std::ostringstream oss;
+            //oss << "experiments/data/rubis-lama2013_appleware-order"
+            //    << "_out_" << output_order_
+            //    //<< "-users_30_45_15-sig_mesh_a05_f12_p3_b05_lb02_ub1"
+            //    //<< "-users_45-sig_mesh_a05_f12_p3_b05_lb02_ub1"
+            //    << "-users_45-sig_constant_v1_lb02_ub1"
+            //    << "-anfis_trained.fll";
+            //const std::string prebuilt_fis_fname(oss.str());
 
-        fl::FllImporter fllImp;
-        fl::Engine* p_eng = fllImp.fromFile(prebuilt_fis_fname);
+            fl::FllImporter fllImp;
+            fl::Engine* p_eng = fllImp.fromFile(prebuilt_fis_fname_);
 
-        DCS_ASSERT(p_eng,
-                   DCS_EXCEPTION_THROW(std::runtime_error, "Unable to initialize ANFIS fuzzy controller"));
+            DCS_ASSERT(p_eng,
+                       DCS_EXCEPTION_THROW(std::runtime_error, "Unable to initialize ANFIS fuzzy controller"));
 
-        *p_anfis_eng_ = fl::anfis::Engine(*p_eng);
+            *p_anfis_eng_ = fl::anfis::Engine(*p_eng);
 
-        delete p_eng;
+            delete p_eng;
 
-        anfis_initialized_ = true;
-#else
-        anfis_initialized_ = false;
-#endif
+            anfis_initialized_ = true;
+        }
+        else
+        {
+            anfis_initialized_ = false;
+        }
 
         p_anfis_trainer_->setIsOnline(true);
         p_anfis_trainer_->setForgettingFactor(forget_factor_);
@@ -1223,6 +1237,7 @@ DCS_DEBUG_TRACE("Optimal control from MPC: " << u_opt);///XXX
     private: real_type mpc_control_weight_; ///< The weight to apply to the tracking part of the MPC objective function
     private: std::size_t num_inputs_; ///< The number of system inputs
     private: std::size_t num_outputs_; ///< The number of system outputs
+    private: bool use_prebuilt_fis_; ///< `true` if ANFIS is initialized from a previously built FIS
     private: ::boost::shared_ptr<fl::anfis::Engine> p_anfis_eng_; ///< The fuzzy modeling engine based on ANFIS
     private: boost::shared_ptr<fl::SubtractiveClusteringFisBuilder<fl::anfis::Engine> > p_anfis_builder_; ///< Builder for the ANFIS model
     private: boost::shared_ptr<fl::anfis::Jang1993HybridLearningAlgorithm> p_anfis_trainer_; ///< Training algorithm for the ANFIS model
@@ -1238,6 +1253,7 @@ DCS_DEBUG_TRACE("Optimal control from MPC: " << u_opt);///XXX
     private: in_sensor_map in_sensors_;
     private: out_sensor_map out_sensors_;
     private: std::string dat_fname_;
+    private: std::string prebuilt_fis_fname_;
     private: ::boost::shared_ptr< std::ofstream > p_dat_ofs_;
     private: std::vector<virtual_machine_performance_category> vm_perf_cats_;
     //private: std::vector<application_performance_category> app_perf_cats_;
