@@ -1176,10 +1176,11 @@ int main(int argc, char *argv[])
 			case detail::lama2013_appleware_app_manager:
 				{
 					const bool use_prebuilt_anfis = true;
+					const std::size_t output_order = 1;
 					std::string prebuilt_anfis_fname;
 
 					std::ostringstream oss;
-					oss << opt_wkl << "-anfis_trained.fll";
+					oss << opt_wkl << "-lama2013_appleware-order_out_" << output_order << "-anfis_trained.fll";
 					prebuilt_anfis_fname = oss.str();
 
 					testbed::lama2013_appleware_application_manager<traits_type> lama2013_appleware_mgr;
@@ -1187,6 +1188,7 @@ int main(int argc, char *argv[])
 					{
 						lama2013_appleware_mgr.export_data_to(opt_app_manager_stats_file);
 					}
+					lama2013_appleware_mgr.output_order(output_order);
 					lama2013_appleware_mgr.use_prebuilt_anfis(use_prebuilt_anfis);
 					lama2013_appleware_mgr.prebuilt_anfis_file(prebuilt_anfis_fname);
 
