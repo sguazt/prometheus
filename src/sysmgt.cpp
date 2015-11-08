@@ -1180,7 +1180,7 @@ int main(int argc, char *argv[])
 					std::string prebuilt_anfis_fname;
 
 					std::ostringstream oss;
-					oss << opt_wkl << "-lama2013_appleware-order_out_" << output_order << "-anfis_trained.fll";
+					oss << "experiments/data/" << opt_wkl << "-lama2013_appleware-order_out_" << output_order << "-anfis_trained.fll";
 					prebuilt_anfis_fname = oss.str();
 
 					testbed::lama2013_appleware_application_manager<traits_type> lama2013_appleware_mgr;
