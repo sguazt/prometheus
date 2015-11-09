@@ -659,6 +659,7 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 					DCS_DEBUG_ASSERT( p_vm );
 
 					old_xshares[cpu_util_virtual_machine_performance].push_back(p_vm->cpu_share());
+					old_xshares[memory_util_virtual_machine_performance].push_back(p_vm->memory_share());
 				}
 			}
 
@@ -674,7 +675,8 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
                 {
                     *p_dat_ofs_ << ",";
                 }
-                *p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share();
+				*p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share()
+							<< "," << p_vm->memory_cap() << "," << p_vm->memory_share();
             }
             *p_dat_ofs_ << ",";
             for (std::size_t i = 0; i < nvms; ++i)
@@ -683,7 +685,8 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
                 {
                     *p_dat_ofs_ << ",";
                 }
-                *p_dat_ofs_ << old_xshares.at(cpu_util_virtual_machine_performance)[i];
+                *p_dat_ofs_ << old_xshares.at(cpu_util_virtual_machine_performance)[i]
+                            << "," << old_xshares.at(memory_util_virtual_machine_performance)[i];
             }
             *p_dat_ofs_ << ",";
             for (std::size_t i = 0; i < nvms; ++i)

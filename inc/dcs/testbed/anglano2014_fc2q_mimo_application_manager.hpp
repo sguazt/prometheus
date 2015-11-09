@@ -702,8 +702,18 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
                 {
                     *p_dat_ofs_ << ",";
                 }
-				*p_dat_ofs_ << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0)
-							<< "," << this->data_smoother(memory_util_virtual_machine_performance, p_vm->id()).forecast(0);
+				//*p_dat_ofs_ << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0)
+				//			<< "," << this->data_smoother(memory_util_virtual_machine_performance, p_vm->id()).forecast(0);
+				for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
+				{
+					const virtual_machine_performance_category vm_cat = vm_perf_cats_[j];
+
+                    if (j != 0)
+                    {
+                        *p_dat_ofs_ << ",";
+                    }
+					*p_dat_ofs_ << this->data_smoother(vm_cat, p_vm->id()).forecast(0);
+				}
             }
             *p_dat_ofs_ << ",";
 			for (target_iterator tgt_it = this->target_values().begin(),
