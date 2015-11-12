@@ -251,6 +251,8 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
         // Reset input history
         in_shares_.clear();
         in_shares_.resize(nvms);
+        in_utils_.clear();
+        in_utils_.resize(nvms);
         out_perf_history_.clear();
 
         // Reset counters
@@ -503,6 +505,7 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
 DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - C(k): " << c);//XXX
 
                     in_shares_[i][cat] = c;
+                    in_utils_[i][cat] = this->data_smoother(cat, p_vm->id()).forecast(0);
                 }
             }
 
@@ -906,7 +909,8 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
             {
                 const virtual_machine_performance_category cat = vm_perf_cats_[j];
 
-                u(u_ix++) = in_shares_[i].at(cat);
+                //u(u_ix++) = in_shares_[i].at(cat);
+                u(u_ix++) = in_utils_[i].at(cat);
             }
         }
 
@@ -1261,6 +1265,7 @@ DCS_DEBUG_TRACE("Optimal control from MPC: " << u_opt);///XXX
     private: std::vector<virtual_machine_performance_category> vm_perf_cats_;
     //private: std::vector<application_performance_category> app_perf_cats_;
     private: std::vector< std::map<virtual_machine_performance_category, real_type> > in_shares_;
+    private: std::vector< std::map<virtual_machine_performance_category, real_type> > in_utils_;
     private: std::map< application_performance_category, std::deque<real_type> > out_perf_history_;
     private: bool anfis_initialized_;
     private: fl::DataSet<real_type> anfis_trainset_;
