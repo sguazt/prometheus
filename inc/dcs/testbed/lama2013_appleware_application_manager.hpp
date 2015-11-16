@@ -502,7 +502,7 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
                             c = p_vm->memory_share();
                             break;
                     }
-DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - C(k): " << c);//XXX
+DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << this->data_smoother(cat, p_vm->id()).forecast(0) << " - C(k): " << c);//XXX
 
                     in_shares_[i][cat] = c;
                     in_utils_[i][cat] = this->data_smoother(cat, p_vm->id()).forecast(0);
@@ -877,10 +877,16 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
         const std::size_t nxi = output_order_*num_outputs_;
         ublas::vector<real_type> u(num_inputs_, 0);
         ublas::vector<real_type> xi(nxi, 0);
-        ublas::vector<real_type> y(num_outputs_, 0);
+        //ublas::vector<real_type> y(num_outputs_, 0);
         std::size_t u_ix = 0;
         std::size_t xi_ix = 0;
-        std::size_t y_ix = 0;
+        //std::size_t y_ix = 0;
+        ublas::vector<real_type> u_train(num_inputs_, 0);
+        ublas::vector<real_type> xi_train(nxi, 0);
+        ublas::vector<real_type> y_train(num_outputs_, 0);
+        std::size_t u_ix_train = 0;
+        std::size_t xi_ix_train = 0;
+        std::size_t y_ix_train = 0;
         for (target_iterator tgt_it = this->target_values().begin(),
                              tgt_end_it = this->target_values().end();
              tgt_it != tgt_end_it;
@@ -895,9 +901,13 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
             {
                 if (val_it == out_perf_history_.at(cat).rbegin())
                 {
-                    y(y_ix++) = *val_it;
+                    y_train(y_ix_train++) = *val_it;
                 }
                 else
+                {
+                    xi_train(xi_ix_train++) = *val_it;
+                }
+                if (xi_ix < nxi)
                 {
                     xi(xi_ix++) = *val_it;
                 }
@@ -909,28 +919,56 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
             {
                 const virtual_machine_performance_category cat = vm_perf_cats_[j];
 
+                u_train(u_ix_train++) = in_shares_[i].at(cat);
+                //u_train(u_ix_train++) = in_utils_[i].at(cat);
                 u(u_ix++) = in_shares_[i].at(cat);
                 //u(u_ix++) = in_utils_[i].at(cat);
             }
         }
 
         // post conditions
-        DCS_DEBUG_ASSERT( xi_ix == nxi );
-        DCS_DEBUG_ASSERT( u_ix == num_inputs_ );
-        DCS_DEBUG_ASSERT( y_ix == num_outputs_ );
+        DCS_DEBUG_ASSERT( xi_ix_train == nxi );
+        DCS_DEBUG_ASSERT( u_ix_train == num_inputs_ );
+        DCS_DEBUG_ASSERT( y_ix_train == num_outputs_ );
 
         {
             ublas::vector<real_type> inputs(nxi+num_inputs_, 0);
-            ublas::subrange(inputs, 0, nxi) = xi;
-            ublas::subrange(inputs, nxi, inputs.size()) = u;
-            fl::DataSetEntry<real_type> entry(inputs.begin(), inputs.end(), y.begin(), y.end());
+            ublas::subrange(inputs, 0, nxi) = xi_train;
+            ublas::subrange(inputs, nxi, inputs.size()) = u_train;
+            fl::DataSetEntry<real_type> entry(inputs.begin(), inputs.end(), y_train.begin(), y_train.end());
             anfis_trainset_.add(entry);
+//[XXX]
+{
+std::cerr << "ANFIS - TRAINING INSTANCE: <";
+for (std::size_t i = 0; i < (inputs.size()+num_outputs_); ++i)
+{
+    if (i == 0)
+    {
+        std::cerr << "IN: [";
+    }
+    else if (i == inputs.size())
+    {
+        std::cerr << "], OUT: [";
+    }
+    else if (i < inputs.size())
+    {
+        std::cerr << ", " << inputs[i];
+    }
+    else
+    {
+        std::cerr << "," << y_train[i-inputs.size()];
+    }
+}
+std::cerr << "]>" << std::endl;
+}
+//[/XXX]
         }
 
         if (anfis_initialized_)
         {
             // Train the ANFIS model
             real_type rmse = 0;
+//[FIXME]
 #if 1
             const std::size_t min_trainset_size_online = 1;
             const std::size_t min_trainset_size_offline = 10;
@@ -938,10 +976,12 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
             const std::size_t min_trainset_size_online = 10;
             const std::size_t min_trainset_size_offline = 10;
 #endif
+//[/FIXME]
             if ((p_anfis_trainer_->isOnline() && anfis_trainset_.size() >= min_trainset_size_online)
                 || anfis_trainset_.size() >= min_trainset_size_offline)
             {
                 rmse = p_anfis_trainer_->train(anfis_trainset_);
+//[XXX]
 {
 std::ostringstream oss;
 oss << "rubis_lama2013appleware_trainset_n" << ctrl_count_ << ".dat";
@@ -949,9 +989,10 @@ std::ofstream ofs(oss.str().c_str());
 fl::detail::MatrixOutput(ofs, anfis_trainset_.data());
 ofs.close();
 }
+//[/XXX]
                 anfis_trainset_.clear();
-            }
 DCS_DEBUG_TRACE("ANFIS TRAINED -> RMSE: " << rmse);//XXX
+            }
 
             DCS_DEBUG_ASSERT( p_anfis_eng_->numberOfInputVariables() == (nxi+num_inputs_) );
             DCS_DEBUG_ASSERT( p_anfis_eng_->numberOfOutputVariables() == num_outputs_ );
@@ -968,6 +1009,22 @@ DCS_DEBUG_TRACE("ANFIS TRAINED -> RMSE: " << rmse);//XXX
 
             // Apply the inputs to the ANFIS model
             p_anfis_eng_->process();
+//[XXX]
+{
+std::cerr << "ANFIS - PROCESS: <";
+std::cerr << "IN: [";
+for (std::size_t i = 0; i < p_anfis_eng_->numberOfInputVariables(); ++i)
+{
+    std::cerr << ", " << p_anfis_eng_->getInputVariable(i)->getValue();
+}
+std::cerr << "], OUT: [";
+for (std::size_t i = 0; i < p_anfis_eng_->numberOfOutputVariables(); ++i)
+{
+    std::cerr << ", " << p_anfis_eng_->getOutputVariable(i)->getValue();
+}
+std::cerr << "]>" << std::endl;
+}
+//[/XXX]
         }
         else
         {
