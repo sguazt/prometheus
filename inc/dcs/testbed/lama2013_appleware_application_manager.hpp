@@ -909,8 +909,8 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
             {
                 const virtual_machine_performance_category cat = vm_perf_cats_[j];
 
-                //u(u_ix++) = in_shares_[i].at(cat);
-                u(u_ix++) = in_utils_[i].at(cat);
+                u(u_ix++) = in_shares_[i].at(cat);
+                //u(u_ix++) = in_utils_[i].at(cat);
             }
         }
 
