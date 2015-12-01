@@ -104,6 +104,9 @@ inline
 	::std::string workload;
 	switch (wkl_cat)
 	{
+		case cassandra_workload:
+			workload = "cassandra";
+			break;
 		case olio_workload:
 			workload = "olio";
 			break;
@@ -155,6 +158,9 @@ inline
 	::std::string workload;
 	switch (wkl_cat)
 	{
+		case cassandra_workload:
+			workload = "cassandra";
+			break;
 		case olio_workload:
 			//workload = "cloudstone";
 			workload = "olio";
