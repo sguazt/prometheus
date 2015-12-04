@@ -96,7 +96,7 @@ const std::string default_cfg_file("config.yaml");
 const dcs::testbed::workload_category default_workload = dcs::testbed::olio_workload;
 const dcs::testbed::workload_generator_category default_workload_driver = dcs::testbed::rain_workload_generator;
 const ::std::string default_workload_driver_rain_path("/usr/local/opt/rain-workload-toolkit");
-const ::std::string default_workload_rain_java_xargs("");
+const ::std::string default_workload_rain_java_xarg("");
 const ::std::string default_workload_driver_ycsb_path("/usr/local/opt/YCSB");
 const ::std::string default_workload_ycsb_prop_path("workloads/workloada");
 const ::std::string default_workload_ycsb_classpath;
@@ -604,10 +604,10 @@ void usage(char const* progname)
 				<< " --wkl-driver-ycsb-path <name>" << ::std::endl
 				<< "   The full path to the YCSB workload driver." << ::std::endl
 				<< "   [default: '" << default_workload_driver_ycsb_path << "']." << ::std::endl
-				<< " --wkl-rain-java-xargs <argument>" << ::std::endl
+				<< " --wkl-rain-java-xarg <argument>" << ::std::endl
 				<< "   The argument to pass to the java command." << ::std::endl
 				<< "   Repeat this option as many times as is the number of argument you want to specify." << ::std::endl
-				<< "   [default: '" << default_workload_rain_java_xargs << "']." << ::std::endl
+				<< "   [default: '" << default_workload_rain_java_xarg << "']." << ::std::endl
 				<< " --wkl-ycsb-prop-path <name>" << ::std::endl
 				<< "   The full path to a YCSB workload property file." << ::std::endl
 				<< "   Repeat this option as many times as is the number of property files you want to use." << ::std::endl
@@ -758,7 +758,7 @@ int main(int argc, char *argv[])
 		opt_wkl = dcs::cli::simple::get_option<testbed::workload_category>(argv, argv+argc, "--wkl", detail::default_workload);
 		opt_wkl_driver = dcs::cli::simple::get_option<testbed::workload_generator_category>(argv, argv+argc, "--wkl-driver", detail::default_workload_driver);
 		opt_wkl_driver_rain_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-rain-path", detail::default_workload_driver_rain_path);
-		opt_wkl_rain_java_xargs = dcs::cli::simple::get_options<std::string>(argv, argv+argc, "--wkl-rain-java-xargs", detail::default_workload_rain_java_xargs);
+		opt_wkl_rain_java_xargs = dcs::cli::simple::get_options<std::string>(argv, argv+argc, "--wkl-rain-java-xarg", detail::default_workload_rain_java_xarg);
 		opt_wkl_driver_ycsb_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-ycsb-path", detail::default_workload_driver_ycsb_path);
 		opt_wkl_ycsb_classpath = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-ycsb-classpath", detail::default_workload_ycsb_classpath);
 		opt_wkl_ycsb_db_class = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-ycsb-db-class", detail::default_workload_ycsb_db_class);
