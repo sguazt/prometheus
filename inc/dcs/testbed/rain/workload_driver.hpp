@@ -243,7 +243,9 @@ class workload_driver: public base_workload_driver<TraitsT>
 
 
 	public: workload_driver(workload_category wkl_cat)
-	: cmd_(detail::make_java_command()),
+	: wkl_cat_(wkl_cat),
+	  rain_home_("."),
+	  cmd_(detail::make_java_command()),
 	  args_(detail::make_rain_args(wkl_cat)),
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
@@ -254,7 +256,9 @@ class workload_driver: public base_workload_driver<TraitsT>
 
 	public: workload_driver(workload_category wkl_cat,
 							::std::string const& rain_home)
-	: cmd_(detail::make_java_command()),
+	: wkl_cat_(wkl_cat),
+	  rain_home_(rain_home),
+	  cmd_(detail::make_java_command()),
 	  args_(detail::make_rain_args(wkl_cat, rain_home)),
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
@@ -266,7 +270,9 @@ class workload_driver: public base_workload_driver<TraitsT>
 	public: workload_driver(workload_category wkl_cat,
 							::std::string const& rain_home,
 							::std::string const& java_home)
-	: cmd_(detail::make_java_command(java_home)),
+	: wkl_cat_(wkl_cat),
+	  rain_home_(rain_home),
+	  cmd_(detail::make_java_command(java_home)),
 	  args_(detail::make_rain_args(wkl_cat, rain_home)),
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
@@ -281,7 +287,9 @@ class workload_driver: public base_workload_driver<TraitsT>
 							::std::string const& java_home,
 							FwdIterT arg_first,
 							FwdIterT arg_last)
-	: cmd_(detail::make_java_command(java_home)),
+	: wkl_cat_(wkl_cat),
+	  rain_home_(rain_home),
+	  cmd_(detail::make_java_command(java_home)),
 	  args_(detail::make_rain_args(wkl_cat, rain_home, arg_first, arg_last)),
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
@@ -312,6 +320,12 @@ class workload_driver: public base_workload_driver<TraitsT>
 			logger_thread_.interrupt();
 			logger_thread_.join();
 		}
+	}
+
+	public: template <typename FwdIterT>
+			void java_arguments(FwdIterT arg_first, FwdIterT arg_last)
+	{
+		args_ = detail::make_rain_args(wkl_cat_, rain_home_, arg_first, arg_last);
 	}
 
 	public: ::std::string metrics_file_path() const
@@ -537,6 +551,8 @@ class workload_driver: public base_workload_driver<TraitsT>
 	}
 
 
+	private: workload_category wkl_cat_;
+	private: ::std::string rain_home_;
 	private: ::std::string cmd_;
 	private: ::std::vector< ::std::string > args_;
 	private: ::std::string metrics_path_;

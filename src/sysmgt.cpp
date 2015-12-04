@@ -222,6 +222,7 @@ enum app_manager_category
 const dcs::testbed::workload_category default_workload = dcs::testbed::olio_workload;
 const dcs::testbed::workload_generator_category default_workload_driver = dcs::testbed::rain_workload_generator;
 const ::std::string default_workload_driver_rain_path("/usr/local/opt/rain-workload-toolkit");
+const ::std::string default_workload_rain_java_xargs("");
 const ::std::string default_workload_driver_ycsb_path("/usr/local/opt/YCSB");
 const ::std::string default_workload_ycsb_prop_path("workloads/workloada");
 const ::std::string default_workload_ycsb_classpath;
@@ -590,6 +591,10 @@ void usage(char const* progname)
 				<< " --wkl-driver-ycsb-path <name>" << ::std::endl
 				<< "   The full path to the YCSB workload driver." << ::std::endl
 				<< "   [default: '" << default_workload_driver_ycsb_path << "']." << ::std::endl
+				<< " --wkl-rain-java-xargs <argument>" << ::std::endl
+				<< "   The argument to pass to the java command." << ::std::endl
+				<< "   Repeat this option as many times as is the number of argument you want to specify." << ::std::endl
+				<< "   [default: '" << default_workload_rain_java_xargs << "']." << ::std::endl
 				<< " --wkl-ycsb-prop-path <name>" << ::std::endl
 				<< "   The full path to a YCSB workload property file." << ::std::endl
 				<< "   Repeat this option as many times as is the number of property files you want to use." << ::std::endl
@@ -696,6 +701,7 @@ int main(int argc, char *argv[])
 	testbed::workload_category opt_wkl;
 	testbed::workload_generator_category opt_wkl_driver;
 	std::string opt_wkl_driver_rain_path;
+	std::vector<std::string> opt_wkl_rain_java_xargs;
 	std::string opt_wkl_driver_ycsb_path;
 	std::vector<std::string> opt_wkl_ycsb_prop_paths;
 	std::string opt_wkl_ycsb_classpath;
@@ -734,6 +740,7 @@ int main(int argc, char *argv[])
 		opt_wkl = dcs::cli::simple::get_option<testbed::workload_category>(argv, argv+argc, "--wkl", detail::default_workload);
 		opt_wkl_driver = dcs::cli::simple::get_option<testbed::workload_generator_category>(argv, argv+argc, "--wkl-driver", detail::default_workload_driver);
 		opt_wkl_driver_rain_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-rain-path", detail::default_workload_driver_rain_path);
+		opt_wkl_rain_java_xargs = dcs::cli::simple::get_options<std::string>(argv, argv+argc, "--wkl-rain-java-xargs", detail::default_workload_rain_java_xargs);
 		opt_wkl_driver_ycsb_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-ycsb-path", detail::default_workload_driver_ycsb_path);
 		opt_wkl_ycsb_classpath = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-ycsb-classpath", detail::default_workload_ycsb_classpath);
 		opt_wkl_ycsb_db_class = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-ycsb-db-class", detail::default_workload_ycsb_db_class);
@@ -892,6 +899,17 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
+		for (std::size_t i = 0; i < opt_wkl_rain_java_xargs.size(); ++i)
+		{
+			if (i > 0)
+			{
+				oss << ", ";
+			}
+			oss << "Workload RAIN Java extra arguments: " << opt_wkl_rain_java_xargs[i];
+		}
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
 		oss << "Workload driver YCSB path: " << opt_wkl_driver_ycsb_path;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
@@ -989,7 +1007,14 @@ int main(int argc, char *argv[])
 		{
 			case testbed::rain_workload_generator:
 				{
-					boost::shared_ptr< testbed::rain::workload_driver<traits_type> > p_drv_impl = boost::make_shared< testbed::rain::workload_driver<traits_type> >(opt_wkl, opt_wkl_driver_rain_path);
+					boost::shared_ptr< testbed::rain::workload_driver<traits_type> > p_drv_impl;
+					p_drv_impl = boost::make_shared< testbed::rain::workload_driver<traits_type> >(opt_wkl,
+																								   opt_wkl_driver_rain_path);
+					if (opt_wkl_rain_java_xargs.size() > 0 && !opt_wkl_rain_java_xargs[0].empty())
+					{
+						p_drv_impl->java_arguments(opt_wkl_rain_java_xargs.begin(), opt_wkl_rain_java_xargs.end());
+					}
+
 					p_app->register_sensor(opt_slo_metric, p_drv_impl->sensor(opt_slo_metric));
 					//p_drv = boost::make_shared< testbed::rain::workload_driver<traits_type> >(drv_impl);
 					p_drv = p_drv_impl;
@@ -997,12 +1022,13 @@ int main(int argc, char *argv[])
 				break;
 			case testbed::ycsb_workload_generator:
 				{
-					boost::shared_ptr< testbed::ycsb::workload_driver<traits_type> > p_drv_impl = boost::make_shared< testbed::ycsb::workload_driver<traits_type> >(opt_wkl,
-																																									opt_wkl_ycsb_prop_paths.begin(),
-																																									opt_wkl_ycsb_prop_paths.end(),
-																																									opt_wkl_driver_ycsb_path,
-																																									opt_wkl_ycsb_db_class,
-																																									opt_wkl_ycsb_classpath);
+					boost::shared_ptr< testbed::ycsb::workload_driver<traits_type> > p_drv_impl;
+					p_drv_impl = boost::make_shared< testbed::ycsb::workload_driver<traits_type> >(opt_wkl,
+																								   opt_wkl_ycsb_prop_paths.begin(),
+																								   opt_wkl_ycsb_prop_paths.end(),
+																								   opt_wkl_driver_ycsb_path,
+																								   opt_wkl_ycsb_db_class,
+																								   opt_wkl_ycsb_classpath);
 					p_app->register_sensor(opt_slo_metric, p_drv_impl->sensor(opt_slo_metric));
 					//p_drv = boost::make_shared< testbed::ycsb::workload_driver<traits_type> >(drv_impl);
 					p_drv = p_drv_impl;
