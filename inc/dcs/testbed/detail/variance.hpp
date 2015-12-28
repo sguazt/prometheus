@@ -35,7 +35,8 @@ ValueT compensated_variance(IterT first, IterT last)
         sum1 += dev*dev;
         sum2 += dev;
 	}
-    return (sum1 - sum2*sum2/n)/(n - 1);
+
+    return (n > 1) ? ((sum1 - sum2*sum2/n)/(n - 1)) : 0;
 }
 
 template <typename ValueT, typename IterT>
@@ -51,7 +52,7 @@ ValueT boost_variance(IterT first, IterT last)
 		++n;
 	}
 
-	return boost::accumulators::variance(acc)*n/static_cast<ValueT>(n-1);
+	return (n > 1) ? boost::accumulators::variance(acc)*n/static_cast<ValueT>(n-1) : 0;
 }
 
 template <typename ValueT, typename IterT>
