@@ -53,7 +53,8 @@ class experiment_stats_gatherer: public base_experiment_tracker<TraitsT>
 	private: typedef typename base_type::app_experiment_type app_experiment_type;
 	private: typedef typename base_virtual_machine<traits_type>::identifier_type vm_identifier_type;
 	private: typedef ::boost::accumulators::accumulator_set<real_type,
-															::boost::accumulators::stats< ::boost::accumulators::tag::mean,
+															::boost::accumulators::stats< ::boost::accumulators::tag::count,
+		 																				  ::boost::accumulators::tag::mean,
 																						  ::boost::accumulators::tag::variance,
 																						  ::boost::accumulators::tag::min,
 																						  ::boost::accumulators::tag::max > > summary_accumulator_type;
@@ -74,7 +75,11 @@ class experiment_stats_gatherer: public base_experiment_tracker<TraitsT>
 
 	public: real_type app_variance(app_experiment_identifier_type id, application_performance_category cat)
 	{
-		return ::boost::accumulators::variance(app_perfs_summary_.at(id).at(cat));
+		//NOTE: Boost.Accumulators's variance returns the biased variance.
+		//		Instead we are interested in the unbiased variance
+
+		const std::size_t n = ::boost::accumulators::count(app_perfs_summary_.at(id).at(cat));
+		return (n > 1) ? ::boost::accumulators::variance(app_perfs_summary_.at(id).at(cat))*n/static_cast<real_type>(n-1) : 0;
 	}
 
 	public: real_type app_min(app_experiment_identifier_type id, application_performance_category cat)
