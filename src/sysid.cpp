@@ -789,13 +789,14 @@ int main(int argc, char *argv[])
 	{
 		std::ostringstream oss;
 
+		oss << "VM URIs: ";
 		for (std::size_t i = 0; i < opt_vm_uris.size(); ++i)
 		{
 			if (i > 0)
 			{
 				oss << ", ";
 			}
-			oss << "VM URI: " << opt_vm_uris[i];
+			oss << "'" << opt_vm_uris[i] << "'";
 		}
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
@@ -972,13 +973,14 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
+		oss << "VM performance categories: ";
 		for (std::size_t i = 0; i < opt_vm_perfs.size(); ++i)
 		{
 			if (i > 0)
 			{
 				oss << ", ";
 			}
-			oss << "VM performance category: " << opt_vm_perfs[i];
+			oss << "'" << opt_vm_perfs[i] << "'";
 		}
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
@@ -995,13 +997,14 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
+		oss << "Workload RAIN Java extra arguments: ";
 		for (std::size_t i = 0; i < opt_wkl_rain_java_xargs.size(); ++i)
 		{
 			if (i > 0)
 			{
 				oss << ", ";
 			}
-			oss << "Workload RAIN Java extra arguments: " << opt_wkl_rain_java_xargs[i];
+			oss << "'" << opt_wkl_rain_java_xargs[i] << "'";
 		}
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
@@ -1018,13 +1021,14 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
+		oss << "Workload YCSB property files: ";
 		for (std::size_t i = 0; i < opt_wkl_ycsb_prop_paths.size(); ++i)
 		{
 			if (i > 0)
 			{
 				oss << ", ";
 			}
-			oss << "Workload YCSB property file: " << opt_wkl_ycsb_prop_paths[i];
+			oss << "'" << opt_wkl_ycsb_prop_paths[i] << "'";
 		}
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
