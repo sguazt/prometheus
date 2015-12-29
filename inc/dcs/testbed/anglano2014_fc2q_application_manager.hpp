@@ -627,6 +627,7 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 				*p_dat_ofs_ << "," << deltacs[i];
 			}
 			*p_dat_ofs_ << "," << ctl_count_ << "," << ctl_skip_count_ << "," << ctl_fail_count_;
+            *p_dat_ofs_ << "," << (cpu_timer.elapsed().user+cpu_timer.elapsed().system);
 			*p_dat_ofs_ << ::std::endl;
 		}
 
