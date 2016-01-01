@@ -624,6 +624,7 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " 
 						else
 						{
 DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> C(k+1) not set!");//XXX
+							new_xshares[cat].push_back(old_share);
 						}
 					}
 				}
