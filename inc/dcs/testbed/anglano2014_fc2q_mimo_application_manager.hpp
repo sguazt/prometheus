@@ -324,6 +324,14 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 				*p_dat_ofs_ << ",\"DeltaC_{" << vms[i]->id() << "}(k)\""
 							<< ",\"DeltaM_{" << vms[i]->id() << "}(k)\"";
 			}
+			//NOTE: C(k) and M(k) may differ from CPUShare(k) and MemShare(k) for several reasons:
+			// - There is a latency in setting the new share (e.g., this is usually the case of memory, whereby the new share is not immediately set but the memory is (de)allocated incrementally)
+			// - There is another component between this controller and physical resources that may change the wanted share (e.g., if a physical resource is shared among different VMs, there can be a component that try to allocate the contented physical resource fairly).
+			for (std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"C_{" << vms[i]->id() << "}(k)\""
+							<< ",\"M_{" << vms[i]->id() << "}(k)\"";
+			}
 			*p_dat_ofs_ << ",\"# Controls\",\"# Skip Controls\",\"# Fail Controls\"";
             *p_dat_ofs_ << ",\"Elapsed Time\"";
 			*p_dat_ofs_ << std::endl;
@@ -420,6 +428,7 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 		bool skip_ctl = false;
 
 		std::map<virtual_machine_performance_category,std::vector<real_type> > old_xshares;
+		std::map<virtual_machine_performance_category,std::vector<real_type> > new_xshares;
 		std::map<virtual_machine_performance_category,std::vector<real_type> > xress;
 		std::map< virtual_machine_performance_category, std::vector<real_type> > deltaxs;
 		real_type err = std::numeric_limits<real_type>::quiet_NaN();
@@ -609,6 +618,12 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " 
 									break;
 							}
 DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> C(k+1): " << new_share);//XXX
+
+							new_xshares[cat].push_back(new_share);
+						}
+						else
+						{
+DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> C(k+1) not set!");//XXX
 						}
 					}
 				}
@@ -633,6 +648,21 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 		// Export to file
 		if (p_dat_ofs_)
 		{
+			// Initialize data structures if needed
+
+			if (new_xshares.size() == 0)
+			{
+				for (::std::size_t i = 0; i < nvms; ++i)
+				{
+					const vm_pointer p_vm = vms[i];
+
+					// check: p_vm != null
+					DCS_DEBUG_ASSERT( p_vm );
+
+					new_xshares[cpu_util_virtual_machine_performance].push_back(p_vm->cpu_share());
+					new_xshares[memory_util_virtual_machine_performance].push_back(p_vm->memory_share());
+				}
+			}
 			if (old_xshares.size() == 0)
 			{
 				for (::std::size_t i = 0; i < nvms; ++i)
@@ -664,6 +694,8 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 					xress[vm_cat].assign(nvms, std::numeric_limits<real_type>::quiet_NaN());
 				}
 			}
+
+			// Write to output stream
 
 			*p_dat_ofs_ << std::time(0) << ",";
 			for (std::size_t i = 0; i < nvms; ++i)
@@ -749,6 +781,16 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 					const real_type deltax = deltaxs.at(vm_cat).at(i);
 
 					*p_dat_ofs_ << "," << deltax;
+				}
+			}
+			for (std::size_t i = 0; i < nvms; ++i)
+			{
+				for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
+				{
+					const virtual_machine_performance_category vm_cat = vm_perf_cats_[j];
+					const real_type xshare = new_xshares.at(vm_cat).at(i);
+
+					*p_dat_ofs_ << "," << xshare;
 				}
 			}
 			*p_dat_ofs_ << "," << ctl_count_ << "," << ctl_skip_count_ << "," << ctl_fail_count_;
