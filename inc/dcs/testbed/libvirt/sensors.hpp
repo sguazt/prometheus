@@ -318,7 +318,11 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 					std::string meminfo;
 					
 					boost::tie(sz, meminfo) = detail::meminfo_unpack(oss.str().c_str());
-					//std::cerr << "MEMINFO: " << meminfo << std::endl;
+
+					DCS_DEBUG_TRACE("CONFIG MAX MEM: " << cfg_max_mem);
+					DCS_DEBUG_TRACE("CURRENT MAX MEM: " << cur_max_mem);
+					DCS_DEBUG_TRACE("CURRENT MEM: " << detail::current_memory(p_conn_, p_dom_));
+					DCS_DEBUG_TRACE("MEMINFO: " << meminfo);
 
 					Json::Value root;   // will contains the root value after parsing
 					Json::Reader reader;
@@ -365,24 +369,26 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 							mem_avail = mem_free+mem_cache;
 						}
 
-						//long double mem_tot = 0;
-						//if (root.isMember("MemTotal"))
-						//{
-						//	std::istringstream iss;
-						//	iss.str(root.get("MemTotal", "").asString());
-						//	iss >> mem_tot;
-						//}
-						//else
-						//{
-						//	mem_tot = static_cast<long double>(node_info.memory);
-						//}
+						long double mem_tot = 0;
+						if (root.isMember("MemTotal"))
+						{
+							std::istringstream iss;
+							iss.str(root.get("MemTotal", "").asString());
+							iss >> mem_tot;
+						}
+						else
+						{
+							//mem_tot = static_cast<long double>(cur_max_mem);
+							mem_tot = detail::current_memory(p_conn_, p_dom_);
+						}
 
 						//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
 						//      So use the 'memory' field which should give a reasonable value.
-						////mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(node_info.maxMem));
-						////mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.memory));
-						//mem_util_ = 1.0-static_cast<double>(mem_avail/mem_tot);
-						mem_util_ = static_cast<double>((cur_max_mem-mem_avail)/static_cast<long double>(cfg_max_mem));
+						//////mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(node_info.maxMem));
+						//////mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.memory));
+						////mem_util_ = 1.0-static_cast<double>(mem_avail/mem_tot);
+						//mem_util_ = static_cast<double>((cur_max_mem-mem_avail)/static_cast<long double>(cfg_max_mem));
+						mem_util_ = static_cast<double>((mem_tot-mem_avail)/static_cast<long double>(cfg_max_mem));
 					}
 					else
 					{
