@@ -466,6 +466,8 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 
 					p_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, cres);
 					p_fuzzy_eng_->setInputValue(rgain_fuzzy_var_name, rgain);
+					p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMinimum(-cres);
+					p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMaximum(1-old_shares[i]);
 
 					p_fuzzy_eng_->process();
 
