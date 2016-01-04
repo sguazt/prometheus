@@ -348,8 +348,8 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 		DCS_DEBUG_TRACE("(" << this << ") BEGIN Do SAMPLE - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << ctl_fail_count_);
 
 		// Collect input values
-		const in_sensor_iterator in_sens_end_it = in_sensors_.end();
-		for (in_sensor_iterator in_sens_it = in_sensors_.begin();
+		for (in_sensor_iterator in_sens_it = in_sensors_.begin(),
+								in_sens_end_it = in_sensors_.end();
 			 in_sens_it != in_sens_end_it;
 			 ++in_sens_it)
 		{
