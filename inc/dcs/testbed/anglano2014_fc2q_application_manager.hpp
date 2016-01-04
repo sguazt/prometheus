@@ -272,6 +272,13 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 			{
 				*p_dat_ofs_ << ",\"DeltaC_{" << vms[i]->id() << "}(k)\"";
 			}
+			//NOTE: C(k) may differ from CPUShare(k) for several reasons:
+			// - There is a latency in setting the new share (e.g., this is usually not the case of CPU but of other resources like the memory, whereby the new share is not immediately set but the memory is (de)allocated incrementally)
+			// - There is another component between this controller and physical resources that may change the wanted share (e.g., if a physical resource is shared among different VMs, there can be a component that try to allocate the contented physical resource fairly).
+			for (std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"C_{" << vms[i]->id() << "}(k)\"";
+			}
 			*p_dat_ofs_ << ",\"# Controls\",\"# Skip Controls\",\"# Fail Controls\"";
             *p_dat_ofs_ << ",\"Elapsed Time\"";
 			*p_dat_ofs_ << ::std::endl;
@@ -288,19 +295,15 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 		DCS_DEBUG_TRACE("(" << this << ") BEGIN Do SAMPLE - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << ctl_fail_count_);
 
 		// Collect input values
-		const in_sensor_iterator in_sens_end_it = in_sensors_.end();
-		for (in_sensor_iterator in_sens_it = in_sensors_.begin();
+		for (in_sensor_iterator in_sens_it = in_sensors_.begin(),
+								in_sens_end_it = in_sensors_.end();
 			 in_sens_it != in_sens_end_it;
 			 ++in_sens_it)
 		{
 			const virtual_machine_performance_category cat = in_sens_it->first;
 
-			//const ::std::size_t n = in_sens_it->second.size();
-			//for (::std::size_t i = 0; i < n; ++i)
-			//{
-			//	sensor_pointer p_sens = in_sens_it->second.at(i);
-			const typename in_sensor_map::mapped_type::const_iterator vm_end_it = in_sens_it->second.end();
-			for (typename in_sensor_map::mapped_type::const_iterator vm_it = in_sens_it->second.begin();
+			for (typename in_sensor_map::mapped_type::const_iterator vm_it = in_sens_it->second.begin(),
+																	 vm_end_it = in_sens_it->second.end();
 				 vm_it != vm_end_it;
 				 ++vm_it)
 			{
@@ -327,8 +330,8 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 		}
 
 		// Collect output values
-		const out_sensor_iterator out_sens_end_it = out_sensors_.end();
-		for (out_sensor_iterator out_sens_it = out_sensors_.begin();
+		for (out_sensor_iterator out_sens_it = out_sensors_.begin(),
+								 out_sens_end_it = out_sensors_.end();
 			 out_sens_it != out_sens_end_it;
 			 ++out_sens_it)
 		{
@@ -370,6 +373,7 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 		bool skip_ctl = false;
 
 		std::vector<real_type> old_shares;
+		std::vector<real_type> new_shares;
 		std::vector<real_type> deltacs;
 		std::vector<real_type> cress;
 		std::map<application_performance_category,real_type> rgains;
@@ -401,6 +405,7 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 			const real_type c = p_vm->cpu_share();
 
 			cress.push_back(c-uh);
+			old_shares.push_back(c);
 DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << cress.at(i));//XXX
 		}
 
@@ -501,15 +506,21 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << " -> DeltaC(k+1): " << deltacs.at(i));/
 
 					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - old-share: " << old_share << " - new-share: " << new_share);
 
-					old_shares.push_back(old_share);
-
 					if (::std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share))
 					{
 						p_vm->cpu_share(new_share);
 DCS_DEBUG_TRACE("VM " << vms[i]->id() << " -> C(k+1): " << new_share);//XXX
+
+						new_shares.push_back(new_share);
+					}
+					else
+					{
+DCS_DEBUG_TRACE("VM " << vms[i]->id() << " -> C(k+1) not set!");//XXX
+
+						new_shares.push_back(old_share);
 					}
 				}
-DCS_DEBUG_TRACE("Optimal control applied");//XXX
+DCS_DEBUG_TRACE("Control applied");//XXX
 			}
 			else
 			{
@@ -530,6 +541,18 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 		// Export to file
 		if (p_dat_ofs_)
 		{
+			if (new_shares.size() == 0)
+			{
+				for (::std::size_t i = 0; i < nvms; ++i)
+				{
+					const vm_pointer p_vm = vms[i];
+
+					// check: p_vm != null
+					DCS_DEBUG_ASSERT( p_vm );
+
+					new_shares.push_back(p_vm->cpu_share());
+				}
+			}
 			if (old_shares.size() == 0)
 			{
 				for (::std::size_t i = 0; i < nvms; ++i)
@@ -625,6 +648,10 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 			for (std::size_t i = 0; i < nvms; ++i)
 			{
 				*p_dat_ofs_ << "," << deltacs[i];
+			}
+			for (std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << "," << new_shares[i];
 			}
 			*p_dat_ofs_ << "," << ctl_count_ << "," << ctl_skip_count_ << "," << ctl_fail_count_;
             *p_dat_ofs_ << "," << (cpu_timer.elapsed().user+cpu_timer.elapsed().system);
