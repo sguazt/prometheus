@@ -357,7 +357,8 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
-		return static_cast<real_type>(detail::current_memory(p_vmm_->connection(), p_dom_));
+		//return static_cast<real_type>(detail::current_memory(p_vmm_->connection(), p_dom_));
+		return static_cast<real_type>(detail::max_memory(p_vmm_->connection(), p_dom_));
 	}
 
 	private: void do_memory_share(real_type share)
@@ -390,11 +391,16 @@ DCS_DEBUG_TRACE("Setting Memory: " << mem << " (share: " << share << ")");//XXX
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
-		const unsigned long max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
-		const unsigned long cur_mem = detail::current_memory(p_vmm_->connection(), p_dom_);
+//		const unsigned long max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
+//		const unsigned long cur_mem = detail::current_memory(p_vmm_->connection(), p_dom_);
+//
+//DCS_DEBUG_TRACE("Getting Memory: " << cur_mem << " (share: " << (cur_mem/static_cast<real_type>(max_mem)) << ")");//XXX
+//		return cur_mem/static_cast<real_type>(max_mem);
+		const unsigned long cfg_max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
+		const unsigned long cur_max_mem = detail::max_memory(p_vmm_->connection(), p_dom_);
 
-DCS_DEBUG_TRACE("Getting Memory: " << cur_mem << " (share: " << (cur_mem/static_cast<real_type>(max_mem)) << ")");//XXX
-		return cur_mem/static_cast<real_type>(max_mem);
+DCS_DEBUG_TRACE("Getting Memory: " << cur_max_mem << " (share: " << (cur_max_mem/static_cast<real_type>(cfg_max_mem)) << ")");//XXX
+		return cur_max_mem/static_cast<real_type>(cfg_max_mem);
 	}
 
 	private: sensor_pointer do_sensor(virtual_machine_performance_category cat) const
