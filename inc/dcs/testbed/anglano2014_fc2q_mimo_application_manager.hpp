@@ -470,6 +470,7 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 						break;
 				}
 				xress[cat].push_back(c-uh);
+				old_xshares[cat].push_back(c);
 DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << xress.at(cat).at(i));//XXX
 			}
 		}
@@ -529,9 +530,13 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 						{
 							case cpu_util_virtual_machine_performance:
 								p_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, xres);
+								p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMinimum(-xres);
+								p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMaximum(1-old_xshares.at(vm_cat)[i]);
 								break;
 							case memory_util_virtual_machine_performance:
 								p_fuzzy_eng_->setInputValue(mres_fuzzy_var_name, xres);
+								p_fuzzy_eng_->getOutputVariable(deltam_fuzzy_var_name)->setMinimum(-xres);
+								p_fuzzy_eng_->getOutputVariable(deltam_fuzzy_var_name)->setMaximum(1-old_xshares.at(vm_cat)[i]);
 								break;
 						}
 					}
@@ -600,7 +605,7 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " 
 								old_share = p_vm->memory_share();
 								break;
 						}
-						old_xshares[cat].push_back(old_share);
+						//old_xshares[cat].push_back(old_share);
 
 						const real_type new_share = std::max(std::min(old_share+deltaxs[cat][i], 1.0), 0.0);
 
@@ -628,7 +633,7 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " 
 						}
 					}
 				}
-DCS_DEBUG_TRACE("Optimal control applied");//XXX
+DCS_DEBUG_TRACE("Control applied");//XXX
 			}
 			else
 			{
