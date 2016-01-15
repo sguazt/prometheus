@@ -548,12 +548,93 @@ int num_vcpus(virConnectPtr conn, virDomainPtr dom, int flags)
 	DCS_DEBUG_ASSERT( conn );
 	DCS_DEBUG_ASSERT( dom );
 
+	// Try the new API first; if it fails because we are talking
+	// to an older daemon, generally we try a fallback API before giving up.
+	// Flag VIR_DOMAIN_AFFECT_CURRENT requires the new API, since we don't
+	// know whether the domain is running or inactive.
+
 	int ret = virDomainGetVcpusFlags(dom, flags);
 	if (0 > ret)
 	{
-		::std::ostringstream oss;
-		oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
-		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		if (flags & VIR_DOMAIN_VCPU_GUEST)
+		{
+			::std::ostringstream oss;
+			oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+
+		if (!(flags & (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG))
+			&& virDomainIsActive(dom) == 1)
+		{
+			 flags |= VIR_DOMAIN_AFFECT_LIVE;
+		}
+
+		if (flags & VIR_DOMAIN_AFFECT_LIVE)
+		{
+			if (flags & VIR_DOMAIN_VCPU_MAXIMUM)
+			{
+				ret = virDomainGetMaxVcpus(dom);
+			}
+			else
+			{
+				virDomainInfo info;
+				ret = virDomainGetInfo(dom, &info);
+				if (ret < 0)
+				{
+					::std::ostringstream oss;
+					oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+					DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				}
+
+				ret = info.nrVirtCpu;
+			}
+		}
+		else
+		{
+/*TODO: parse domain XML
+			char *def = NULL;
+			xmlDocPtr xml = NULL;
+			xmlXPathContextPtr ctxt = NULL;
+
+			def = virDomainGetXMLDesc(dom, VIR_DOMAIN_XML_INACTIVE);
+			if (def == 0)
+			{
+				::std::ostringstream oss;
+				oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+			}
+
+			xml = virXMLParseStringCtxt(def, _("(domain_definition)"), &ctxt);
+			if (xml == 0)
+			{
+				::std::ostringstream oss;
+				oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+			}
+
+			if (flags & VIR_DOMAIN_VCPU_MAXIMUM)
+			{
+				if (virXPathInt("string(/domain/vcpus)", ctxt, &count) < 0)
+				{
+					::std::ostringstream oss;
+					oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+					DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				}
+			}
+			else
+			{
+				if (virXPathInt("string(/domain/vcpus/@current)", ctxt, &count) < 0)
+				{
+					::std::ostringstream oss;
+					oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+					DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				}
+			}
+*/
+			::std::ostringstream oss;
+			oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
 	}
 
 	return ret;

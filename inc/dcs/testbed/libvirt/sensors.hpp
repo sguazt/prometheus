@@ -157,8 +157,12 @@ class cpu_utilization_sensor: public base_sensor<TraitsT>
 				int nvcpus = detail::num_vcpus(p_conn_, p_dom_, VIR_DOMAIN_VCPU_MAXIMUM);
 
 				cpu_util_ /= static_cast<double>(nvcpus);
+DCS_DEBUG_TRACE("nsec-used: " << ns_used << " - nsec-elaps: " << ns_elapsed << " - #vCPUs: " << nvcpus << " --> UTIL: " << cpu_util_);//XXX
 			}
+			else
+			{
 DCS_DEBUG_TRACE("nsec-used: " << ns_used << " - nsec-elaps: " << ns_elapsed << " --> UTIL: " << cpu_util_);//XXX
+			}
 		}
 	}
 
