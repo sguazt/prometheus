@@ -109,6 +109,108 @@ class dom_stats
 		}
 	}
 
+	public: int num_vcpus(int flags)
+	{
+		assert( conn_ );
+		assert( dom_ );
+
+		int ret = 0;
+
+		//if (checkState &&
+		//  ((flags & VIR_DOMAIN_AFFECT_LIVE && virDomainIsActive(dom) < 1) ||
+		//   (flags & VIR_DOMAIN_AFFECT_CONFIG && virDomainIsPersistent(dom) < 1)))
+		//  return -1;
+
+		// In all cases, try the new API first; if it fails because we are talking
+		// to an older daemon, generally we try a fallback API before giving up.
+		// The flag VIR_DOMAIN_AFFECT_CURRENT requires the new API, since we don't
+		// know whether the domain is running or inactive.
+		ret = virDomainGetVcpusFlags(dom_, flags);
+		if (ret < 0)
+		{
+			if (flags & VIR_DOMAIN_VCPU_GUEST)
+			{
+				::std::ostringstream oss;
+				oss << "Failed to retrieve vCPU count from \"" << virDomainGetName(dom_) << "\": " << utility::last_error(conn_);
+				throw ::std::runtime_error(oss.str());
+			}
+
+			if (!(flags & (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG)) && virDomainIsActive(dom_) == 1)
+			{
+				 flags |= VIR_DOMAIN_AFFECT_LIVE;
+			}
+
+			if (flags & VIR_DOMAIN_AFFECT_LIVE)
+			{
+				if (flags & VIR_DOMAIN_VCPU_MAXIMUM)
+				{
+					ret = virDomainGetMaxVcpus(dom_);
+				}
+				else
+				{
+					virDomainInfo info;
+					ret = virDomainGetInfo(dom_, &info);
+					if (ret < 0)
+					{
+						::std::ostringstream oss;
+						oss << "Failed to query information for domain \"" << virDomainGetName(dom_) << "\": " << utility::last_error(conn_);
+						throw ::std::runtime_error(oss.str());
+					}
+
+					ret = info.nrVirtCpu;
+				}
+			}
+			else
+			{
+/*TODO
+				char *def = NULL;
+				xmlDocPtr xml = NULL;
+				xmlXPathContextPtr ctxt = NULL;
+
+				def = virDomainGetXMLDesc(dom_, VIR_DOMAIN_XML_INACTIVE);
+				if (def == 0)
+				{
+					::std::ostringstream oss;
+					oss << "Failed to query XML for domain \"" << virDomainGetName(dom_) << "\": " << utility::last_error(conn_);
+					throw ::std::runtime_error(oss.str());
+				}
+
+				xml = virXMLParseStringCtxt(def, _("(domain_definition)"), &ctxt);
+				if (xml == 0)
+				{
+					::std::ostringstream oss;
+					oss << "Failed to parse XML for domain \"" << virDomainGetName(dom_) << "\": " << utility::last_error(conn_);
+					throw ::std::runtime_error(oss.str());
+				}
+
+				if (flags & VIR_DOMAIN_VCPU_MAXIMUM)
+				{
+					if (virXPathInt("string(/domain/vcpus)", ctxt, &count) < 0)
+					{
+						::std::ostringstream oss;
+						oss << "Failed to query retrieve maximum vcpu count for domain \"" << virDomainGetName(dom_) << "\": " << utility::last_error(conn_);
+						throw ::std::runtime_error(oss.str());
+					}
+				}
+				else
+				{
+					if (virXPathInt("string(/domain/vcpus/@current)", ctxt, &count) < 0)
+					{
+						::std::ostringstream oss;
+						oss << "Failed to query retrieve current vcpu count for domain \"" << virDomainGetName(dom_) << "\": " << utility::last_error(conn_);
+						throw ::std::runtime_error(oss.str());
+					}
+				}
+*/
+				::std::ostringstream oss;
+				oss << "Failed to query retrieve vCPU count for domain \"" << virDomainGetName(dom_) << "\": " << utility::last_error(conn_);
+				throw ::std::runtime_error(oss.str());
+			}
+		}
+
+		return ret;
+	}
+
 	public: int num_cpus(int flags)
 	{
 		assert( conn_ );
@@ -349,6 +451,7 @@ int main(int argc, char* argv[])
 
 		std::cout << "DOMAIN: " << dom_name << " (hostname: " << stats.hostname() << ")" << std::endl;
 
+		std::cout << "#vCPUs: " << stats.num_vcpus(VIR_DOMAIN_AFFECT_CURRENT) << std::endl;
 		std::cout << "#CPUs: " << stats.num_cpus(VIR_DOMAIN_AFFECT_CURRENT) << std::endl;
 
 		for (std::size_t i = 0; /*i < n*/true; ++i)
@@ -356,7 +459,7 @@ int main(int argc, char* argv[])
 			::sleep(5);
 			stats.collect();
 			std::cout << "#" << i << " STATS:" << std::endl;
-			std::cout << "  %CPU: " << std::fixed << stats.percent_cpu() << "%" << std::endl;
+			std::cout << "  %vCPU: " << std::fixed << stats.percent_cpu() << "%" << std::endl;
 			std::cout << "  %RAM: " << std::fixed << stats.percent_ram() << "%" << std::endl;
 		}
 	}
