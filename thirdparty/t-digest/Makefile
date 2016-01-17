@@ -1,7 +1,7 @@
 # verify that JAVA_HOME is set to something (should be the bare minimum)
 ifndef JAVA_HOME
-	$(warning WARNING: Variable JAVA_HOME is not set! Use default value.)
-	JAVA_HOME=/usr/lib/jvm/java
+$(warning WARNING: Variable JAVA_HOME is not set! Use default value.)
+JAVA_HOME=/usr/lib/jvm/java
 endif
 
 #
