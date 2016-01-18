@@ -212,6 +212,7 @@ enum app_manager_category
 	albano2013_fuzzyqe_app_manager,
 	anglano2014_fc2q_app_manager,
 	anglano2014_fc2q_mimo_app_manager,
+	anglano2014_fc2q_mimo_v2_app_manager,
 	dummy_app_manager,
 	guazzone2015_anfis_ssmpc_app_manager,
 	lama2013_appleware_app_manager,
@@ -431,6 +432,10 @@ inline
 	{
 		cat = anglano2014_fc2q_mimo_app_manager;
 	}
+	else if (!s.compare("anglano2014_fc2q_mimo_v2"))
+	{
+		cat = anglano2014_fc2q_mimo_v2_app_manager;
+	}
 	else if (!s.compare("dummy"))
 	{
 		cat = dummy_app_manager;
@@ -473,7 +478,10 @@ inline
 			os << "anglano2014_fc2q";
 			break;
 		case anglano2014_fc2q_mimo_app_manager:
-			os << "anglano2014_mimo_fc2q";
+			os << "anglano2014_fc2q_mimo";
+			break;
+		case anglano2014_fc2q_mimo_v2_app_manager:
+			os << "anglano2014_fc2q_mimo_v2";
 			break;
 		case dummy_app_manager:
 			os << "dummy";
@@ -502,7 +510,8 @@ void usage(char const* progname)
 				<< "   Possible values are:" << ::std::endl
 				<< "   - 'albano2013': the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
 				<< "   - 'anglano2014_fc2q': the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
-				<< "   - 'anglano2014_fc2q_mimo'_mimo: a MIMO variant of the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
+				<< "   - 'anglano2014_fc2q_mimo': a MIMO variant of the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
+				<< "   - 'anglano2014_fc2q_mimo_v2': a MIMO variant of the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
 				<< "   - 'dummy': a 'do-nothing' application manager" << ::std::endl
 				<< "   - 'padala2009_autocontrol': the LQ controller described in (Padala et al., 2009)" << ::std::endl
 				<< "   - 'rao2013_dynaqos': the fuzzy controller described in (Rao et al., 2013)" << ::std::endl
@@ -1170,6 +1179,20 @@ int main(int argc, char *argv[])
 					}
 
 					p_mgr = boost::make_shared< testbed::anglano2014_fc2q_mimo_application_manager<traits_type> >(anglano2014_fc2q_mimo_mgr);
+				}
+				break;
+			case detail::anglano2014_fc2q_mimo_v2_app_manager:
+				{
+					const real_type beta = 0.9;
+
+					testbed::anglano2014_fc2q_mimo_v2_application_manager<traits_type> anglano2014_fc2q_mimo_v2_mgr;
+					anglano2014_fc2q_mimo_v2_mgr.smoothing_factor(beta);
+					if (!opt_app_manager_stats_file.empty())
+					{
+						anglano2014_fc2q_mimo_v2_mgr.export_data_to(opt_app_manager_stats_file);
+					}
+
+					p_mgr = boost::make_shared< testbed::anglano2014_fc2q_mimo_v2_application_manager<traits_type> >(anglano2014_fc2q_mimo_v2_mgr);
 				}
 				break;
 //TODO
