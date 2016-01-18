@@ -832,7 +832,7 @@ DCS_DEBUG_TRACE("Control applied");//XXX
 				}
 				const real_type yh = this->data_estimator(cat).estimate();
 				const real_type yr = tgt_it->second;
-				*p_dat_ofs_ << yr << "," << yh << "," << err << delta_err;
+				*p_dat_ofs_ << yr << "," << yh << "," << err << "," << delta_err;
 			}
 			for (std::size_t i = 0; i < nvms; ++i)
 			{
