@@ -163,6 +163,7 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 		p_ov->setEnabled(true);
 		p_ov->setName(deltac_fuzzy_var_name);
 		p_ov->setRange(-1, 1);
+		p_ov->setLockValueInRange(true);
 		p_ov->fuzzyOutput()->setAccumulation(new fl::AlgebraicSum());
 		p_ov->setDefuzzifier(new fl::Centroid());
 		p_ov->setDefaultValue(fl::nan);
