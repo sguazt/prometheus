@@ -138,8 +138,11 @@ class anglano2014_fc2q_mimo_v2_application_manager: public base_application_mana
 		p_iv->setName(cres_fuzzy_var_name);
 		p_iv->setRange(0.0, 1.0);
 		p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
+		//p_iv->addTerm(new fl::Ramp("LOW", 0.15, 0.00));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
+		//p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.15, 0.20));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
+		//p_iv->addTerm(new fl::Ramp("HIGH", 0.15, 1.00));
 		p_fuzzy_eng_->addInputVariable(p_iv);
 
 		p_iv = new fl::InputVariable();
@@ -147,8 +150,11 @@ class anglano2014_fc2q_mimo_v2_application_manager: public base_application_mana
 		p_iv->setName(mres_fuzzy_var_name);
 		p_iv->setRange(0.0, 1.0);
 		p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
+		//p_iv->addTerm(new fl::Ramp("LOW", 0.15, 0.00));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
+		//p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.15, 0.20));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
+		//p_iv->addTerm(new fl::Ramp("HIGH", 0.15, 1.00));
 		p_fuzzy_eng_->addInputVariable(p_iv);
 
 		p_iv = new fl::InputVariable();
@@ -156,8 +162,11 @@ class anglano2014_fc2q_mimo_v2_application_manager: public base_application_mana
 		p_iv->setName(err_fuzzy_var_name);
 		p_iv->setRange(-1, 1);
 		p_iv->addTerm(new fl::Ramp("NEG", 0.20, -0.40));
+		//p_iv->addTerm(new fl::Ramp("NEG", 0.15, -0.10));
 		p_iv->addTerm(new fl::Triangle("OK", 0.10, 0.20, 0.30));
+		//p_iv->addTerm(new fl::Triangle("OK", 0.00, 0.15, 0.30));
 		p_iv->addTerm(new fl::Ramp("POS", 0.30, 1.00));
+		//p_iv->addTerm(new fl::Ramp("POS", 0.15, 0.40));
 		p_fuzzy_eng_->addInputVariable(p_iv);
 
 		p_iv = new fl::InputVariable();
