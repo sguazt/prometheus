@@ -42,6 +42,7 @@
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
 #include <dcs/logging.hpp>
+#include <dcs/math/function/clamp.hpp>
 #include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
@@ -183,6 +184,7 @@ class anglano2014_fc2q_mimo_v2_application_manager: public base_application_mana
 		p_ov->setEnabled(true);
 		p_ov->setName(deltac_fuzzy_var_name);
 		p_ov->setRange(-1, 1);
+		p_ov->setLockValueInRange(true);
 		p_ov->fuzzyOutput()->setAccumulation(new fl::AlgebraicSum());
 		p_ov->setDefuzzifier(new fl::Centroid());
 		p_ov->setDefaultValue(fl::nan);
@@ -620,23 +622,28 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 
 					p_fuzzy_eng_->process();
 
+DCS_DEBUG_TRACE("FUZZY OUTPUT '" << deltac_fuzzy_var_name << "' - VALUE: " << p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->getValue() << " - FUZZY OUTPUT VALUE: " << p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->fuzzyOutputValue());//XXX
+DCS_DEBUG_TRACE("FUZZY OUTPUT '" << deltam_fuzzy_var_name << "' - VALUE: " << p_fuzzy_eng_->getOutputVariable(deltam_fuzzy_var_name)->getValue() << " - FUZZY OUTPUT VALUE: " << p_fuzzy_eng_->getOutputVariable(deltam_fuzzy_var_name)->fuzzyOutputValue());//XXX
+
 					for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
 					{
 						const virtual_machine_performance_category cat = vm_perf_cats_[j];
 
+						real_type fuzzy_deltax = 0;
 						real_type deltax = 0;
 						switch (cat)
 						{
 							case cpu_util_virtual_machine_performance:
-								deltax = p_fuzzy_eng_->getOutputValue(deltac_fuzzy_var_name);
+								fuzzy_deltax = p_fuzzy_eng_->getOutputValue(deltac_fuzzy_var_name);
 								break;
 							case memory_util_virtual_machine_performance:
-								deltax = p_fuzzy_eng_->getOutputValue(deltam_fuzzy_var_name);
+								fuzzy_deltax = p_fuzzy_eng_->getOutputValue(deltam_fuzzy_var_name);
 								break;
 						}
+						deltax = dcs::math::clamp(fuzzy_deltax, -xress.at(cat).at(i), std::max(0.0, 1-old_xshares.at(cat)[i]));
 
 						deltaxs[cat].push_back(deltax);
-DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> DeltaX(k+1): " << deltaxs.at(cat).at(i));//XXX
+DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> DeltaX(k+1): " << deltaxs.at(cat).at(i) << " (computed: " << fuzzy_deltax << ", lb: " << -xress.at(cat).at(i) << ", ub: " << std::max(0.0, 1-old_xshares.at(cat)[i]) << ")");//XXX
 					}
 				}
 
