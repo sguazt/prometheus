@@ -42,6 +42,7 @@
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
 #include <dcs/logging.hpp>
+#include <dcs/math/function/clamp.hpp>
 #include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
@@ -147,7 +148,7 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 		p_ov->setEnabled(true);
 		p_ov->setName(deltac_fuzzy_var_name);
 		p_ov->setRange(-1, 1);
-		p_ov->setLockValueInRange(true);
+		//p_ov->setLockValueInRange(true);
 		p_ov->fuzzyOutput()->setAccumulation(new fl::AlgebraicSum());
 		p_ov->setDefuzzifier(new fl::Centroid());
 		p_ov->setDefaultValue(fl::nan);
@@ -377,6 +378,7 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 		std::vector<real_type> new_shares;
 		std::vector<real_type> deltacs;
 		std::vector<real_type> cress;
+		std::vector<real_type> cutils;
 		std::map<application_performance_category,real_type> rgains;
 
 		::std::vector<vm_pointer> vms = this->app().vms();
@@ -407,6 +409,7 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 
 			cress.push_back(c-uh);
 			old_shares.push_back(c);
+			cutils.push_back(uh);
 DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << cress.at(i));//XXX
 		}
 
@@ -464,18 +467,23 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 				{
 					const real_type cres = cress[i];
 					const real_type rgain = rgains.begin()->second;
+					const real_type deltac_lb = std::min(1.0, cutils[i]*1.1)-old_shares[i];
+					const real_type deltac_ub = std::max(0.0, 1-old_shares[i]);
 
 					p_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, cres);
 					p_fuzzy_eng_->setInputValue(rgain_fuzzy_var_name, rgain);
-					p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMinimum(-cres);
-					p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMaximum(1-old_shares[i]);
+					//p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMinimum(-cres);
+					//p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMaximum(1-old_shares[i]);
 
 					p_fuzzy_eng_->process();
 
-					const real_type deltac = p_fuzzy_eng_->getOutputValue(deltac_fuzzy_var_name);
+					const real_type fuzzy_deltac = p_fuzzy_eng_->getOutputValue(deltac_fuzzy_var_name);
+
+					real_type deltac = fuzzy_deltac;
+					deltac = dcs::math::clamp(deltac, deltac_lb, deltac_ub);
 
 					deltacs.push_back(deltac);
-DCS_DEBUG_TRACE("VM " << vms[i]->id() << " -> DeltaC(k+1): " << deltacs.at(i));//XXX
+DCS_DEBUG_TRACE("VM " << vms[i]->id() << " -> DeltaC(k+1): " << deltacs.at(i) << " (computed: " << fuzzy_deltac << ", lb: " << deltac_lb << ", ub: " << deltac_ub << ")");//XXX
 				}
 
 				ok = true;
@@ -624,7 +632,9 @@ DCS_DEBUG_TRACE("Control applied");//XXX
 				{
 					*p_dat_ofs_ << ",";
 				}
-				*p_dat_ofs_ << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0)
+				//*p_dat_ofs_ << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0)
+				//			<< "," << this->data_smoother(memory_util_virtual_machine_performance, p_vm->id()).forecast(0);
+				*p_dat_ofs_ << cutils[i]
 							<< "," << this->data_smoother(memory_util_virtual_machine_performance, p_vm->id()).forecast(0);
 			}
 			*p_dat_ofs_ << ",";

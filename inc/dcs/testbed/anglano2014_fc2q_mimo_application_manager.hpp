@@ -42,6 +42,7 @@
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
 #include <dcs/logging.hpp>
+#include <dcs/math/function/clamp.hpp>
 #include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
@@ -172,7 +173,7 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 		p_ov->setEnabled(true);
 		p_ov->setName(deltac_fuzzy_var_name);
 		p_ov->setRange(-1, 1);
-		p_ov->setLockValueInRange(true);
+		//p_ov->setLockValueInRange(true);
 		p_ov->fuzzyOutput()->setAccumulation(new fl::AlgebraicSum());
 		p_ov->setDefuzzifier(new fl::Centroid());
 		p_ov->setDefaultValue(fl::nan);
@@ -188,6 +189,7 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 		p_ov->setEnabled(true);
 		p_ov->setName(deltam_fuzzy_var_name);
 		p_ov->setRange(-1, 1);
+		//p_ov->setLockValueInRange(true);
 		p_ov->fuzzyOutput()->setAccumulation(new fl::AlgebraicSum());
 		p_ov->setDefuzzifier(new fl::Centroid());
 		p_ov->setDefaultValue(fl::nan);
@@ -439,6 +441,7 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 
 		std::map<virtual_machine_performance_category,std::vector<real_type> > old_xshares;
 		std::map<virtual_machine_performance_category,std::vector<real_type> > new_xshares;
+        std::map<virtual_machine_performance_category,std::vector<real_type> > xutils;
 		std::map<virtual_machine_performance_category,std::vector<real_type> > xress;
 		std::map< virtual_machine_performance_category, std::vector<real_type> > deltaxs;
 		real_type err = std::numeric_limits<real_type>::quiet_NaN();
@@ -481,6 +484,7 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 				}
 				xress[cat].push_back(c-uh);
 				old_xshares[cat].push_back(c);
+				xutils[cat].push_back(uh);
 DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << xress.at(cat).at(i));//XXX
 			}
 		}
@@ -558,20 +562,25 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 					for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
 					{
 						const virtual_machine_performance_category cat = vm_perf_cats_[j];
+						//const real_type deltax_lb = -xress.at(cat)[i];
+                        const real_type deltax_lb = std::min(1.0, xutils.at(cat)[i]*1.1)-old_xshares.at(cat)[i];
+                        const real_type deltax_ub = std::max(0.0, 1-old_xshares.at(cat)[i]);
 
+						real_type fuzzy_deltax = 0;
 						real_type deltax = 0;
 						switch (cat)
 						{
 							case cpu_util_virtual_machine_performance:
-								deltax = p_fuzzy_eng_->getOutputValue(deltac_fuzzy_var_name);
+								fuzzy_deltax = p_fuzzy_eng_->getOutputValue(deltac_fuzzy_var_name);
 								break;
 							case memory_util_virtual_machine_performance:
-								deltax = p_fuzzy_eng_->getOutputValue(deltam_fuzzy_var_name);
+								fuzzy_deltax = p_fuzzy_eng_->getOutputValue(deltam_fuzzy_var_name);
 								break;
 						}
+						deltax = dcs::math::clamp(fuzzy_deltax, deltax_lb, deltax_ub);
 
 						deltaxs[cat].push_back(deltax);
-DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> DeltaX(k+1): " << deltaxs.at(cat).at(i));//XXX
+DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> DeltaX(k+1): " << deltaxs.at(cat).at(i) << " (computed: " << fuzzy_deltax << ", lb: " << deltax_lb << ", ub: " << deltax_ub << ")");//XXX
 					}
 				}
 
@@ -605,17 +614,18 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " 
 					{
 						const virtual_machine_performance_category cat = vm_perf_cats_[j];
 
-						real_type old_share = 0;
-						switch (cat)
-						{
-							case cpu_util_virtual_machine_performance:
-								old_share = p_vm->cpu_share();
-								break;
-							case memory_util_virtual_machine_performance:
-								old_share = p_vm->memory_share();
-								break;
-						}
-						//old_xshares[cat].push_back(old_share);
+						//real_type old_share = 0;
+						//switch (cat)
+						//{
+						//	case cpu_util_virtual_machine_performance:
+						//		old_share = p_vm->cpu_share();
+						//		break;
+						//	case memory_util_virtual_machine_performance:
+						//		old_share = p_vm->memory_share();
+						//		break;
+						//}
+						////old_xshares[cat].push_back(old_share);
+						const real_type old_share = old_xshares.at(cat)[i];
 
 						const real_type new_share = std::max(std::min(old_share+deltaxs[cat][i], 1.0), 0.0);
 
@@ -710,6 +720,15 @@ DCS_DEBUG_TRACE("Control applied");//XXX
 					xress[vm_cat].assign(nvms, std::numeric_limits<real_type>::quiet_NaN());
 				}
 			}
+			if (xutils.size() == 0)
+			{
+				for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
+				{
+					const virtual_machine_performance_category vm_cat = vm_perf_cats_[j];
+
+					xutils[vm_cat].assign(nvms, std::numeric_limits<real_type>::quiet_NaN());
+				}
+			}
 
 			// Write to output stream
 
@@ -760,7 +779,8 @@ DCS_DEBUG_TRACE("Control applied");//XXX
                     {
                         *p_dat_ofs_ << ",";
                     }
-					*p_dat_ofs_ << this->data_smoother(vm_cat, p_vm->id()).forecast(0);
+					//*p_dat_ofs_ << this->data_smoother(vm_cat, p_vm->id()).forecast(0);
+					*p_dat_ofs_ << xutils.at(vm_cat)[i];
 				}
             }
             *p_dat_ofs_ << ",";
