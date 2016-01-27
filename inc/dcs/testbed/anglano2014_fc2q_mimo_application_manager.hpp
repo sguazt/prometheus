@@ -544,13 +544,13 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 						{
 							case cpu_util_virtual_machine_performance:
 								p_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, xres);
-								p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMinimum(-xres);
-								p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMaximum(1-old_xshares.at(vm_cat)[i]);
+								//p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMinimum(-xres);
+								//p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMaximum(1-old_xshares.at(vm_cat)[i]);
 								break;
 							case memory_util_virtual_machine_performance:
 								p_fuzzy_eng_->setInputValue(mres_fuzzy_var_name, xres);
-								p_fuzzy_eng_->getOutputVariable(deltam_fuzzy_var_name)->setMinimum(-xres);
-								p_fuzzy_eng_->getOutputVariable(deltam_fuzzy_var_name)->setMaximum(1-old_xshares.at(vm_cat)[i]);
+								//p_fuzzy_eng_->getOutputVariable(deltam_fuzzy_var_name)->setMinimum(-xres);
+								//p_fuzzy_eng_->getOutputVariable(deltam_fuzzy_var_name)->setMaximum(1-old_xshares.at(vm_cat)[i]);
 								break;
 						}
 					}

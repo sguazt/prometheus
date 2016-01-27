@@ -637,7 +637,6 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 
 					p_fuzzy_eng_->process();
 
-DCS_DEBUG_TRACE("FUZZY OUTPUT '" << deltac_fuzzy_var_name << "' - VALUE: " << p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->getValue() << " - FUZZY OUTPUT VALUE: " << p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->fuzzyOutputValue());//XXX
 DCS_DEBUG_TRACE("FUZZY OUTPUT '" << deltam_fuzzy_var_name << "' - VALUE: " << p_fuzzy_eng_->getOutputVariable(deltam_fuzzy_var_name)->getValue() << " - FUZZY OUTPUT VALUE: " << p_fuzzy_eng_->getOutputVariable(deltam_fuzzy_var_name)->fuzzyOutputValue());//XXX
 
 					for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
