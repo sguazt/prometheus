@@ -369,6 +369,18 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 				xutils[cpu_util_virtual_machine_performance].assign(nvms, std::numeric_limits<real_type>::quiet_NaN());
 				xutils[memory_util_virtual_machine_performance].assign(nvms, std::numeric_limits<real_type>::quiet_NaN());
 			}
+			if (perf_errs.size() == 0)
+			{
+				for (target_iterator tgt_it = this->target_values().begin(),
+									 tgt_end_it = this->target_values().end();
+				tgt_it != tgt_end_it;
+				++tgt_it)
+				{
+					const application_performance_category cat = tgt_it->first;
+
+					perf_errs[cat] = std::numeric_limits<real_type>::quiet_NaN();
+				}
+			}
 
 			*p_dat_ofs_ << ::std::time(0) << ",";
 			for (::std::size_t i = 0; i < nvms; ++i)
