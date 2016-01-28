@@ -279,15 +279,28 @@ class dummy_application_manager: public base_application_manager<TraitsT>
 
 		for (::std::size_t i = 0; i < nvms; ++i)
 		{
-			const virtual_machine_performance_category cat = cpu_util_virtual_machine_performance;
-			const vm_pointer p_vm = vms[i];
+			{
+				const virtual_machine_performance_category cat = cpu_util_virtual_machine_performance;
+				const vm_pointer p_vm = vms[i];
 
-			const real_type uh = this->data_smoother(cat, p_vm->id()).forecast(0);
-			const real_type c = p_vm->cpu_share();
+				const real_type uh = this->data_smoother(cat, p_vm->id()).forecast(0);
+				const real_type c = p_vm->cpu_share();
 
-			xshares[cat].push_back(c);
-			xutils[cat].push_back(uh);
+				xshares[cat].push_back(c);
+				xutils[cat].push_back(uh);
 DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c);//XXX
+			}
+			{
+				const virtual_machine_performance_category cat = memory_util_virtual_machine_performance;
+				const vm_pointer p_vm = vms[i];
+
+				const real_type uh = this->data_smoother(cat, p_vm->id()).forecast(0);
+				const real_type c = p_vm->memory_share();
+
+				xshares[cat].push_back(c);
+				xutils[cat].push_back(uh);
+DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c);//XXX
+			}
 		}
 
 		if (!skip_ctl)
