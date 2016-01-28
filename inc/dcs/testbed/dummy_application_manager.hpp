@@ -27,6 +27,7 @@
 
 
 #include <boost/smart_ptr.hpp>
+#include <boost/timer/timer.hpp>
 #include <cstddef>
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
