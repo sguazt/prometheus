@@ -215,14 +215,10 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 		// Reset fuzzy controller
 		p_fuzzy_eng_->restart();
 
-		//// Reset Cres estimator and smoother
-		//this->data_estimator(cpu_util_virtual_machine_performance).reset();
-		//this->data_smoother(cpu_util_virtual_machine_performance).reset();
+		// Reset resource utilization smoothers
 		for (::std::size_t i = 0; i < nvms; ++i)
 		{
-			//this->data_estimator(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::mean_estimator<real_type> >());
 			this->data_smoother(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
-			//this->data_smoother(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::holt_winters_double_exponential_smoother<real_type> >(beta_));
 			this->data_smoother(memory_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
 		}
 
@@ -675,7 +671,7 @@ DCS_DEBUG_TRACE("Control applied");//XXX
 	}
 
 
-	private: real_type beta_; ///< The EWMA smoothing factor for Cres
+	private: real_type beta_; ///< The EWMA smoothing factor for resource utilizations
 	private: ::boost::shared_ptr<fl::Engine> p_fuzzy_eng_; ///< The fuzzy control engine
 	private: ::std::size_t ctl_count_; ///< Number of times control function has been invoked
 	private: ::std::size_t ctl_skip_count_; ///< Number of times control has been skipped

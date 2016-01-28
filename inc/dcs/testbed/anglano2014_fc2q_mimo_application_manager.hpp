@@ -838,7 +838,7 @@ DCS_DEBUG_TRACE("Control applied");//XXX
 	}
 
 
-	private: real_type beta_; ///< The EWMA smoothing factor for Cres
+	private: real_type beta_; ///< The EWMA smoothing factor for resource utilization
 	private: ::boost::shared_ptr<fl::Engine> p_fuzzy_eng_; ///< The fuzzy control engine
 	private: std::size_t ctl_count_; ///< Number of times control function has been invoked
 	private: std::size_t ctl_skip_count_; ///< Number of times control has been skipped
