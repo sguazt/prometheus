@@ -342,7 +342,9 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		const unsigned long max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
 		const unsigned long mem = std::min(static_cast<unsigned long>(cap), max_mem);
 
+#if 0
 		detail::max_memory(p_vmm_->connection(), p_dom_, mem);
+#endif
 		detail::current_memory(p_vmm_->connection(), p_dom_, mem);
 	}
 
@@ -358,7 +360,11 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 									   "Not attached to a domain"));
 
 		//return static_cast<real_type>(detail::current_memory(p_vmm_->connection(), p_dom_));
+#if 0
 		return static_cast<real_type>(detail::max_memory(p_vmm_->connection(), p_dom_));
+#else
+		return static_cast<real_type>(detail::current_memory(p_vmm_->connection(), p_dom_));
+#endif
 	}
 
 	private: void do_memory_share(real_type share)
@@ -376,7 +382,9 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		const unsigned long mem = std::min(static_cast<unsigned long>(share*max_mem), max_mem);
 
 DCS_DEBUG_TRACE("Setting Memory: " << mem << " (share: " << share << ")");//XXX
+#if 0
 		detail::max_memory(p_vmm_->connection(), p_dom_, mem);
+#endif
 		detail::current_memory(p_vmm_->connection(), p_dom_, mem);
 	}
 
@@ -397,10 +405,17 @@ DCS_DEBUG_TRACE("Setting Memory: " << mem << " (share: " << share << ")");//XXX
 //DCS_DEBUG_TRACE("Getting Memory: " << cur_mem << " (share: " << (cur_mem/static_cast<real_type>(max_mem)) << ")");//XXX
 //		return cur_mem/static_cast<real_type>(max_mem);
 		const unsigned long cfg_max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
+#if 0
 		const unsigned long cur_max_mem = detail::max_memory(p_vmm_->connection(), p_dom_);
 
 DCS_DEBUG_TRACE("Getting Memory: " << cur_max_mem << " (share: " << (cur_max_mem/static_cast<real_type>(cfg_max_mem)) << ")");//XXX
 		return cur_max_mem/static_cast<real_type>(cfg_max_mem);
+#else
+		const unsigned long cur_mem = detail::current_memory(p_vmm_->connection(), p_dom_);
+
+DCS_DEBUG_TRACE("Getting Memory: " << cur_mem << " (share: " << (cur_mem/static_cast<real_type>(cfg_max_mem)) << ")");//XXX
+		return cur_mem/static_cast<real_type>(cfg_max_mem);
+#endif
 	}
 
 	private: sensor_pointer do_sensor(virtual_machine_performance_category cat) const

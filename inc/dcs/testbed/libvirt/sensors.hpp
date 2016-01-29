@@ -386,6 +386,20 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 							mem_tot = detail::current_memory(p_conn_, p_dom_);
 						}
 
+						if (root.isMember("Committed_AS"))
+						{
+							long double mem_committed = 0;
+							std::istringstream iss;
+							iss.str(root.get("Committed_AS", "").asString());
+							iss >> mem_committed;
+
+							if (mem_avail > (mem_tot-mem_committed))
+							{
+								DCS_DEBUG_TRACE("COMMITTED: " << mem_committed << " => Adjust Available Memory: "  << mem_avail << " -> " << (mem_tot-mem_committed));
+								mem_avail = mem_tot-mem_committed;
+							}
+						}
+
 						//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
 						//      So use the 'memory' field which should give a reasonable value.
 						//////mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(node_info.maxMem));
