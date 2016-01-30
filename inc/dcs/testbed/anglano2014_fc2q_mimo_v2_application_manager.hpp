@@ -583,7 +583,8 @@ DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " -
 					}
 					if (std::isnan(last_err_))
 					{
-						delta_err = 0;
+						//delta_err = 0;
+						delta_err = std::numeric_limits<real_type>::quiet_NaN();
 					}
 					else
 					{
@@ -591,6 +592,13 @@ DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " -
 					}
 					last_err_ = err;
 DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << " - R: " << yr << " -> E(k+1): " << err << " - DeltaE(k+1): " << delta_err);//XXX
+
+					if (std::isnan(delta_err))
+					{
+						DCS_DEBUG_TRACE("No output delta error available -> Skip control");
+						skip_ctl = true;
+						break;
+					}
 				}
 				else
 				{
