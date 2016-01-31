@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <dcs/assert.hpp>
+#include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
 #include <dcs/uri.hpp>
 #include <libvirt/libvirt.h>
