@@ -136,6 +136,8 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		fl::OutputVariable* p_ov = 0;
 		fl::RuleBlock* p_rules = 0;
 
+		// CPU controller
+
 		p_iv = new fl::InputVariable();
 		p_iv->setEnabled(true);
 		p_iv->setName(cres_fuzzy_var_name);
@@ -190,8 +192,9 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is NEG then " + deltac_fuzzy_var_name + " is STY", p_cpu_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is OK then " + deltac_fuzzy_var_name + " is DWN", p_cpu_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is POS then " + deltac_fuzzy_var_name + " is BDW", p_cpu_fuzzy_eng_.get()));
-
 		p_cpu_fuzzy_eng_->addRuleBlock(p_rules);
+
+		// MEM controller
 
 		p_iv = new fl::InputVariable();
 		p_iv->setEnabled(true);
@@ -280,7 +283,6 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is DWN", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is BDW", p_mem_fuzzy_eng_.get()));
-
 		p_mem_fuzzy_eng_->addRuleBlock(p_rules);
 
 		DCS_DEBUG_TRACE( p_cpu_fuzzy_eng_->toString() );
@@ -640,7 +642,7 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cpu_util_
 					p_mem_fuzzy_eng_->process();
 					deltax_lb = std::min(1.0, xutils.at(memory_util_virtual_machine_performance)[i]*1.1)-old_xshares.at(memory_util_virtual_machine_performance)[i];
 					deltax_ub = std::max(0.0, 1-old_xshares.at(memory_util_virtual_machine_performance)[i]);
-					fuzzy_deltax = p_mem_fuzzy_eng_->getOutputValue(deltac_fuzzy_var_name);
+					fuzzy_deltax = p_mem_fuzzy_eng_->getOutputValue(deltam_fuzzy_var_name);
 					deltax = dcs::math::clamp(fuzzy_deltax, deltax_lb, deltax_ub);
 					deltaxs[memory_util_virtual_machine_performance].push_back(deltax);
 DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_util_virtual_machine_performance << " -> DeltaX(k+1): " << deltaxs.at(memory_util_virtual_machine_performance).at(i) << " (computed: " << fuzzy_deltax << ", lb: " << deltax_lb << ", ub: " << deltax_ub << ")");//XXX
