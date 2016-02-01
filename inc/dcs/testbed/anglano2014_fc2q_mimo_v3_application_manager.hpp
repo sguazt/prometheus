@@ -220,18 +220,21 @@ class anglano2014_fc2q_mimo_v3_application_manager: public base_application_mana
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is BUP", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
-		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is UP", p_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
+		//p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is UP", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is UP", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is UP", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
-		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is UP", p_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
+		//p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is UP", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is UP", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
-		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is DWN", p_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
+		//p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is DWN", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is DWN", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
@@ -242,7 +245,10 @@ class anglano2014_fc2q_mimo_v3_application_manager: public base_application_mana
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is DWN", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is BDW", p_fuzzy_eng_.get()));
+
 		p_fuzzy_eng_->addRuleBlock(p_rules);
+
+		DCS_DEBUG_TRACE( p_fuzzy_eng_->toString() );
 	}
 
 	private: void do_reset()
