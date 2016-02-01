@@ -224,7 +224,10 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is NEG then " + deltam_fuzzy_var_name + " is STY", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is OK then " + deltam_fuzzy_var_name + " is DWN", p_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is POS then " + deltam_fuzzy_var_name + " is BDW", p_fuzzy_eng_.get()));
+
 		p_fuzzy_eng_->addRuleBlock(p_rules);
+
+		DCS_DEBUG_TRACE( p_fuzzy_eng_->toString() );
 	}
 
 	private: void do_reset()
