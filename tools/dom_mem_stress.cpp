@@ -30,6 +30,14 @@
 
 namespace testbed = dcs::testbed;
 
+static void usage(const char* progname);
+
+
+void usage(const char* progname)
+{
+	std::cerr << "Usage: " << progname << " <host uri> <guest name> <step>" << std::endl;
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -37,14 +45,27 @@ int main(int argc, char* argv[])
 
 	std::string uri = "xen:///";
 	std::string dom_name = "rubis-c63_64";
+	float share_incr = 0.1;
 
 	if (argc > 1)
 	{
 		uri = argv[1];
-		if (argc > 2)
-		{
-			dom_name = argv[2];
-		}
+	}
+	if (argc > 2)
+	{
+		dom_name = argv[2];
+	}
+	if (argc > 3)
+	{
+		std::istringstream iss(argv[3]);
+		iss >> share_incr;
+	}
+
+	if (uri.empty() || dom_name.empty() || share_incr < 0 || share_incr > 1)
+	{
+		std::cerr << "ERROR: Wrong options" << std::endl;
+		usage(argv[0]);
+		return 1;
 	}
 
 	try
@@ -55,7 +76,6 @@ int main(int argc, char* argv[])
 
 		dom_stats stats(conn, dom);
 
-		const double share_incr = 0.1;
 		float share = 1;
 		unsigned long old_cur_memory = 0;
 		unsigned long quiet_counter = quiet_counter_max_value;
