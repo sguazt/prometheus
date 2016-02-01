@@ -43,6 +43,7 @@
 #include <dcs/exception.hpp>
 #include <dcs/logging.hpp>
 #include <dcs/math/function/clamp.hpp>
+#include <dcs/math/function/round.hpp>
 #include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
@@ -596,6 +597,8 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 			bool ok = false;
 			try
 			{
+				const real_type share_tol = 1e-4;
+
 				for (std::size_t i = 0; i < nvms; ++i)
 				{
 					vm_pointer p_vm = vms[i];
@@ -620,8 +623,9 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cpu_util_
 					// - Apply control actions
 					old_share = old_xshares.at(cpu_util_virtual_machine_performance)[i];
 					new_share = std::max(std::min(old_share+deltaxs[cpu_util_virtual_machine_performance][i], 1.0), 0.0);
+					new_share = dcs::math::round(new_share/share_tol)*share_tol;
 					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - Performance Category: " << cpu_util_virtual_machine_performance << " - old-share: " << old_share << " - new-share: " << new_share);
-					if (std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share))
+					if (std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share, share_tol))
 					{
 						p_vm->cpu_share(new_share);
 DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cpu_util_virtual_machine_performance << " -> C(k+1): " << new_share);//XXX
@@ -649,8 +653,9 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_ut
 					// - Apply control actions
 					old_share = old_xshares.at(memory_util_virtual_machine_performance)[i];
 					new_share = std::max(std::min(old_share+deltaxs[memory_util_virtual_machine_performance][i], 1.0), 0.0);
+					new_share = dcs::math::round(new_share/share_tol)*share_tol;
 					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - Performance Category: " << memory_util_virtual_machine_performance << " - old-share: " << old_share << " - new-share: " << new_share);
-					if (std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share))
+					if (std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share, share_tol))
 					{
 						p_vm->memory_share(new_share);
 DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_util_virtual_machine_performance << " -> C(k+1): " << new_share);//XXX
