@@ -70,28 +70,33 @@ int main(int argc, char* argv[])
 			{
 				if (quiet_counter == 0)
 				{
-					if (share <= share_incr && mult < 0)
+					do
 					{
-						// Go up
-						mult = 1;
-					}
-					else if (share >= 1 && mult > 0)
-					{
-						// Go down
-						mult = -1;
-					}
+						if (share <= share_incr && mult < 0)
+						{
+							// Go up
+							mult = 1;
+						}
+						else if (share >= 1 && mult > 0)
+						{
+							// Go down
+							mult = -1;
+						}
 
-					std::cerr << "DEBUG> Old share " << share << " - mult: " << mult << std::endl;
-					share += mult*share_incr;
-					std::cerr << "DEBUG> Setting share " << share << std::endl;
+						//std::cerr << "DEBUG> Old share " << share << " - mult: " << mult << std::endl;
+						share += mult*share_incr;
+						//std::cerr << "DEBUG> Setting share " << share << std::endl;
+
+						if (share <= stats.memory_util())
+						{
+							std::cerr << "[warning] The memory share " << share << " is less than or equal to memory utilization " << stats.memory_util() << " -> SKIP" << std::endl;
+						}
+					}
+					while (share <= stats.memory_util());
 
 					testbed::libvirt::detail::memory_share(conn, dom, share);
 					quiet_counter = quiet_counter_max_value;
 
-					if (share <= stats.memory_util())
-					{
-						std::cerr << "[warning] The memory share " << share << " is less than or equal to memory utilization " << stats.memory_util() << std::endl;
-					}
 				}
 				else
 				{
