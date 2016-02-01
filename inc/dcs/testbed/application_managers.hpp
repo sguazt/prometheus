@@ -35,6 +35,7 @@
 #include <dcs/testbed/anglano2014_fc2q_mimo_application_manager.hpp>
 #include <dcs/testbed/anglano2014_fc2q_mimo_v2_application_manager.hpp>
 #include <dcs/testbed/anglano2014_fc2q_mimo_v3_application_manager.hpp>
+#include <dcs/testbed/anglano2014_fc2q_mimo_v4_application_manager.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
 #include <dcs/testbed/dummy_application_manager.hpp>
 #include <dcs/testbed/guazzone2015_anfis_ssmpc_application_manager.hpp>
