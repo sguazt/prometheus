@@ -228,6 +228,7 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 		// Get the max RAM assignable
 		const unsigned long cfg_max_mem = detail::config_max_memory(p_conn_, p_dom_);
 		const unsigned long cur_max_mem = detail::max_memory(p_conn_, p_dom_);
+		unsigned long dom_mem_tot = 0;
 
 //XXX: moved below
 //		// Get the RAM used
@@ -272,6 +273,7 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 			////mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.maxMem));
 			//mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.memory));
 			mem_util_ = static_cast<double>((cur_max_mem-mem_avail)/static_cast<long double>(cfg_max_mem));
+			dom_mem_tot = cur_max_mem; //FIXME: what is the best value to use?
 		}
 		else
 		{
@@ -407,6 +409,7 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 						////mem_util_ = 1.0-static_cast<double>(mem_avail/mem_tot);
 						//mem_util_ = static_cast<double>((cur_max_mem-mem_avail)/static_cast<long double>(cfg_max_mem));
 						mem_util_ = static_cast<double>((mem_tot-mem_avail)/static_cast<long double>(cfg_max_mem));
+						dom_mem_tot = mem_tot;
 					}
 					else
 					{
@@ -455,7 +458,21 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 			// However, note that 'memory' is a static value (i.e., the currently allocated memory) that doesn't reflect the amount of memory effectively used by the domain
 			//mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(node_info.maxMem));
 			mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(cfg_max_mem));
+			dom_mem_tot = cur_max_mem; //FIXME: what is the best value to use?
 		}
+
+		// The just computed utilization have to adjusted in order to take
+		// into account of the overhead introduced by the hypervisor.
+		// Indeed, the memory set outside the VM is usually different from
+		// the one seen inside the VM.
+		// To cope with this issue we compute an adjustment factor in this
+		// way:
+		//    scale_factor = <CurrentMaxMemory>/<MemTotal>
+		//    Util_{inside} = mem_util_
+		//    Util_{outside} = adj_factor * Util_{inside}
+		const double scale_factor = static_cast<double>(cur_max_mem/static_cast<long double>(dom_mem_tot));
+		DCS_DEBUG_TRACE("SCALE FACTOR for UTILIZATION: " << scale_factor);
+		mem_util_ *= scale_factor;
 
 		if (first_)
 		{
