@@ -472,7 +472,10 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 		//    Util_{outside} = adj_factor * Util_{inside}
 		const double scale_factor = static_cast<double>(cur_max_mem/static_cast<long double>(dom_mem_tot));
 		DCS_DEBUG_TRACE("SCALE FACTOR for UTILIZATION: " << scale_factor);
-		mem_util_ *= scale_factor;
+		if (scale_factor > 1)
+		{
+			mem_util_ *= scale_factor;
+		}
 
 		if (first_)
 		{
