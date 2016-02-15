@@ -48,6 +48,7 @@
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
 #include <dcs/logging.hpp>
+#include <dcs/math/function/round.hpp>
 #include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
@@ -89,6 +90,10 @@ class guazzone2015_anfis_ssmpc_application_manager: public base_application_mana
     private: typedef typename app_type::sensor_pointer sensor_pointer;
     private: typedef std::map<application_performance_category,sensor_pointer> out_sensor_map;
     private: typedef std::map<virtual_machine_performance_category,std::map<vm_identifier_type,sensor_pointer> > in_sensor_map;
+
+
+	private: static const std::size_t control_warmup_size;
+	private: static const float resource_share_tol;
 
 
     public: guazzone2015_anfis_ssmpc_application_manager()
@@ -295,9 +300,19 @@ class guazzone2015_anfis_ssmpc_application_manager: public base_application_mana
 
             for (std::size_t i = 0; i < nvms; ++i)
             {
-                *p_dat_ofs_ << ",\"CPUCap_{" << vms[i]->id() << "}\",\"CPUShare_{" << vms[i]->id() << "}\""
-                            << ",\"MemCap_{" << vms[i]->id() << "}\",\"MemShare_{" << vms[i]->id() << "}\"";
+                *p_dat_ofs_ << ",\"CPUCap_{" << vms[i]->id() << "}(k)\",\"CPUShare_{" << vms[i]->id() << "}(k)\""
+                            << ",\"MemCap_{" << vms[i]->id() << "}(k)\",\"MemShare_{" << vms[i]->id() << "}(k)\"";
             }
+			for (std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"CPUShare_{" << vms[i]->id() << "}(k-1)\""
+							<< ",\"MemShare_{" << vms[i]->id() << "}(k-1)\"";
+			}
+			for (std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"CPUUtil_{" << vms[i]->id() << "}(k-1)\""
+							<< ",\"MemUtil_{" << vms[i]->id() << "}(k-1)\"";
+			}
             for (target_iterator tgt_it = this->target_values().begin(),
                                  tgt_end_it = this->target_values().end();
                  tgt_it != tgt_end_it;
@@ -305,7 +320,7 @@ class guazzone2015_anfis_ssmpc_application_manager: public base_application_mana
             {
                 const application_performance_category cat = tgt_it->first;
 
-                *p_dat_ofs_ << ",\"ReferenceOutput_{" << cat << "}\",\"MeasureOutput_{" << cat << "}\",\"RelativeOutputError_{" << cat << "}\"";
+                *p_dat_ofs_ << ",\"ReferenceOutput_{" << cat << "}(k-1)\",\"MeasureOutput_{" << cat << "}(k-1)\",\"RelativeOutputError_{" << cat << "}(k-1)\"";
             }
             for (std::size_t i = 0,
                              ni = num_outputs_*output_order_ + num_inputs_*input_order_ + num_aux_inputs_*aux_input_order_ + num_inputs_;
@@ -420,6 +435,9 @@ class guazzone2015_anfis_ssmpc_application_manager: public base_application_mana
 
         bool skip_ctrl = false;
         bool skip_collect = false;
+
+        std::vector<real_type> new_xshares;
+		std::map<virtual_machine_performance_category,std::vector<real_type> > old_xshares;
 
         std::vector<vm_pointer> vms = this->app().vms();
         const std::size_t nvms = vms.size();
@@ -558,8 +576,18 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
             }
         }
 
+		// Skip control until we see enough observations.
+		// This should give enough time to let the estimated performance metric
+		// (e.g., 95th percentile of response time) stabilize
+		if (ctrl_count_ <= control_warmup_size)
+		{
+			skip_ctrl = true;
+		}
+
         if (!skip_ctrl)
         {
+            // Update ANFIS model
+
             this->update_anfis_model();
 
             if (!anfis_initialized_)
@@ -568,15 +596,15 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
             }
         }
 
-        std::vector<real_type> new_shares;
-
         if (!skip_ctrl)
         {
+            // Perform MPC control
+
             bool ok = false;
 
             try
             {
-                new_shares = this->perform_mpc_control();
+                new_xshares = this->perform_mpc_control();
 
                 ok = true;
             }
@@ -611,12 +639,14 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
                                 old_share = p_vm->memory_share();
                                 break;
                         }
+                        old_xshares[cat].push_back(old_share);
 
-                        const real_type new_share = std::max(std::min(new_shares[k++], 1.0), 0.0);
+                        real_type new_share = std::max(std::min(new_xshares[k], 1.0), 0.0);
+					    new_share = dcs::math::round(new_share/resource_share_tol)*resource_share_tol;
 
                         DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - Performance Category: " << cat << " - old-share: " << old_share << " - new-share: " << new_share);
 
-                        if (std::isfinite(new_share) && !dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share))
+                        if (std::isfinite(new_share) && !dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share, resource_share_tol))
                         {
                             switch (cat)
                             {
@@ -627,11 +657,19 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
                                     p_vm->memory_share(new_share);
                                     break;
                             }
+                            new_xshares[k] = new_share;
 DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> C(k+1): " << new_share);//XXX
                         }
+                        else
+                        {
+                            new_xshares[k] = old_share;
+DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> C(k+1): not set!");//XXX
+                        }
+
+                        ++k;
                     }
                 }
-DCS_DEBUG_TRACE("Optimal control applied");//XXX
+DCS_DEBUG_TRACE("Control applied");//XXX
             }
             else
             {
@@ -652,6 +690,37 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
         // Export to file
         if (p_dat_ofs_)
         {
+			// Initialize data structures if needed
+
+			if (new_xshares.size() == 0)
+			{
+				for (::std::size_t i = 0; i < nvms; ++i)
+				{
+					const vm_pointer p_vm = vms[i];
+
+					// check: p_vm != null
+					DCS_DEBUG_ASSERT( p_vm );
+
+					new_xshares.push_back(p_vm->cpu_share());
+					new_xshares.push_back(p_vm->memory_share());
+				}
+			}
+			if (old_xshares.size() == 0)
+			{
+				for (::std::size_t i = 0; i < nvms; ++i)
+				{
+					const vm_pointer p_vm = vms[i];
+
+					// check: p_vm != null
+					DCS_DEBUG_ASSERT( p_vm );
+
+					old_xshares[cpu_util_virtual_machine_performance].push_back(p_vm->cpu_share());
+					old_xshares[memory_util_virtual_machine_performance].push_back(p_vm->memory_share());
+				}
+			}
+
+            // Write to data file
+
             *p_dat_ofs_ << std::time(0) << ",";
             for (std::size_t i = 0; i < nvms; ++i)
             {
@@ -666,6 +735,45 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
                 }
                 *p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share()
                             << "," << p_vm->memory_cap() << "," << p_vm->memory_share();
+            }
+            *p_dat_ofs_ << ",";
+            for (std::size_t i = 0; i < nvms; ++i)
+            {
+                if (i != 0)
+                {
+                    *p_dat_ofs_ << ",";
+                }
+                *p_dat_ofs_ << old_xshares.at(cpu_util_virtual_machine_performance)[i]
+                            << "," << old_xshares.at(memory_util_virtual_machine_performance)[i];
+            }
+            *p_dat_ofs_ << ",";
+            for (std::size_t i = 0; i < nvms; ++i)
+            {
+                const vm_pointer p_vm = vms[i];
+
+                // check: p_vm != null
+                DCS_DEBUG_ASSERT( p_vm );
+
+                if (i != 0)
+                {
+                    *p_dat_ofs_ << ",";
+                }
+				for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
+				{
+					const virtual_machine_performance_category vm_cat = vm_perf_cats_[j];
+					const real_type uh = (in_util_history_.size() > 0 && in_util_history_[i].count(vm_cat) > 0 && in_util_history_[i].at(vm_cat).size() > 0)
+                                         ? in_util_history_[i].at(vm_cat).back()
+                                         : std::numeric_limits<real_type>::quiet_NaN();
+
+                    if (j != 0)
+                    {
+                        *p_dat_ofs_ << ",";
+                    }
+					//*p_dat_ofs_ << this->data_smoother(vm_cat, p_vm->id()).forecast(0);
+					*p_dat_ofs_ << uh;
+				}
+                //*p_dat_ofs_ << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0)
+                //            << "," << this->data_smoother(memory_util_virtual_machine_performance, p_vm->id()).forecast(0);
             }
             *p_dat_ofs_ << ",";
             for (target_iterator tgt_it = this->target_values().begin(),
@@ -707,11 +815,11 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
             {
                 *p_dat_ofs_ << "," << p_anfis_eng_->getOutputVariable(i)->getValue();
             }
-            if (new_shares.size() > 0)
+            if (new_xshares.size() > 0)
             {
                 for (std::size_t i = 0; i < num_inputs_; ++i)
                 {
-                    *p_dat_ofs_ << "," << new_shares[i];
+                    *p_dat_ofs_ << "," << new_xshares[i];
                 }
             }
             else
@@ -918,10 +1026,11 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
             if ((p_anfis_trainer_->isOnline() && anfis_trainset_.size() >= min_trainset_size_online)
                 || anfis_trainset_.size() >= min_trainset_size_offline)
             {
-                rmse = p_anfis_trainer_->train(anfis_trainset_);
+                //rmse = p_anfis_trainer_->train(anfis_trainset_);
+                rmse = p_anfis_trainer_->trainSingleEpoch(anfis_trainset_);
 {
 std::ostringstream oss;
-oss << "rubis_guazzone2015anfis_trainset_n" << ctrl_count_ << ".dat";
+oss << "guazzone2015_ssmpc_anfis_trainset_n" << ctrl_count_ << ".dat";
 std::ofstream ofs(oss.str().c_str());
 fl::detail::MatrixOutput(ofs, anfis_trainset_.data());
 ofs.close();
@@ -1315,6 +1424,12 @@ DCS_DEBUG_TRACE("Optimal control from MPC: " << u_opt);///XXX
     private: bool anfis_initialized_;
     private: fl::DataSet<real_type> anfis_trainset_;
 }; // guazzone2015_anfis_ssmpc_application_manager
+
+template <typename T>
+const std::size_t guazzone2015_anfis_ssmpc_application_manager<T>::control_warmup_size = 5;
+
+template <typename T>
+const float guazzone2015_anfis_ssmpc_application_manager<T>::resource_share_tol = 1e-2;
 
 }} // Namespace dcs::testbed
 
