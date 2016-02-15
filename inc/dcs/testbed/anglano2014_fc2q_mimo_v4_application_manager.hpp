@@ -91,6 +91,8 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 
 
 	private: static const std::size_t control_warmup_size;
+	private: static const float resource_share_tol;
+
 	private: static const std::string err_fuzzy_var_name;
 	private: static const std::string cres_fuzzy_var_name;
 	private: static const std::string deltac_fuzzy_var_name;
@@ -620,8 +622,6 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 			bool ok = false;
 			try
 			{
-				const real_type share_tol = 1e-2;
-
 				for (std::size_t i = 0; i < nvms; ++i)
 				{
 					vm_pointer p_vm = vms[i];
@@ -646,9 +646,9 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cpu_util_
 					// - Apply control actions
 					old_share = old_xshares.at(cpu_util_virtual_machine_performance)[i];
 					new_share = std::max(std::min(old_share+deltaxs[cpu_util_virtual_machine_performance][i], 1.0), 0.0);
-					new_share = dcs::math::round(new_share/share_tol)*share_tol;
+					new_share = dcs::math::round(new_share/resource_share_tol)*resource_share_tol;
 					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - Performance Category: " << cpu_util_virtual_machine_performance << " - old-share: " << old_share << " - new-share: " << new_share);
-					if (std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share, share_tol))
+					if (std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share, resource_share_tol))
 					{
 						p_vm->cpu_share(new_share);
 DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cpu_util_virtual_machine_performance << " -> C(k+1): " << new_share);//XXX
@@ -676,9 +676,9 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_ut
 					// - Apply control actions
 					old_share = old_xshares.at(memory_util_virtual_machine_performance)[i];
 					new_share = std::max(std::min(old_share+deltaxs[memory_util_virtual_machine_performance][i], 1.0), 0.0);
-					new_share = dcs::math::round(new_share/share_tol)*share_tol;
+					new_share = dcs::math::round(new_share/resource_share_tol)*resource_share_tol;
 					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - Performance Category: " << memory_util_virtual_machine_performance << " - old-share: " << old_share << " - new-share: " << new_share);
-					if (std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share, share_tol))
+					if (std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share, resource_share_tol))
 					{
 						p_vm->memory_share(new_share);
 DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_util_virtual_machine_performance << " -> C(k+1): " << new_share);//XXX
@@ -915,6 +915,9 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_ut
 
 template <typename T>
 const std::size_t anglano2014_fc2q_mimo_v4_application_manager<T>::control_warmup_size = 5;
+
+template <typename T>
+const float anglano2014_fc2q_mimo_v4_application_manager<T>::resource_share_tol = 1e-2;
 
 template <typename T>
 const std::string anglano2014_fc2q_mimo_v4_application_manager<T>::err_fuzzy_var_name = "E";
