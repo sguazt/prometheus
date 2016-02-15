@@ -408,7 +408,13 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 						//////mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.memory));
 						////mem_util_ = 1.0-static_cast<double>(mem_avail/mem_tot);
 						//mem_util_ = static_cast<double>((cur_max_mem-mem_avail)/static_cast<long double>(cfg_max_mem));
+#if 1
+						// Use internal+external information (needs the scale factor, see below at the end of the function)
 						mem_util_ = static_cast<double>((mem_tot-mem_avail)/static_cast<long double>(cfg_max_mem));
+#else
+						// Only use internal information (no need to use the scale factor, see below at the end of the function)
+						mem_util_ = 1.0 - mem_avail/static_cast<long double>(mem_tot);
+#endif
 						dom_mem_tot = mem_tot;
 					}
 					else
@@ -461,6 +467,7 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 			dom_mem_tot = cur_max_mem; //FIXME: what is the best value to use?
 		}
 
+#if 1
 		// The just computed utilization have to adjusted in order to take
 		// into account of the overhead introduced by the hypervisor.
 		// Indeed, the memory set outside the VM is usually different from
@@ -476,6 +483,7 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 		{
 			mem_util_ *= scale_factor;
 		}
+#endif
 
 		if (first_)
 		{

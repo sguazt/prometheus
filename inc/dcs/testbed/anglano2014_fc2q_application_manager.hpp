@@ -89,6 +89,7 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 	private: typedef ::std::map<virtual_machine_performance_category,::std::map<vm_identifier_type,sensor_pointer> > in_sensor_map;
 
 
+	private: static const std::size_t control_warmup_size;
 	private: static const ::std::string rgain_fuzzy_var_name;
 	private: static const ::std::string cres_fuzzy_var_name;
 	private: static const ::std::string deltac_fuzzy_var_name;
@@ -447,6 +448,15 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 #endif // DCSXX_TESTBED_EXP_APP_MGR_RESET_ESTIMATION_EVERY_INTERVAL
 			}
 		}
+
+		// Skip control until we see enough observations.
+		// This should give enough time to let the estimated performance metric
+		// (e.g., 95th percentile of response time) stabilize
+		if (ctl_count_ <= control_warmup_size)
+		{
+			skip_ctl = true;
+		}
+
         if (!skip_ctl)
         {
 			//FIXME: actually we only handle SISO systems
@@ -681,6 +691,9 @@ DCS_DEBUG_TRACE("Control applied");//XXX
 	private: ::std::string dat_fname_;
 	private: ::boost::shared_ptr< ::std::ofstream > p_dat_ofs_;
 }; // anglano2014_fc2q_application_manager
+
+template <typename T>
+const std::size_t anglano2014_fc2q_application_manager<T>::control_warmup_size = 5;
 
 template <typename T>
 const ::std::string anglano2014_fc2q_application_manager<T>::rgain_fuzzy_var_name = "Rgain";

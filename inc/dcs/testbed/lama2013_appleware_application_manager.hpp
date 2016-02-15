@@ -538,11 +538,33 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
                 //       observations in order to form input/output data needed
                 //       to train the ANFIS model.
 
+//[XXX]
+{
+std::cerr << "OUT_PERF_HISTORY - BEFORE: [";
+for (std::size_t k = 0; k < out_perf_history_[cat].size(); ++k)
+{
+    std::cerr << ", " << out_perf_history_[cat].at(k);
+}
+std::cerr << "]" << std::endl;
+}
+//[/XXX]
+
                 if (out_perf_history_[cat].size() >= (output_order_+1))
                 {
                     out_perf_history_[cat].pop_front();
                 }
                 out_perf_history_[cat].push_back(yh);
+
+//[XXX]
+{
+std::cerr << "OUT_PERF_HISTORY - AFTER: [";
+for (std::size_t k = 0; k < out_perf_history_[cat].size(); ++k)
+{
+    std::cerr << ", " << out_perf_history_[cat].at(k);
+}
+std::cerr << "]" << std::endl;
+}
+//[/XXX]
 
                 if (out_perf_history_[cat].size() < (output_order_+1))
                 {
@@ -887,6 +909,7 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
         std::size_t u_ix_train = 0;
         std::size_t xi_ix_train = 0;
         std::size_t y_ix_train = 0;
+DCS_DEBUG_TRACE("BUILDING XIs...");//XXX
         for (target_iterator tgt_it = this->target_values().begin(),
                              tgt_end_it = this->target_values().end();
              tgt_it != tgt_end_it;
@@ -902,17 +925,21 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
                 if (val_it == out_perf_history_.at(cat).rbegin())
                 {
                     y_train(y_ix_train++) = *val_it;
+DCS_DEBUG_TRACE("Y_TRAIN[" << (y_ix_train-1) << "]: " << y_train(y_ix_train-1));//XXX
                 }
                 else
                 {
                     xi_train(xi_ix_train++) = *val_it;
+DCS_DEBUG_TRACE("XI_TRAIN[" << (xi_ix_train-1) << "]: " << xi_train(xi_ix_train-1));//XXX
                 }
                 if (xi_ix < nxi)
                 {
                     xi(xi_ix++) = *val_it;
+DCS_DEBUG_TRACE("XI[" << (xi_ix-1) << "]: " << xi(xi_ix-1));//XXX
                 }
             }
         }
+DCS_DEBUG_TRACE("BUILDING Us...");//XXX
         for (std::size_t i = 0; i < nvms; ++i)
         {
             for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
@@ -923,6 +950,8 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
                 //u_train(u_ix_train++) = in_utils_[i].at(cat);
                 u(u_ix++) = in_shares_[i].at(cat);
                 //u(u_ix++) = in_utils_[i].at(cat);
+DCS_DEBUG_TRACE("U_TRAIN[" << (u_ix_train-1) << "]: " << u_train(u_ix_train-1));//XXX
+DCS_DEBUG_TRACE("U[" << (u_ix-1) << "]: " << u(u_ix-1));//XXX
             }
         }
 
@@ -940,24 +969,15 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 //[XXX]
 {
 std::cerr << "ANFIS - TRAINING INSTANCE: <";
-for (std::size_t i = 0; i < (inputs.size()+num_outputs_); ++i)
+std::cerr << "IN: [";
+for (std::size_t i = 0; i < inputs.size(); ++i)
 {
-    if (i == 0)
-    {
-        std::cerr << "IN: [";
-    }
-    else if (i == inputs.size())
-    {
-        std::cerr << "], OUT: [";
-    }
-    else if (i < inputs.size())
-    {
-        std::cerr << ", " << inputs[i];
-    }
-    else
-    {
-        std::cerr << "," << y_train[i-inputs.size()];
-    }
+    std::cerr << ", " << inputs[i];
+}
+std::cerr << "], OUT: [";
+for (std::size_t i = 0; i < num_outputs_; ++i)
+{
+    std::cerr << ", " << y_train[i];
 }
 std::cerr << "]>" << std::endl;
 }
@@ -980,7 +1000,8 @@ std::cerr << "]>" << std::endl;
             if ((p_anfis_trainer_->isOnline() && anfis_trainset_.size() >= min_trainset_size_online)
                 || anfis_trainset_.size() >= min_trainset_size_offline)
             {
-                rmse = p_anfis_trainer_->train(anfis_trainset_);
+                //rmse = p_anfis_trainer_->train(anfis_trainset_);
+                rmse = p_anfis_trainer_->trainSingleEpoch(anfis_trainset_);
 //[XXX]
 {
 std::ostringstream oss;
@@ -1000,10 +1021,12 @@ DCS_DEBUG_TRACE("ANFIS TRAINED -> RMSE: " << rmse);//XXX
             // Load the $\xi$ and $u$ vector into the ANFIS model
             for (std::size_t i = 0; i < nxi; ++i)
             {
+                //p_anfis_eng_->getInputVariable(i)->setValue(xi_train(i));
                 p_anfis_eng_->getInputVariable(i)->setValue(xi(i));
             }
             for (std::size_t i = 0; i < num_inputs_; ++i)
             {
+                //p_anfis_eng_->getInputVariable(i+nxi)->setValue(u_train(i));
                 p_anfis_eng_->getInputVariable(i+nxi)->setValue(u(i));
             }
 

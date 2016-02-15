@@ -90,6 +90,7 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 	private: typedef std::map<virtual_machine_performance_category,std::map<vm_identifier_type,sensor_pointer> > in_sensor_map;
 
 
+	private: static const std::size_t control_warmup_size;
 	private: static const std::string err_fuzzy_var_name;
 	private: static const std::string cres_fuzzy_var_name;
 	private: static const std::string deltac_fuzzy_var_name;
@@ -144,10 +145,13 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_iv->setName(cres_fuzzy_var_name);
 		p_iv->setRange(0.0, 1.0);
 		p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
+		//p_iv->addTerm(new fl::Ramp("LOW", 0.20, 0.00));
 		//p_iv->addTerm(new fl::Ramp("LOW", 0.15, 0.00));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
+		//p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.20, 0.30));
 		//p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.15, 0.20));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
+		//p_iv->addTerm(new fl::Ramp("HIGH", 0.20, 1.00));
 		//p_iv->addTerm(new fl::Ramp("HIGH", 0.15, 1.00));
 		p_cpu_fuzzy_eng_->addInputVariable(p_iv);
 
@@ -168,7 +172,8 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_ov->setName(deltac_fuzzy_var_name);
 		p_ov->setRange(-1, 1);
 		//p_ov->setLockValueInRange(true);
-		p_ov->fuzzyOutput()->setAccumulation(new fl::AlgebraicSum());
+		p_ov->fuzzyOutput()->setAccumulation(new fl::AlgebraicSum()); // Larsen
+		//p_ov->fuzzyOutput()->setAccumulation(new fl::Maximum()); // Mamdani
 		p_ov->setDefuzzifier(new fl::Centroid());
 		p_ov->setDefaultValue(fl::nan);
 		p_ov->setPreviousValue(false);
@@ -183,7 +188,8 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_rules->setEnabled(true);
 		p_rules->setConjunction(new fl::Minimum());
 		p_rules->setDisjunction(new fl::Maximum());
-		p_rules->setImplication(new fl::AlgebraicProduct());
+		p_rules->setImplication(new fl::AlgebraicProduct()); // Larsen
+		//p_rules->setImplication(new fl::Minimum()); // Mamdani
 		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is NEG then " + deltac_fuzzy_var_name + " is BUP", p_cpu_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is OK then " + deltac_fuzzy_var_name + " is UP", p_cpu_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + cres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is POS then " + deltac_fuzzy_var_name + " is UP", p_cpu_fuzzy_eng_.get()));
@@ -202,10 +208,13 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_iv->setName(cres_fuzzy_var_name);
 		p_iv->setRange(0.0, 1.0);
 		p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
+		//p_iv->addTerm(new fl::Ramp("LOW", 0.20, 0.00));
 		//p_iv->addTerm(new fl::Ramp("LOW", 0.15, 0.00));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
+		//p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.20, 0.30));
 		//p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.15, 0.20));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
+		//p_iv->addTerm(new fl::Ramp("HIGH", 0.20, 1.00));
 		//p_iv->addTerm(new fl::Ramp("HIGH", 0.15, 1.00));
 		p_mem_fuzzy_eng_->addInputVariable(p_iv);
 
@@ -214,10 +223,13 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_iv->setName(mres_fuzzy_var_name);
 		p_iv->setRange(0.0, 1.0);
 		p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
+		//p_iv->addTerm(new fl::Ramp("LOW", 0.20, 0.00));
 		//p_iv->addTerm(new fl::Ramp("LOW", 0.15, 0.00));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
+		//p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.20, 0.30));
 		//p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.15, 0.20));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
+		//p_iv->addTerm(new fl::Ramp("HIGH", 0.20, 1.00));
 		//p_iv->addTerm(new fl::Ramp("HIGH", 0.15, 1.00));
 		p_mem_fuzzy_eng_->addInputVariable(p_iv);
 
@@ -238,7 +250,8 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_ov->setName(deltam_fuzzy_var_name);
 		p_ov->setRange(-1, 1);
 		//p_ov->setLockValueInRange(true);
-		p_ov->fuzzyOutput()->setAccumulation(new fl::AlgebraicSum());
+		p_ov->fuzzyOutput()->setAccumulation(new fl::AlgebraicSum()); // Larsen
+		//p_ov->fuzzyOutput()->setAccumulation(new fl::Maximum()); // Mamdani
 		p_ov->setDefuzzifier(new fl::Centroid());
 		p_ov->setDefaultValue(fl::nan);
 		p_ov->setPreviousValue(false);
@@ -253,7 +266,8 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_rules->setEnabled(true);
 		p_rules->setConjunction(new fl::Minimum());
 		p_rules->setDisjunction(new fl::Maximum());
-		p_rules->setImplication(new fl::AlgebraicProduct());
+		p_rules->setImplication(new fl::AlgebraicProduct()); // Larsen
+		//p_rules->setImplication(new fl::Minimum()); // Mamdani
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is BUP", p_mem_fuzzy_eng_.get()));
@@ -591,13 +605,22 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 #endif // DCSXX_TESTBED_EXP_APP_MGR_RESET_ESTIMATION_EVERY_INTERVAL
 			}
 		}
+
+		// Skip control until we see enough observations.
+		// This should give enough time to let the estimated performance metric
+		// (e.g., 95th percentile of response time) stabilize
+		if (ctl_count_ <= control_warmup_size)
+		{
+			skip_ctl = true;
+		}
+
         if (!skip_ctl)
         {
 			// Perform fuzzy control
 			bool ok = false;
 			try
 			{
-				const real_type share_tol = 1e-4;
+				const real_type share_tol = 1e-2;
 
 				for (std::size_t i = 0; i < nvms; ++i)
 				{
@@ -889,6 +912,9 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_ut
 	private: std::vector<virtual_machine_performance_category> vm_perf_cats_;
 	//private: std::vector<application_performance_category> app_perf_cats_;
 }; // anglano2014_fc2q_mimo_v4_application_manager
+
+template <typename T>
+const std::size_t anglano2014_fc2q_mimo_v4_application_manager<T>::control_warmup_size = 5;
 
 template <typename T>
 const std::string anglano2014_fc2q_mimo_v4_application_manager<T>::err_fuzzy_var_name = "E";
