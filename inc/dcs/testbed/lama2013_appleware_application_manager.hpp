@@ -54,6 +54,7 @@
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
 #include <dcs/logging.hpp>
+#include <dcs/math/function/round.hpp>
 #include <dcs/math/traits/float.hpp>
 #include <dcs/testbed/application_performance_category.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
@@ -119,6 +120,10 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
     private: typedef typename app_type::sensor_pointer sensor_pointer;
     private: typedef std::map<application_performance_category,sensor_pointer> out_sensor_map;
     private: typedef std::map<virtual_machine_performance_category,std::map<vm_identifier_type,sensor_pointer> > in_sensor_map;
+
+
+	private: static const std::size_t control_warmup_size;
+	private: static const float resource_share_tol;
 
 
     public: lama2013_appleware_application_manager()
@@ -461,6 +466,9 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
         bool skip_ctrl = false;
         bool skip_collect = false;
 
+        std::vector<real_type> new_xshares;
+		std::map<virtual_machine_performance_category,std::vector<real_type> > old_xshares;
+
         std::vector<vm_pointer> vms = this->app().vms();
         const std::size_t nvms = vms.size();
 
@@ -502,10 +510,9 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
                             c = p_vm->memory_share();
                             break;
                     }
-DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << this->data_smoother(cat, p_vm->id()).forecast(0) << " - C(k): " << c);//XXX
-
                     in_shares_[i][cat] = c;
                     in_utils_[i][cat] = this->data_smoother(cat, p_vm->id()).forecast(0);
+DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << in_utils_[i].at(cat) << " - C(k): " << c);//XXX
                 }
             }
 
@@ -578,8 +585,18 @@ std::cerr << "]" << std::endl;
             }
         }
 
+		// Skip control until we see enough observations.
+		// This should give enough time to let the estimated performance metric
+		// (e.g., 95th percentile of response time) stabilize
+		if (ctrl_count_ <= control_warmup_size)
+		{
+			skip_ctrl = true;
+		}
+
         if (!skip_ctrl)
         {
+            // Update ANFIS model
+
             this->update_anfis_model();
 
             if (!anfis_initialized_)
@@ -588,16 +605,15 @@ std::cerr << "]" << std::endl;
             }
         }
 
-        std::vector<real_type> new_shares;
-		std::map<virtual_machine_performance_category,std::vector<real_type> > old_xshares;
-
         if (!skip_ctrl)
         {
+            // Perform MPC control
+
             bool ok = false;
 
             try
             {
-                new_shares = this->perform_mpc_control();
+                new_xshares = this->perform_mpc_control();
 
                 ok = true;
             }
@@ -634,11 +650,12 @@ std::cerr << "]" << std::endl;
                         }
                         old_xshares[cat].push_back(old_share);
 
-                        const real_type new_share = std::max(std::min(new_shares[k++], 1.0), 0.0);
+                        real_type new_share = std::max(std::min(new_xshares[k], 1.0), 0.0);
+					    new_share = dcs::math::round(new_share/resource_share_tol)*resource_share_tol;
 
                         DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - Performance Category: " << cat << " - old-share: " << old_share << " - new-share: " << new_share);
 
-                        if (std::isfinite(new_share) && !dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share))
+                        if (std::isfinite(new_share) && !dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share, resource_share_tol))
                         {
                             switch (cat)
                             {
@@ -649,11 +666,19 @@ std::cerr << "]" << std::endl;
                                     p_vm->memory_share(new_share);
                                     break;
                             }
+                            new_xshares[k] = new_share;
 DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> C(k+1): " << new_share);//XXX
                         }
+                        else
+                        {
+                            new_xshares[k] = old_share;
+DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> C(k+1): not set!");//XXX
+                        }
+
+                        ++k;
                     }
                 }
-DCS_DEBUG_TRACE("Optimal control applied");//XXX
+DCS_DEBUG_TRACE("Control applied");//XXX
             }
             else
             {
@@ -674,6 +699,21 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
         // Export to file
         if (p_dat_ofs_)
         {
+			// Initialize data structures if needed
+
+			if (new_xshares.size() == 0)
+			{
+				for (::std::size_t i = 0; i < nvms; ++i)
+				{
+					const vm_pointer p_vm = vms[i];
+
+					// check: p_vm != null
+					DCS_DEBUG_ASSERT( p_vm );
+
+					new_xshares.push_back(p_vm->cpu_share());
+					new_xshares.push_back(p_vm->memory_share());
+				}
+			}
 			if (old_xshares.size() == 0)
 			{
 				for (::std::size_t i = 0; i < nvms; ++i)
@@ -687,6 +727,8 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 					old_xshares[memory_util_virtual_machine_performance].push_back(p_vm->memory_share());
 				}
 			}
+
+            // Write to data file
 
             *p_dat_ofs_ << std::time(0) << ",";
             for (std::size_t i = 0; i < nvms; ++i)
@@ -728,12 +770,16 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
 				for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
 				{
 					const virtual_machine_performance_category vm_cat = vm_perf_cats_[j];
+					const real_type uh = (in_utils_.size() > 0 && in_utils_[i].count(vm_cat) > 0)
+                                         ? in_utils_[i].at(vm_cat)
+                                         : std::numeric_limits<real_type>::quiet_NaN();
 
                     if (j != 0)
                     {
                         *p_dat_ofs_ << ",";
                     }
-					*p_dat_ofs_ << this->data_smoother(vm_cat, p_vm->id()).forecast(0);
+					//*p_dat_ofs_ << this->data_smoother(vm_cat, p_vm->id()).forecast(0);
+					*p_dat_ofs_ << uh;
 				}
                 //*p_dat_ofs_ << this->data_smoother(cpu_util_virtual_machine_performance, p_vm->id()).forecast(0)
                 //            << "," << this->data_smoother(memory_util_virtual_machine_performance, p_vm->id()).forecast(0);
@@ -778,11 +824,11 @@ DCS_DEBUG_TRACE("Optimal control applied");//XXX
             {
                 *p_dat_ofs_ << "," << p_anfis_eng_->getOutputVariable(i)->getValue();
             }
-            if (new_shares.size() > 0)
+            if (new_xshares.size() > 0)
             {
                 for (std::size_t i = 0; i < num_inputs_; ++i)
                 {
-                    *p_dat_ofs_ << "," << new_shares[i];
+                    *p_dat_ofs_ << "," << new_xshares[i];
                 }
             }
             else
@@ -1005,7 +1051,7 @@ std::cerr << "]>" << std::endl;
 //[XXX]
 {
 std::ostringstream oss;
-oss << "rubis_lama2013appleware_trainset_n" << ctrl_count_ << ".dat";
+oss << "lama2013_appleware_trainset_n" << ctrl_count_ << ".dat";
 std::ofstream ofs(oss.str().c_str());
 fl::detail::MatrixOutput(ofs, anfis_trainset_.data());
 ofs.close();
@@ -1350,6 +1396,12 @@ DCS_DEBUG_TRACE("Optimal control from MPC: " << u_opt);///XXX
     private: bool anfis_initialized_;
     private: fl::DataSet<real_type> anfis_trainset_;
 }; // lama2013_appleware_application_manager
+
+template <typename T>
+const std::size_t lama2013_appleware_application_manager<T>::control_warmup_size = 5;
+
+template <typename T>
+const float lama2013_appleware_application_manager<T>::resource_share_tol = 1e-2;
 
 }} // Namespace dcs::testbed
 
