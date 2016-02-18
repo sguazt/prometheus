@@ -628,7 +628,6 @@ std::cerr << "]" << std::endl;
                 if (ctrl_rel_fail_count_ >= 5)
                 {
 DCS_DEBUG_TRACE("Resetting control actuation to current utilization");//XXX
-                    std::size_t k = 0;
                     for (std::size_t i = 0; i < nvms; ++i)
                     {
                         vm_pointer p_vm = vms[i];
@@ -637,7 +636,7 @@ DCS_DEBUG_TRACE("Resetting control actuation to current utilization");//XXX
                         {
                             const virtual_machine_performance_category cat = vm_perf_cats_[j];
 
-                            new_xshares[k] = in_utils_[i].at(cat);
+                            new_xshares.push_back(in_utils_[i].at(cat));
                         }
                     }
 
