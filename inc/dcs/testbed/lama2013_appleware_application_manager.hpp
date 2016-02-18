@@ -148,6 +148,7 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
       ctrl_count_(0),
       ctrl_skip_count_(0),
       ctrl_fail_count_(0),
+      ctrl_rel_fail_count_(0),
       anfis_initialized_(false)
     {
         init();
@@ -263,6 +264,7 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
         // Reset counters
         ctrl_count_ = ctrl_skip_count_
                     = ctrl_fail_count_
+                    = ctrl_rel_fail_count_
                     = 0;
 
         // Computes number of system inputs/outputs
@@ -374,7 +376,7 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
         typedef std::vector<typename sensor_type::observation_type> obs_container;
         typedef typename obs_container::const_iterator obs_iterator;
 
-        DCS_DEBUG_TRACE("(" << this << ") BEGIN Do SAMPLE - Count: " << ctrl_count_ << "/" << ctrl_skip_count_ << "/" << ctrl_fail_count_);
+        DCS_DEBUG_TRACE("(" << this << ") BEGIN Do SAMPLE - Count: " << ctrl_count_ << "/" << ctrl_skip_count_ << "/" << ctrl_fail_count_ << "/" << ctrl_rel_fail_count_);
 
         if (p_dat_ofs_)
         {
@@ -440,7 +442,7 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
             }
         }
 
-        DCS_DEBUG_TRACE("(" << this << ") END Do SAMPLE - Count: " << ctrl_count_ << "/" << ctrl_skip_count_ << "/" << ctrl_fail_count_);
+        DCS_DEBUG_TRACE("(" << this << ") END Do SAMPLE - Count: " << ctrl_count_ << "/" << ctrl_skip_count_ << "/" << ctrl_fail_count_ << "/" << ctrl_rel_fail_count_);
     }
 
     private: void do_control()
@@ -451,7 +453,7 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
         typedef typename base_type::target_value_map::const_iterator target_iterator;
         typedef typename app_type::vm_pointer vm_pointer;
 
-        DCS_DEBUG_TRACE("(" << this << ") BEGIN Do CONTROL - Count: " << ctrl_count_ << "/" << ctrl_skip_count_ << "/" << ctrl_fail_count_);
+        DCS_DEBUG_TRACE("(" << this << ") BEGIN Do CONTROL - Count: " << ctrl_count_ << "/" << ctrl_skip_count_ << "/" << ctrl_fail_count_ << "/" << ctrl_rel_fail_count_);
 
         boost::timer::cpu_timer cpu_timer;
 
@@ -620,6 +622,28 @@ std::cerr << "]" << std::endl;
                 std::ostringstream oss;
                 oss << "Unable to compute optimal control: " << e.what();
                 ::dcs::log_warn(DCS_LOGGING_AT, oss.str());
+
+                ++ctrl_rel_fail_count_;
+
+                if (ctrl_rel_fail_count_ >= 5)
+                {
+DCS_DEBUG_TRACE("Resetting control actuation to current utilization");//XXX
+                    std::size_t k = 0;
+                    for (std::size_t i = 0; i < nvms; ++i)
+                    {
+                        vm_pointer p_vm = vms[i];
+
+                        for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
+                        {
+                            const virtual_machine_performance_category cat = vm_perf_cats_[j];
+
+                            new_xshares[k] = in_utils_[i].at(cat);
+                        }
+                    }
+
+                    ctrl_rel_fail_count_ = 0;
+                    ok = true;
+                }
             }
 
             // Apply control results
@@ -839,7 +863,7 @@ DCS_DEBUG_TRACE("Control applied");//XXX
             *p_dat_ofs_ << std::endl;
         }
 
-        DCS_DEBUG_TRACE("(" << this << ") END Do CONTROL - Count: " << ctrl_count_ << "/" << ctrl_skip_count_ << "/" << ctrl_fail_count_);
+        DCS_DEBUG_TRACE("(" << this << ") END Do CONTROL - Count: " << ctrl_count_ << "/" << ctrl_skip_count_ << "/" << ctrl_fail_count_ << "/" << ctrl_rel_fail_count_);
     }
 
     private: void init()
@@ -1386,6 +1410,7 @@ DCS_DEBUG_TRACE("Optimal control from MPC: " << u_opt);///XXX
     private: std::size_t ctrl_count_; ///< Number of times control function has been invoked
     private: std::size_t ctrl_skip_count_; ///< Number of times control has been skipped
     private: std::size_t ctrl_fail_count_; ///< Number of times control has failed
+    private: std::size_t ctrl_rel_fail_count_; ///< Number of times control has failed from last reset
     private: in_sensor_map in_sensors_;
     private: out_sensor_map out_sensors_;
     private: std::string dat_fname_;
