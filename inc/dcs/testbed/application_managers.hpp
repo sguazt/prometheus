@@ -44,6 +44,7 @@
 #include <dcs/testbed/padala2009_autocontrol_application_manager.hpp>
 #include <dcs/testbed/rao2013_dynaqos_application_manager.hpp>
 #include <dcs/testbed/sysid_application_manager.hpp>
+#include <dcs/testbed/wang2015_qoscloud_application_manager.hpp>
 
 
 #endif // DCS_TESTBED_APPLICATION_MANAGERS_HPP

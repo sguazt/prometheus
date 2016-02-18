@@ -219,7 +219,8 @@ enum app_manager_category
 	guazzone2015_anfis_ssmpc_app_manager,
 	lama2013_appleware_app_manager,
 	padala2009_autocontrol_app_manager,
-	rao2013_dynaqos_app_manager
+	rao2013_dynaqos_app_manager,
+	wang2015_qoscloud_app_manager
 };
 
 
@@ -466,6 +467,10 @@ inline
 	{
 		cat = rao2013_dynaqos_app_manager;
 	}
+	else if (!s.compare("wang2015_qoscloud"))
+	{
+		cat = wang2015_qoscloud_app_manager;
+	}
 	else
 	{
 		DCS_EXCEPTION_THROW(::std::runtime_error,
@@ -531,8 +536,10 @@ void usage(char const* progname)
 				<< "   - 'anglano2014_fc2q_mimo_v3': a MIMO variant of the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
 				<< "   - 'anglano2014_fc2q_mimo_v4': a MIMO variant of the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
 				<< "   - 'dummy': a 'do-nothing' application manager" << ::std::endl
+				<< "   - 'lama2013_appleware': the ANFIS+MPC controller described in (Lama et al., 2013)" << ::std::endl
 				<< "   - 'padala2009_autocontrol': the LQ controller described in (Padala et al., 2009)" << ::std::endl
 				<< "   - 'rao2013_dynaqos': the fuzzy controller described in (Rao et al., 2013)" << ::std::endl
+				<< "   - 'wang2015_appleware': the FIS+GA controller described in (Wang et al., 2015)" << ::std::endl
 				<< "   [default: '" << default_app_manager << "']." << ::std::endl
 				<< " --data-estimator <name>" << ::std::endl
 				<< "   The name of the estimator to use to estimate summary statistics from observed data." << ::std::endl
@@ -1352,6 +1359,28 @@ int main(int argc, char *argv[])
 					}
 
 					p_mgr = boost::make_shared< testbed::rao2013_dynaqos_application_manager<traits_type> >(rao2013_dynaqos_mgr);
+				}
+				break;
+			case detail::wang2015_qoscloud_app_manager:
+				{
+					const bool use_prebuilt_anfis = true;
+					const std::size_t output_order = 0;
+					std::string prebuilt_anfis_fname;
+
+					std::ostringstream oss;
+					oss << "experiments/data/" << opt_wkl << "-wang2015_qoscloud-order_out_" << output_order << "-anfis_trained.fll";
+					prebuilt_anfis_fname = oss.str();
+
+					testbed::wang2015_qoscloud_application_manager<traits_type> wang2015_qoscloud_mgr;
+					if (!opt_app_manager_stats_file.empty())
+					{
+						wang2015_qoscloud_mgr.export_data_to(opt_app_manager_stats_file);
+					}
+					wang2015_qoscloud_mgr.output_order(output_order);
+					wang2015_qoscloud_mgr.use_prebuilt_anfis(use_prebuilt_anfis);
+					wang2015_qoscloud_mgr.prebuilt_anfis_file(prebuilt_anfis_fname);
+
+					p_mgr = boost::make_shared< testbed::wang2015_qoscloud_application_manager<traits_type> >(wang2015_qoscloud_mgr);
 				}
 				break;
 			default:
