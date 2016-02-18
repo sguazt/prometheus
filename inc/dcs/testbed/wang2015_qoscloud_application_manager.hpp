@@ -1256,8 +1256,10 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
             << "   objfun = @(x) (wsqr((evalfis(fis,x)-yref),Q) + wsqr((x(nxi+1:end)-u),R));"
             << "   x0 = [xi; u];"
             << "   gaopts = gaoptimset('InitialPopulation',[x0]);"
+            << "   LB = zeros(size(x0));"
+            << "   UB = ones(size(x0));"
             << "   rng(1, 'twister');" // For reproducibility
-            << "   [x,fval,exitflag] = ga(@objfun, nvar);"
+            << "   [x,fval,exitflag] = ga(@objfun, nvar, [], [], [], [], LB, UB, [], gaopts);"
             << "   format long;"
             << "   disp('--- [dcs::testbed::wang2015_qoscloud_application_manager] ---');"
             << "   disp('['x =', mat2str(x)]);"
@@ -1281,7 +1283,7 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
 
         ublas::vector<real_type> u_opt;
         u_opt = matlab_consumer.x_;
-DCS_DEBUG_TRACE("Optimal control from MPC: " << u_opt);///XXX
+DCS_DEBUG_TRACE("Optimal control from GA: " << u_opt);///XXX
 
         return std::vector<real_type>(u_opt.begin(), u_opt.end());
     }
