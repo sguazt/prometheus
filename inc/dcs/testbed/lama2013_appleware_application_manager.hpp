@@ -265,10 +265,6 @@ class lama2013_appleware_application_manager: public base_application_manager<Tr
                     = ctrl_fail_count_
                     = 0;
 
-        // Reset fuzzy controller
-        this->init_anfis();
-        this->init_mpc();
-
         // Computes number of system inputs/outputs
         num_inputs_ = nvms*num_vm_perf_cats;
         num_outputs_ = std::distance(this->target_values().begin(), this->target_values().end());
@@ -992,10 +988,13 @@ DCS_DEBUG_TRACE("BUILDING Us...");//XXX
             {
                 const virtual_machine_performance_category cat = vm_perf_cats_[j];
 
+#if 1 // Use shares as resource usage. This seems the solution chosen by Lama
                 u_train(u_ix_train++) = in_shares_[i].at(cat);
-                //u_train(u_ix_train++) = in_utils_[i].at(cat);
                 u(u_ix++) = in_shares_[i].at(cat);
+#else // Use utilizations as resource usage
+                //u_train(u_ix_train++) = in_utils_[i].at(cat);
                 //u(u_ix++) = in_utils_[i].at(cat);
+#endif
 DCS_DEBUG_TRACE("U_TRAIN[" << (u_ix_train-1) << "]: " << u_train(u_ix_train-1));//XXX
 DCS_DEBUG_TRACE("U[" << (u_ix-1) << "]: " << u(u_ix-1));//XXX
             }
@@ -1237,7 +1236,11 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
             }
             else
             {
+#if 1
                 ::dcs::log_warn(DCS_LOGGING_AT, "Unable to compute ANFIS value: rule coverage problem");
+#else
+                throw std::runtime_error("Unable to compute ANFIS value: rule coverage problem");
+#endif
             }
 
 DCS_DEBUG_TRACE("OUTPUT #" << i << " - VALUE: " << p_anfis_eng_->getOutputVariable(i)->getValue() << " - FUZZY OUTPUT: " << p_fuzzyOutput->toString() << " - FUZZY OUTPUT VALUE: " << p_anfis_eng_->getOutputVariable(i)->fuzzyOutputValue() << " - WSum: " << wsum);//XXX
