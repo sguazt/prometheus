@@ -1264,6 +1264,7 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
             << "   fwrite(fd, fisstr);"
             << "   fclose(fd);"
             << "   fis = readfis(fisfile);"
+            << "   delete(fisfile);"
             << "   nvar = nu+nxi;"
             << "   wsqr = @(x,w) x'*w*x;"
             << "   objfun = @(x) (wsqr((evalfis(x',fis)-yref),Q) + wsqr((x(nxi+1:end)'-u),R));" // We need to transpose x since it is represented as a row vector
