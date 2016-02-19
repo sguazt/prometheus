@@ -95,7 +95,7 @@ class matlab_output_consumer
 
         std::istream& is = matlab_process.output_stream();
 
-//DCS_DEBUG_TRACE("BEGIN parsing MATLAB output");//XXX
+DCS_DEBUG_TRACE("BEGIN parsing MATLAB output");//XXX
 
         bool parse_line = false;
         while (matlab_process.alive() && is.good())
@@ -105,7 +105,7 @@ class matlab_output_consumer
 
             std::getline(is, line);
 
-//DCS_DEBUG_TRACE("Read from MATLAB --> " << line);//XXX
+DCS_DEBUG_TRACE("Read from MATLAB --> " << line);//XXX
 
             if (line.find("???") != std::string::npos
                 || line.find("Error:") != std::string::npos)
@@ -130,17 +130,17 @@ class matlab_output_consumer
                     if ((pos = line.find("x=")) != std::string::npos)
                     {
                         detail::parse_matlab_str(line.substr(pos+2), x_);
-//DCS_DEBUG_TRACE("Parsed as uopt=" << x_);//XXX
+DCS_DEBUG_TRACE("Parsed as uopt=" << x_);//XXX
                     }
                     else if ((pos = line.find("fval=")) != std::string::npos)
                     {
                         detail::parse_matlab_str(line.substr(pos+5), fval_);
-//DCS_DEBUG_TRACE("Parsed as fxopt=" << fval_);//XXX
+DCS_DEBUG_TRACE("Parsed as fxopt=" << fval_);//XXX
                     }
                     else if ((pos = line.find("exitflag=")) != std::string::npos)
                     {
                         detail::parse_matlab_str(line.substr(pos+9), exitflag_);
-//DCS_DEBUG_TRACE("Parsed as Uopt=" << exitflag_);//XXX
+DCS_DEBUG_TRACE("Parsed as Uopt=" << exitflag_);//XXX
                     }
                 }
             }
@@ -156,7 +156,7 @@ class matlab_output_consumer
         }
 
 //DCS_DEBUG_TRACE("DONE WITH LOOPING");//XXX
-//DCS_DEBUG_TRACE("END parsing MATLAB output");//XXX
+DCS_DEBUG_TRACE("END parsing MATLAB output");//XXX
 //DCS_DEBUG_TRACE("IS state: " << is.good() << " - " << is.eof() << " - " << is.fail() << " - " << is.bad());//XXX
     }
 
