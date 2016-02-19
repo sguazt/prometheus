@@ -1368,7 +1368,7 @@ int main(int argc, char *argv[])
 					std::string prebuilt_anfis_fname;
 
 					std::ostringstream oss;
-					oss << "experiments/data/" << opt_wkl << "-wang2015_qoscloud-order_out_" << output_order << "-anfis_trained.fll";
+					oss << "experiments/data/" << opt_wkl << "-wang2015_qoscloud-order_out_" << output_order << "-subclust.fll";
 					prebuilt_anfis_fname = oss.str();
 
 					testbed::wang2015_qoscloud_application_manager<traits_type> wang2015_qoscloud_mgr;
