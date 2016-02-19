@@ -1224,6 +1224,7 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
         fl::FisExporter fisExp;
         std::string fis_str = fisExp.toString(p_anfis_eng_.get());
         boost::algorithm::replace_all(fis_str, "\n", "\\n");
+        boost::algorithm::replace_all(fis_str, "'", "''");
 
 
         std::vector<std::string> matlab_args;
@@ -1244,27 +1245,27 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
             << "   nxi = " << nxi << ";"
             << "   Q = " << mpc_tracking_weight_ << "*eye(ny);"
             << "   R = " << mpc_control_weight_ << "*eye(nu);"
-            << "   fisstr = \"" << fis_str << "\";"
+            << "   fisstr = '" << fis_str << "';"
             << "   fisfile = tempname;"
             //<< "   save(fisfile, 'fisstr', '-ascii');"
             << "   fd = fopen(fisfile, 'w');"
-            << "   fwrtie(fd, fisstr);"
+            << "   fwrite(fd, fisstr);"
             << "   fclose(fd);"
             << "   fis = readfis(fisfile);"
             << "   nvar = nu+nxi;"
             << "   wsqr = @(x,w) x'*w*x;"
-            << "   objfun = @(x) (wsqr((evalfis(fis,x)-yref),Q) + wsqr((x(nxi+1:end)-u),R));"
+            << "   objfun = @(x) (wsqr((evalfis(x,fis)-yref),Q) + wsqr((x(nxi+1:end)-u),R));"
             << "   x0 = [xi; u];"
-            << "   gaopts = gaoptimset('InitialPopulation',[x0]);"
+            << "   gaopts = gaoptimset('InitialPopulation',x0);"
             << "   LB = zeros(size(x0));"
             << "   UB = ones(size(x0));"
             << "   rng(1, 'twister');" // For reproducibility
             << "   [x,fval,exitflag] = ga(@objfun, nvar, [], [], [], [], LB, UB, [], gaopts);"
             << "   format long;"
             << "   disp('--- [dcs::testbed::wang2015_qoscloud_application_manager] ---');"
-            << "   disp('['x =', mat2str(x)]);"
-            << "   disp('['fval =', num2str(fval)]);"
-            << "   disp('['exitflag =', num2str(exitflag)]);"
+            << "   disp(['x =', mat2str(x)]);"
+            << "   disp(['fval =', num2str(fval)]);"
+            << "   disp(['exitflag =', num2str(exitflag)]);"
             << "   disp('--- [/dcs::testbed::wang2015_qoscloud_application_manager] ---');"
             << " catch me,"
             << "  disp(['??? Error: ', me.message]);"
