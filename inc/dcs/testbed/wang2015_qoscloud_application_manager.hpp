@@ -1246,7 +1246,7 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
             << "   Q = " << mpc_tracking_weight_ << "*eye(ny);"
             << "   R = " << mpc_control_weight_ << "*eye(nu);"
             << "   fisstr = '" << fis_str << "';"
-            << "   fisfile = tempname;"
+            << "   fisfile = [tempname, '.fis'];"
             //<< "   save(fisfile, 'fisstr', '-ascii');"
             << "   fd = fopen(fisfile, 'w');"
             << "   fwrite(fd, fisstr);"
@@ -1260,7 +1260,7 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
             << "   LB = zeros(size(x0));"
             << "   UB = ones(size(x0));"
             << "   rng(1, 'twister');" // For reproducibility
-            << "   [x,fval,exitflag] = ga(@objfun, nvar, [], [], [], [], LB, UB, [], gaopts);"
+            << "   [x,fval,exitflag] = ga(objfun, nvar, [], [], [], [], LB, UB, [], gaopts);"
             << "   format long;"
             << "   disp('--- [dcs::testbed::wang2015_qoscloud_application_manager] ---');"
             << "   disp(['x =', mat2str(x)]);"
@@ -1269,6 +1269,7 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
             << "   disp('--- [/dcs::testbed::wang2015_qoscloud_application_manager] ---');"
             << " catch me,"
             << "  disp(['??? Error: ', me.message]);"
+            << " end;"
             << " quit force;"
             << "\"";
 
