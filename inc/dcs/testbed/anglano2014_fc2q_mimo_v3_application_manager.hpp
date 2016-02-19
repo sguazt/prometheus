@@ -90,6 +90,8 @@ class anglano2014_fc2q_mimo_v3_application_manager: public base_application_mana
 
 
 	private: static const std::size_t control_warmup_size;
+	private: static const float resource_share_lb_scale_factor;
+
 	private: static const std::string err_fuzzy_var_name;
 	private: static const std::string cres_fuzzy_var_name;
 	private: static const std::string deltac_fuzzy_var_name;
@@ -602,7 +604,7 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 						const real_type old_xshare = old_xshares.at(cat)[i];
 						const real_type xutil = xutils.at(cat)[i];
 						//const real_type deltax_lb = -xress.at(cat)[i]/old_share;
-                        const real_type deltax_lb = std::min(1.0, xutil*1.1)-old_xshare;
+                        const real_type deltax_lb = std::min(1.0, xutil*resource_share_lb_scale_factor)-old_xshare;
                         const real_type deltax_ub = std::max(0.0, 1-old_xshare);
 
 						real_type fuzzy_deltax = 0;
@@ -892,6 +894,9 @@ DCS_DEBUG_TRACE("Control applied");//XXX
 
 template <typename T>
 const std::size_t anglano2014_fc2q_mimo_v3_application_manager<T>::control_warmup_size = 5;
+
+template <typename T>
+const float anglano2014_fc2q_mimo_v3_application_manager<T>::resource_share_lb_scale_factor = 1.1;
 
 template <typename T>
 const std::string anglano2014_fc2q_mimo_v3_application_manager<T>::err_fuzzy_var_name = "E";

@@ -90,6 +90,8 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 
 
 	private: static const std::size_t control_warmup_size;
+	private: static const float resource_share_lb_scale_factor;
+
 	private: static const ::std::string rgain_fuzzy_var_name;
 	private: static const ::std::string cres_fuzzy_var_name;
 	private: static const ::std::string deltac_fuzzy_var_name;
@@ -476,7 +478,7 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 					const real_type cutil = cutils[i];
 					const real_type rgain = rgains.begin()->second;
 					const real_type old_share = old_shares[i];
-					const real_type deltac_lb = std::min(1.0, cutil*1.1)-old_share;
+					const real_type deltac_lb = std::min(1.0, cutil*resource_share_lb_scale_factor)-old_share;
 					const real_type deltac_ub = std::max(0.0, 1-old_share);
 
 					p_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, cres/old_share);
@@ -697,6 +699,9 @@ DCS_DEBUG_TRACE("Control applied");//XXX
 
 template <typename T>
 const std::size_t anglano2014_fc2q_application_manager<T>::control_warmup_size = 5;
+
+template <typename T>
+const float anglano2014_fc2q_application_manager<T>::resource_share_lb_scale_factor = 1.1;
 
 template <typename T>
 const ::std::string anglano2014_fc2q_application_manager<T>::rgain_fuzzy_var_name = "Rgain";
