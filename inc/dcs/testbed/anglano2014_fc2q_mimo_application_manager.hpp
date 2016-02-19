@@ -492,10 +492,12 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 						c = p_vm->memory_share();
 						break;
 				}
-				xress[cat].push_back(c-uh);
+				const real_type xres = c-uh;
+
+				xress[cat].push_back(xres);
 				old_xshares[cat].push_back(c);
 				xutils[cat].push_back(uh);
-DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << xress.at(cat).at(i));//XXX
+DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << xres << " (Relative Cres(k+1): " << xres/c << ")");//XXX
 			}
 		}
 
@@ -557,19 +559,20 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 					for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
 					{
 						const virtual_machine_performance_category vm_cat = vm_perf_cats_[j];
-						const real_type xres = xress.at(vm_cat).at(i);
+						const real_type xres = xress.at(vm_cat)[i];
+						const real_type old_xshare = old_xshares.at(vm_cat)[i];
 
 						switch (vm_cat)
 						{
 							case cpu_util_virtual_machine_performance:
-								p_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, xres);
-								//p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMinimum(-xres);
-								//p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMaximum(1-old_xshares.at(vm_cat)[i]);
+								p_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, xres/old_xshare);
+								//p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMinimum(-xres/old_xshare);
+								//p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMaximum(1-old_xshare);
 								break;
 							case memory_util_virtual_machine_performance:
-								p_fuzzy_eng_->setInputValue(mres_fuzzy_var_name, xres);
-								//p_fuzzy_eng_->getOutputVariable(deltam_fuzzy_var_name)->setMinimum(-xres);
-								//p_fuzzy_eng_->getOutputVariable(deltam_fuzzy_var_name)->setMaximum(1-old_xshares.at(vm_cat)[i]);
+								p_fuzzy_eng_->setInputValue(mres_fuzzy_var_name, xres/old_xshare);
+								//p_fuzzy_eng_->getOutputVariable(deltam_fuzzy_var_name)->setMinimum(-xres/old_xshare);
+								//p_fuzzy_eng_->getOutputVariable(deltam_fuzzy_var_name)->setMaximum(1-old_xshare);
 								break;
 						}
 					}
@@ -581,9 +584,11 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 					for (std::size_t j = 0; j < num_vm_perf_cats; ++j)
 					{
 						const virtual_machine_performance_category cat = vm_perf_cats_[j];
-						//const real_type deltax_lb = -xress.at(cat)[i];
-                        const real_type deltax_lb = std::min(1.0, xutils.at(cat)[i]*1.1)-old_xshares.at(cat)[i];
-                        const real_type deltax_ub = std::max(0.0, 1-old_xshares.at(cat)[i]);
+						const real_type old_xshare = old_xshares.at(cat)[i];
+                        const real_type xutil = xutils.at(cat)[i];
+						//const real_type deltax_lb = -xress.at(cat)[i]/old_xshare;
+                        const real_type deltax_lb = std::min(1.0, xutil*1.1)-old_xshare;
+                        const real_type deltax_ub = std::max(0.0, 1-old_xshare);
 
 						real_type fuzzy_deltax = 0;
 						real_type deltax = 0;

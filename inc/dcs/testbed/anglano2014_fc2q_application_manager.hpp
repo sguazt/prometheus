@@ -403,11 +403,12 @@ class anglano2014_fc2q_application_manager: public base_application_manager<Trai
 //			}
 			const real_type uh = this->data_smoother(cat, p_vm->id()).forecast(0);
 			const real_type c = p_vm->cpu_share();
+			const real_type cres = c-uh;
 
-			cress.push_back(c-uh);
+			cress.push_back(cres);
 			old_shares.push_back(c);
 			cutils.push_back(uh);
-DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << cress.at(i));//XXX
+DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << cres << " (Relative Cres(k+1): " << cres/c << ")");//XXX
 		}
 
 		if (!skip_ctl)
@@ -472,11 +473,13 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 				for (::std::size_t i = 0; i < nvms; ++i)
 				{
 					const real_type cres = cress[i];
+					const real_type cutil = cutils[i];
 					const real_type rgain = rgains.begin()->second;
-					const real_type deltac_lb = std::min(1.0, cutils[i]*1.1)-old_shares[i];
-					const real_type deltac_ub = std::max(0.0, 1-old_shares[i]);
+					const real_type old_share = old_shares[i];
+					const real_type deltac_lb = std::min(1.0, cutil*1.1)-old_share;
+					const real_type deltac_ub = std::max(0.0, 1-old_share);
 
-					p_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, cres);
+					p_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, cres/old_share);
 					p_fuzzy_eng_->setInputValue(rgain_fuzzy_var_name, rgain);
 					//p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMinimum(-cres);
 					//p_fuzzy_eng_->getOutputVariable(deltac_fuzzy_var_name)->setMaximum(1-old_shares[i]);

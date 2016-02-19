@@ -90,8 +90,9 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 	private: typedef std::map<virtual_machine_performance_category,std::map<vm_identifier_type,sensor_pointer> > in_sensor_map;
 
 
-	private: static const std::size_t control_warmup_size;
-	private: static const float resource_share_tol;
+	private: static const std::size_t control_warmup_size; ///< The number of control interval to skip before starting the control
+	private: static const float resource_share_tol; ///< The tolerance used to compare two shares 
+	private: static const float resource_share_lb_scale_factor; ///< The scale factor applied to resource utilization when computing resource share lower bound
 
 	private: static const std::string err_fuzzy_var_name;
 	private: static const std::string cres_fuzzy_var_name;
@@ -562,10 +563,12 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 						c = p_vm->memory_share();
 						break;
 				}
-				xress[cat].push_back(c-uh);
+				const real_type xres = c-uh;
+
+				xress[cat].push_back(xres);
 				old_xshares[cat].push_back(c);
 				xutils[cat].push_back(uh);
-DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << xress.at(cat).at(i));//XXX
+DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << xres << " (Relative Cres(k+1): " << xres/c << ")");//XXX
 			}
 		}
 
@@ -631,63 +634,79 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 					real_type deltax = 0;
 					real_type old_share = 0;
 					real_type new_share = 0;
+					real_type xres = 0;
+					real_type xutil = 0;
 
 					// CPU
 					// - Compute control actions
-					p_cpu_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, xress.at(cpu_util_virtual_machine_performance)[i]);
+					old_share = old_xshares.at(cpu_util_virtual_machine_performance)[i];
+					xutil = xutils.at(cpu_util_virtual_machine_performance)[i];
+					xres = xress.at(cpu_util_virtual_machine_performance)[i];
+					p_cpu_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, xres/old_share);
 					p_cpu_fuzzy_eng_->setInputValue(err_fuzzy_var_name, err);
 					p_cpu_fuzzy_eng_->process();
-					deltax_lb = std::min(1.0, xutils.at(cpu_util_virtual_machine_performance)[i]*1.1)-old_xshares.at(cpu_util_virtual_machine_performance)[i];
-					deltax_ub = std::max(0.0, 1-old_xshares.at(cpu_util_virtual_machine_performance)[i]);
+					deltax_lb = std::min(1.0, xutil*resource_share_lb_scale_factor)-old_share;
+					deltax_ub = std::max(0.0, 1-old_share);
 					fuzzy_deltax = p_cpu_fuzzy_eng_->getOutputValue(deltac_fuzzy_var_name);
 					deltax = dcs::math::clamp(fuzzy_deltax, deltax_lb, deltax_ub);
 					deltaxs[cpu_util_virtual_machine_performance].push_back(deltax);
-DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cpu_util_virtual_machine_performance << " -> DeltaX(k+1): " << deltaxs.at(cpu_util_virtual_machine_performance).at(i) << " (computed: " << fuzzy_deltax << ", lb: " << deltax_lb << ", ub: " << deltax_ub << ")");//XXX
+
+					DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cpu_util_virtual_machine_performance << " -> DeltaX(k+1): " << deltax << " (computed: " << fuzzy_deltax << ", lb: " << deltax_lb << ", ub: " << deltax_ub << ")");//XXX
+
 					// - Apply control actions
-					old_share = old_xshares.at(cpu_util_virtual_machine_performance)[i];
-					new_share = std::max(std::min(old_share+deltaxs[cpu_util_virtual_machine_performance][i], 1.0), 0.0);
+					new_share = std::max(std::min(old_share+deltax, 1.0), 0.0);
 					new_share = dcs::math::round(new_share/resource_share_tol)*resource_share_tol;
+
 					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - Performance Category: " << cpu_util_virtual_machine_performance << " - old-share: " << old_share << " - new-share: " << new_share);
+
 					if (std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share, resource_share_tol))
 					{
-						p_vm->cpu_share(new_share);
-DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cpu_util_virtual_machine_performance << " -> C(k+1): " << new_share);//XXX
+						DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cpu_util_virtual_machine_performance << " -> C(k+1): " << new_share);//XXX
 
+						p_vm->cpu_share(new_share);
 						new_xshares[cpu_util_virtual_machine_performance].push_back(new_share);
 					}
 					else
 					{
-DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cpu_util_virtual_machine_performance << " -> C(k+1) not set!");//XXX
+						DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cpu_util_virtual_machine_performance << " -> C(k+1) not set!");//XXX
+
 						new_xshares[cpu_util_virtual_machine_performance].push_back(old_share);
 					}
 
 					// Memory
 					// - Compute control actions
-					p_mem_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, p_vm->cpu_share()-xutils.at(cpu_util_virtual_machine_performance)[i]); // Take into account new CPU share
-					p_mem_fuzzy_eng_->setInputValue(mres_fuzzy_var_name, xress.at(memory_util_virtual_machine_performance)[i]);
+					old_share = old_xshares.at(memory_util_virtual_machine_performance)[i];
+					xutil = xutils.at(memory_util_virtual_machine_performance)[i];
+					xres = xress.at(memory_util_virtual_machine_performance)[i];
+					p_mem_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, p_vm->cpu_share()/*<-- DON'T USE old_xshares[cpu...]*/-xutils.at(cpu_util_virtual_machine_performance)[i]); // Take into account new CPU share
+					p_mem_fuzzy_eng_->setInputValue(mres_fuzzy_var_name, xres/xutil);
 					p_mem_fuzzy_eng_->setInputValue(err_fuzzy_var_name, err);
 					p_mem_fuzzy_eng_->process();
-					deltax_lb = std::min(1.0, xutils.at(memory_util_virtual_machine_performance)[i]*1.1)-old_xshares.at(memory_util_virtual_machine_performance)[i];
-					deltax_ub = std::max(0.0, 1-old_xshares.at(memory_util_virtual_machine_performance)[i]);
+					deltax_lb = std::min(1.0, xutil*resource_share_lb_scale_factor)-old_share;
+					deltax_ub = std::max(0.0, 1-old_share);
 					fuzzy_deltax = p_mem_fuzzy_eng_->getOutputValue(deltam_fuzzy_var_name);
 					deltax = dcs::math::clamp(fuzzy_deltax, deltax_lb, deltax_ub);
 					deltaxs[memory_util_virtual_machine_performance].push_back(deltax);
-DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_util_virtual_machine_performance << " -> DeltaX(k+1): " << deltaxs.at(memory_util_virtual_machine_performance).at(i) << " (computed: " << fuzzy_deltax << ", lb: " << deltax_lb << ", ub: " << deltax_ub << ")");//XXX
+
+					DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_util_virtual_machine_performance << " -> DeltaX(k+1): " << deltax << " (computed: " << fuzzy_deltax << ", lb: " << deltax_lb << ", ub: " << deltax_ub << ")");//XXX
+
 					// - Apply control actions
-					old_share = old_xshares.at(memory_util_virtual_machine_performance)[i];
-					new_share = std::max(std::min(old_share+deltaxs[memory_util_virtual_machine_performance][i], 1.0), 0.0);
+					new_share = std::max(std::min(old_share+deltax, 1.0), 0.0);
 					new_share = dcs::math::round(new_share/resource_share_tol)*resource_share_tol;
+
 					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - Performance Category: " << memory_util_virtual_machine_performance << " - old-share: " << old_share << " - new-share: " << new_share);
+
 					if (std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share, resource_share_tol))
 					{
-						p_vm->memory_share(new_share);
-DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_util_virtual_machine_performance << " -> C(k+1): " << new_share);//XXX
+						DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_util_virtual_machine_performance << " -> C(k+1): " << new_share);//XXX
 
+						p_vm->memory_share(new_share);
 						new_xshares[memory_util_virtual_machine_performance].push_back(new_share);
 					}
 					else
 					{
-DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_util_virtual_machine_performance << " -> C(k+1) not set!");//XXX
+						DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_util_virtual_machine_performance << " -> C(k+1) not set!");//XXX
+
 						new_xshares[memory_util_virtual_machine_performance].push_back(old_share);
 					}
 				}
@@ -918,6 +937,9 @@ const std::size_t anglano2014_fc2q_mimo_v4_application_manager<T>::control_warmu
 
 template <typename T>
 const float anglano2014_fc2q_mimo_v4_application_manager<T>::resource_share_tol = 1e-2;
+
+template <typename T>
+const float anglano2014_fc2q_mimo_v4_application_manager<T>::resource_share_lb_scale_factor = 1.1;
 
 template <typename T>
 const std::string anglano2014_fc2q_mimo_v4_application_manager<T>::err_fuzzy_var_name = "E";
