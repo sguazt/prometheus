@@ -1256,7 +1256,7 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
             << "   wsqr = @(x,w) x'*w*x;"
             << "   objfun = @(x) (wsqr((evalfis(x,fis)-yref),Q) + wsqr((x(nxi+1:end)-u),R));"
             << "   x0 = [xi; u];"
-            << "   gaopts = gaoptimset('InitialPopulation',x0);"
+            << "   gaopts = gaoptimset('InitialPopulation',x0, 'TimeLimit', " << (this->control_time()*0.5) << ");"
             << "   LB = zeros(size(x0));"
             << "   UB = ones(size(x0));"
             << "   rng(1, 'twister');" // For reproducibility
@@ -1284,8 +1284,28 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
         }
 
         ublas::vector<real_type> u_opt;
+        int exit_status;
         u_opt = matlab_consumer.x_;
+        exit_status = matlab_consumer.exitflag_;
 DCS_DEBUG_TRACE("Optimal control from GA: " << u_opt);///XXX
+
+        // Check exit status
+        // From MATLAB documentation:
+        //  1   Without nonlinear constraints — Average cumulative change in value of the fitness function over StallGenLimit generations is less than TolFun, and the constraint violation is less than TolCon.
+        //      With nonlinear constraints — Magnitude of the complementarity measure (see Complementarity Measure) is less than sqrt(TolCon), the subproblem is solved using a tolerance less than TolFun, and the constraint violation is less than TolCon.
+        //  2   Fitness limit reached and the constraint violation is less than TolCon.
+        //  3   Value of the fitness function did not change in StallGenLimit generations and the constraint violation is less than TolCon.
+        //  4   Magnitude of step smaller than machine precision and the constraint violation is less than TolCon.
+        //  5   Minimum fitness limit FitnessLimit reached and the constraint violation is less than TolCon.
+        //  0   Maximum number of generations Generations exceeded.
+        // -1   Optimization terminated by an output function or plot function.
+        // -2   No feasible point found.
+        // -4   Stall time limit StallTimeLimit exceeded.
+        // -5   Time limit TimeLimit exceeded.
+        if (exit_status == -2)
+        {
+            DCS_EXCEPTION_THROW(std::runtime_error, "(GA optimization) No feasible point found");
+        }
 
         return std::vector<real_type>(u_opt.begin(), u_opt.end());
     }
