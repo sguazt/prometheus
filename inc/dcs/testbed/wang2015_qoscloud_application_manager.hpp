@@ -1222,7 +1222,19 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
         }
 
         fl::FisExporter fisExp;
+        ublas::vector<real_type> ydefaults(ny);
+        // Cancel default output values since MATLAB don't use them (and raise an error if it finds them in the FIS file)
+        for (std::size_t i = 0; i < ny; ++i)
+        {
+            ydefaults[i] = p_anfis_eng_->getOutputVariable(i)->getDefaultValue();
+            p_anfis_eng_->getOutputVariable(i)->setDefaultValue(std::numeric_limits<real_type>::quiet_NaN());
+        }
         std::string fis_str = fisExp.toString(p_anfis_eng_.get());
+        // Restore default output values
+        for (std::size_t i = 0; i < ny; ++i)
+        {
+            p_anfis_eng_->getOutputVariable(i)->setDefaultValue(ydefaults[i]);
+        }
         boost::algorithm::replace_all(fis_str, "\n", "\\n");
         boost::algorithm::replace_all(fis_str, "'", "''");
 
@@ -1245,7 +1257,7 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
             << "   nxi = " << nxi << ";"
             << "   Q = " << mpc_tracking_weight_ << "*eye(ny);"
             << "   R = " << mpc_control_weight_ << "*eye(nu);"
-            << "   fisstr = '" << fis_str << "';"
+            << "   fisstr = sprintf('" << fis_str << "');"
             << "   fisfile = [tempname, '.fis'];"
             //<< "   save(fisfile, 'fisstr', '-ascii');"
             << "   fd = fopen(fisfile, 'w');"
