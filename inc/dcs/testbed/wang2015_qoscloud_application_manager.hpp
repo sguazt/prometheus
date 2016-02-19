@@ -1266,9 +1266,9 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
             << "   fis = readfis(fisfile);"
             << "   nvar = nu+nxi;"
             << "   wsqr = @(x,w) x'*w*x;"
-            << "   objfun = @(x) (wsqr((evalfis(x,fis)-yref),Q) + wsqr((x(nxi+1:end)-u),R));"
+            << "   objfun = @(x) (wsqr((evalfis(x',fis)-yref),Q) + wsqr((x(nxi+1:end)'-u),R));" // We need to transpose x since it is represented as a row vector
             << "   x0 = [xi; u];"
-            << "   gaopts = gaoptimset('InitialPopulation',x0, 'TimeLimit', " << (this->control_time()*0.5) << ");"
+            << "   gaopts = gaoptimset('InitialPopulation',[x0'], 'TimeLimit', " << (this->control_time()*0.5) << ");" // We need to transpose x0 since it is represented as a column vector
             << "   LB = zeros(size(x0));"
             << "   UB = ones(size(x0));"
             << "   rng(1, 'twister');" // For reproducibility
