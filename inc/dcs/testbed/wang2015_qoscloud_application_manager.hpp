@@ -1300,6 +1300,7 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
         u_opt = matlab_consumer.x_;
         exit_status = matlab_consumer.exitflag_;
 DCS_DEBUG_TRACE("Optimal control from GA: " << u_opt);///XXX
+DCS_DEBUG_TRACE("Exit status from GA: " << exit_status);///XXX
 
         // Check exit status
         // From MATLAB documentation:
