@@ -675,11 +675,14 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 
 					// Memory
 					// - Compute control actions
+					const real_type cpu_share = p_vm->cpu_share(); /*<-- DON'T USE old_xshares[cpu...]*/
+					const real_type cpu_util = xutils.at(cpu_util_virtual_machine_performance)[i];
+					const real_type cpu_cres = cpu_share-cpu_util;
 					old_share = old_xshares.at(memory_util_virtual_machine_performance)[i];
 					xutil = xutils.at(memory_util_virtual_machine_performance)[i];
 					xres = xress.at(memory_util_virtual_machine_performance)[i];
-					p_mem_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, p_vm->cpu_share()/*<-- DON'T USE old_xshares[cpu...]*/-xutils.at(cpu_util_virtual_machine_performance)[i]); // Take into account new CPU share
-					p_mem_fuzzy_eng_->setInputValue(mres_fuzzy_var_name, xres/xutil);
+					p_mem_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, cpu_cres/cpu_share); // Take into account new CPU share
+					p_mem_fuzzy_eng_->setInputValue(mres_fuzzy_var_name, xres/old_share);
 					p_mem_fuzzy_eng_->setInputValue(err_fuzzy_var_name, err);
 					p_mem_fuzzy_eng_->process();
 					deltax_lb = std::min(1.0, xutil*resource_share_lb_scale_factor)-old_share;
