@@ -60,6 +60,9 @@
 #include <vector>
 
 
+#define ANGLANO2015_FC2Q_V4_ALT 7
+
+
 namespace dcs { namespace testbed {
 
 /**
@@ -147,27 +150,75 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_iv->setEnabled(true);
 		p_iv->setName(cres_fuzzy_var_name);
 		p_iv->setRange(0.0, 1.0);
-		//p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
+#if !defined(ANGLANO2015_FC2Q_V4_ALT) \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  1 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  5 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  8 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  9 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 10 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 11
+		p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
+		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
+		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT ==  2 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  7 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 12 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 13 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 14
 		p_iv->addTerm(new fl::Ramp("LOW", 0.20, 0.00));
-		//p_iv->addTerm(new fl::Ramp("LOW", 0.15, 0.00));
-		//p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.20, 0.30));
-		//p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.15, 0.20));
-		//p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.20, 1.00));
-		//p_iv->addTerm(new fl::Ramp("HIGH", 0.15, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT == 3 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 4 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 6
+		p_iv->addTerm(new fl::Ramp("LOW", 0.15, 0.00));
+		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.15, 0.20));
+		p_iv->addTerm(new fl::Ramp("HIGH", 0.15, 1.00));
+#else
+# error Alternative not defined
+#endif
 		p_cpu_fuzzy_eng_->addInputVariable(p_iv);
 
 		p_iv = new fl::InputVariable();
 		p_iv->setEnabled(true);
 		p_iv->setName(err_fuzzy_var_name);
 		p_iv->setRange(-1, 1);
-		//p_iv->addTerm(new fl::Ramp("NEG", 0.20, -0.40));
+#if !defined(ANGLANO2015_FC2Q_V4_ALT) \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  1 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  2 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  3 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  4 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 11
+		p_iv->addTerm(new fl::Ramp("NEG", 0.20, -0.40));
+		p_iv->addTerm(new fl::Triangle("OK", 0.10, 0.20, 0.30));
+		p_iv->addTerm(new fl::Ramp("POS", 0.30, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT == 5 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 6 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 7
 		p_iv->addTerm(new fl::Ramp("NEG", 0.15, -0.10));
-		//p_iv->addTerm(new fl::Triangle("OK", 0.10, 0.20, 0.30));
 		p_iv->addTerm(new fl::Triangle("OK", 0.00, 0.15, 0.30));
-		//p_iv->addTerm(new fl::Ramp("POS", 0.30, 1.00));
 		p_iv->addTerm(new fl::Ramp("POS", 0.15, 0.40));
+#elif  ANGLANO2015_FC2Q_V4_ALT ==  8 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 12
+		p_iv->addTerm(new fl::Ramp("NEG", 0.15, -0.10));
+		p_iv->addTerm(new fl::Triangle("OK", 0.00, 0.15, 0.30));
+		p_iv->addTerm(new fl::Ramp("POS", 0.15, 1.00));
+#elif ANGLANO2015_FC2Q_V4_ALT == 9
+		p_iv->addTerm(new fl::Ramp("NEG", 0.15, -0.40));
+		p_iv->addTerm(new fl::Triangle("OK", 0.00, 0.15, 0.30));
+		p_iv->addTerm(new fl::Ramp("POS", 0.15, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT == 10 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 13
+		p_iv->addTerm(new fl::Ramp("NEG", 0.20, -0.40));
+		p_iv->addTerm(new fl::Triangle("OK", 0.10, 0.20, 0.30));
+		p_iv->addTerm(new fl::Ramp("POS", 0.20, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT == 14
+		p_iv->addTerm(new fl::Ramp("NEG", 0.20, -0.10));
+		p_iv->addTerm(new fl::Triangle("OK", 0.10, 0.20, 0.30));
+		p_iv->addTerm(new fl::Ramp("POS", 0.20, 1.00));
+#else
+# error Alternative not defined
+#endif
 		p_cpu_fuzzy_eng_->addInputVariable(p_iv);
 
 		p_ov = new fl::OutputVariable();
@@ -210,42 +261,108 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_iv->setEnabled(true);
 		p_iv->setName(cres_fuzzy_var_name);
 		p_iv->setRange(0.0, 1.0);
-		//p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
+#if !defined(ANGLANO2015_FC2Q_V4_ALT) \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  1 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  5 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  8 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  9 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 10 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 11
+		p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
+		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
+		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT ==  2 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  7 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 12 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 13 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 14
 		p_iv->addTerm(new fl::Ramp("LOW", 0.20, 0.00));
-		//p_iv->addTerm(new fl::Ramp("LOW", 0.15, 0.00));
-		//p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.20, 0.30));
-		//p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.15, 0.20));
-		//p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.20, 1.00));
-		//p_iv->addTerm(new fl::Ramp("HIGH", 0.15, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT == 3 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 4 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 6
+		p_iv->addTerm(new fl::Ramp("LOW", 0.15, 0.00));
+		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.15, 0.20));
+		p_iv->addTerm(new fl::Ramp("HIGH", 0.15, 1.00));
+#else
+# error Alternative not defined
+#endif
 		p_mem_fuzzy_eng_->addInputVariable(p_iv);
 
 		p_iv = new fl::InputVariable();
 		p_iv->setEnabled(true);
 		p_iv->setName(mres_fuzzy_var_name);
 		p_iv->setRange(0.0, 1.0);
-		//p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
+#if !defined(ANGLANO2015_FC2Q_V4_ALT) \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  1 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  5 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  8 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  9 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 10 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 11
+		p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
+		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
+		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT ==  2 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  7 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 12 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 13 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 14
 		p_iv->addTerm(new fl::Ramp("LOW", 0.20, 0.00));
-		//p_iv->addTerm(new fl::Ramp("LOW", 0.15, 0.00));
-		//p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.20, 0.30));
-		//p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.15, 0.20));
-		//p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.20, 1.00));
-		//p_iv->addTerm(new fl::Ramp("HIGH", 0.15, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT == 3 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 4 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 6
+		p_iv->addTerm(new fl::Ramp("LOW", 0.15, 0.00));
+		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.15, 0.20));
+		p_iv->addTerm(new fl::Ramp("HIGH", 0.15, 1.00));
+#else
+# error Alternative not defined
+#endif
 		p_mem_fuzzy_eng_->addInputVariable(p_iv);
 
 		p_iv = new fl::InputVariable();
 		p_iv->setEnabled(true);
 		p_iv->setName(err_fuzzy_var_name);
 		p_iv->setRange(-1, 1);
-		//p_iv->addTerm(new fl::Ramp("NEG", 0.20, -0.40));
+#if !defined(ANGLANO2015_FC2Q_V4_ALT) \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  1 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  2 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  3 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  4 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 11
+		p_iv->addTerm(new fl::Ramp("NEG", 0.20, -0.40));
+		p_iv->addTerm(new fl::Triangle("OK", 0.10, 0.20, 0.30));
+		p_iv->addTerm(new fl::Ramp("POS", 0.30, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT == 5 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 6 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 7
 		p_iv->addTerm(new fl::Ramp("NEG", 0.15, -0.10));
-		//p_iv->addTerm(new fl::Triangle("OK", 0.10, 0.20, 0.30));
 		p_iv->addTerm(new fl::Triangle("OK", 0.00, 0.15, 0.30));
-		//p_iv->addTerm(new fl::Ramp("POS", 0.30, 1.00));
 		p_iv->addTerm(new fl::Ramp("POS", 0.15, 0.40));
+#elif  ANGLANO2015_FC2Q_V4_ALT ==  8 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 12
+		p_iv->addTerm(new fl::Ramp("NEG", 0.15, -0.10));
+		p_iv->addTerm(new fl::Triangle("OK", 0.00, 0.15, 0.30));
+		p_iv->addTerm(new fl::Ramp("POS", 0.15, 1.00));
+#elif ANGLANO2015_FC2Q_V4_ALT == 9
+		p_iv->addTerm(new fl::Ramp("NEG", 0.15, -0.40));
+		p_iv->addTerm(new fl::Triangle("OK", 0.00, 0.15, 0.30));
+		p_iv->addTerm(new fl::Ramp("POS", 0.15, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT == 10 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 13
+		p_iv->addTerm(new fl::Ramp("NEG", 0.20, -0.40));
+		p_iv->addTerm(new fl::Triangle("OK", 0.10, 0.20, 0.30));
+		p_iv->addTerm(new fl::Ramp("POS", 0.20, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT == 14
+		p_iv->addTerm(new fl::Ramp("NEG", 0.20, -0.10));
+		p_iv->addTerm(new fl::Triangle("OK", 0.10, 0.20, 0.30));
+		p_iv->addTerm(new fl::Ramp("POS", 0.20, 1.00));
+#else
+# error Alternative not defined
+#endif
 		p_mem_fuzzy_eng_->addInputVariable(p_iv);
 
 		p_ov = new fl::OutputVariable();
@@ -271,26 +388,35 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_rules->setDisjunction(new fl::Maximum());
 		p_rules->setImplication(new fl::AlgebraicProduct()); // Larsen
 		//p_rules->setImplication(new fl::Minimum()); // Mamdani
+#if !defined(ANGLANO2015_FC2Q_V4_ALT) \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  1 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  4 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  5 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  6 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  7 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  8 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  9 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 10 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 12 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 13 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 14
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is BUP", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
-		//p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
-		//p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
-		//p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is DWN", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is DWN", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
@@ -301,6 +427,39 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is DWN", p_mem_fuzzy_eng_.get()));
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is BDW", p_mem_fuzzy_eng_.get()));
+#elif  ANGLANO2015_FC2Q_V4_ALT ==  2 \
+	|| ANGLANO2015_FC2Q_V4_ALT ==  3 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 11
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is BUP", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is DWN", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is DWN", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is DWN", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is LOW then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is DWN", p_mem_fuzzy_eng_.get()));
+		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is HIGH and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is BDW", p_mem_fuzzy_eng_.get()));
+#else
+# error Alternative not defined
+#endif
 		p_mem_fuzzy_eng_->addRuleBlock(p_rules);
 
 		DCS_DEBUG_TRACE( p_cpu_fuzzy_eng_->toString() );
@@ -651,6 +810,7 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 					deltax = dcs::math::clamp(fuzzy_deltax, deltax_lb, deltax_ub);
 					deltaxs[cpu_util_virtual_machine_performance].push_back(deltax);
 
+					DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", CPU FUZZY CONTROLLER - OUTPUT VALUE: " << p_cpu_fuzzy_eng_->getOutputVariable(0)->getValue() << " - FUZZY OUTPUT: " << p_cpu_fuzzy_eng_->getOutputVariable(0)->fuzzyOutput()->toString() << " - FUZZY OUTPUT VALUE: " << p_cpu_fuzzy_eng_->getOutputVariable(0)->fuzzyOutputValue());//XXX
 					DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cpu_util_virtual_machine_performance << " -> DeltaX(k+1): " << deltax << " (computed: " << fuzzy_deltax << ", lb: " << deltax_lb << ", ub: " << deltax_ub << ")");//XXX
 
 					// - Apply control actions
@@ -691,6 +851,7 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 					deltax = dcs::math::clamp(fuzzy_deltax, deltax_lb, deltax_ub);
 					deltaxs[memory_util_virtual_machine_performance].push_back(deltax);
 
+					DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", MEM FUZZY CONTROLLER - OUTPUT VALUE: " << p_mem_fuzzy_eng_->getOutputVariable(0)->getValue() << " - FUZZY OUTPUT: " << p_mem_fuzzy_eng_->getOutputVariable(0)->fuzzyOutput()->toString() << " - FUZZY OUTPUT VALUE: " << p_mem_fuzzy_eng_->getOutputVariable(0)->fuzzyOutputValue());//XXX
 					DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_util_virtual_machine_performance << " -> DeltaX(k+1): " << deltax << " (computed: " << fuzzy_deltax << ", lb: " << deltax_lb << ", ub: " << deltax_ub << ")");//XXX
 
 					// - Apply control actions
