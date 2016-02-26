@@ -32,6 +32,7 @@
 #include <dcs/assert.hpp>
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
+#include <dcs/math/function/round.hpp>
 #include <dcs/uri.hpp>
 #include <libvirt/libvirt.h>
 #include <libvirt/virterror.h>
@@ -948,7 +949,7 @@ void cpu_share(virConnectPtr conn, virDomainPtr dom, double share)
 
 	//FIXME: This is a Xen-related stuff. What for other hypervisors?
 	//FIXME: Actually, since we don't consider the weight parameter, we assume that all VMs have the same weight
-	const int cap = share < 1.0 ? share*nvcpus*100 : 0; //Note: cap == 0 ==> No upper cap
+	const int cap = share < 1.0 ? dcs::math::round(share*nvcpus*100) : 0; //Note: cap == 0 ==> No upper cap
 	sched_param<int>(conn, dom, "cap", cap, VIR_DOMAIN_AFFECT_CURRENT);
 }
 
@@ -1002,7 +1003,8 @@ void memory_share(virConnectPtr conn, virDomainPtr dom, double share)
 	assert(share >= 0);
 
 	const unsigned long max_mem = config_max_memory(conn, dom);
-	const unsigned long mem = std::min(static_cast<unsigned long>(share*max_mem), max_mem);
+	//const unsigned long mem = std::min(static_cast<unsigned long>(share*max_mem), max_mem);
+	const unsigned long mem = std::min(static_cast<unsigned long>(dcs::math::round(share*max_mem)), max_mem);
 
 #if 0
 	max_memory(conn, dom, mem);
