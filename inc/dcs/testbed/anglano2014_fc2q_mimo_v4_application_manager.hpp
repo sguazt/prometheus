@@ -60,7 +60,7 @@
 #include <vector>
 
 
-#define ANGLANO2015_FC2Q_V4_ALT 17
+#define ANGLANO2015_FC2Q_V4_ALT 19
 
 
 namespace dcs { namespace testbed {
@@ -158,7 +158,8 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 	|| ANGLANO2015_FC2Q_V4_ALT == 10 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 11 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 16 \
-	|| ANGLANO2015_FC2Q_V4_ALT == 17
+	|| ANGLANO2015_FC2Q_V4_ALT == 17 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 18
 		p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
@@ -167,7 +168,8 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 	|| ANGLANO2015_FC2Q_V4_ALT == 12 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 13 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 14 \
-	|| ANGLANO2015_FC2Q_V4_ALT == 15
+	|| ANGLANO2015_FC2Q_V4_ALT == 15 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 20
 		p_iv->addTerm(new fl::Ramp("LOW", 0.20, 0.00));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.20, 0.30));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.20, 1.00));
@@ -177,6 +179,11 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_iv->addTerm(new fl::Ramp("LOW", 0.15, 0.00));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.15, 0.20));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.15, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT == 19 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 21
+		p_iv->addTerm(new fl::Ramp("LOW", 0.25, 0.00));
+		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
+		p_iv->addTerm(new fl::Ramp("HIGH", 0.25, 1.00));
 #else
 # error CPU Controller - Cres: Alternative not defined
 #endif
@@ -218,10 +225,17 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_iv->addTerm(new fl::Ramp("POS", 0.20, 1.00));
 #elif  ANGLANO2015_FC2Q_V4_ALT == 14 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 15 \
-	|| ANGLANO2015_FC2Q_V4_ALT == 16
+	|| ANGLANO2015_FC2Q_V4_ALT == 16 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 19 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 20 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 21
 		p_iv->addTerm(new fl::Ramp("NEG", 0.20, -0.10));
 		p_iv->addTerm(new fl::Triangle("OK", 0.10, 0.20, 0.30));
 		p_iv->addTerm(new fl::Ramp("POS", 0.20, 1.00));
+#elif ANGLANO2015_FC2Q_V4_ALT == 18
+		p_iv->addTerm(new fl::Ramp("NEG", 0.20, -0.10));
+		p_iv->addTerm(new fl::Triangle("OK", 0.10, 0.20, 0.30));
+		p_iv->addTerm(new fl::Ramp("POS", 0.20, 0.40));
 #else
 # error CPU Controller - Err: Alternative not defined
 #endif
@@ -275,7 +289,8 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 	|| ANGLANO2015_FC2Q_V4_ALT == 10 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 11 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 16 \
-	|| ANGLANO2015_FC2Q_V4_ALT == 17
+	|| ANGLANO2015_FC2Q_V4_ALT == 17 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 18
 		p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
@@ -284,7 +299,8 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 	|| ANGLANO2015_FC2Q_V4_ALT == 12 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 13 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 14 \
-	|| ANGLANO2015_FC2Q_V4_ALT == 15
+	|| ANGLANO2015_FC2Q_V4_ALT == 15 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 20
 		p_iv->addTerm(new fl::Ramp("LOW", 0.20, 0.00));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.20, 0.30));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.20, 1.00));
@@ -294,6 +310,11 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_iv->addTerm(new fl::Ramp("LOW", 0.15, 0.00));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.15, 0.20));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.15, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT == 19 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 21
+		p_iv->addTerm(new fl::Ramp("LOW", 0.25, 0.00));
+		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
+		p_iv->addTerm(new fl::Ramp("HIGH", 0.25, 1.00));
 #else
 # error Mem Controller - Cres: Alternative not defined
 #endif
@@ -311,7 +332,8 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 	|| ANGLANO2015_FC2Q_V4_ALT == 10 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 11 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 16 \
-	|| ANGLANO2015_FC2Q_V4_ALT == 17
+	|| ANGLANO2015_FC2Q_V4_ALT == 17 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 18
 		p_iv->addTerm(new fl::Ramp("LOW", 0.30, 0.00));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.30, 1.00));
@@ -320,7 +342,8 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 	|| ANGLANO2015_FC2Q_V4_ALT == 12 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 13 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 14 \
-	|| ANGLANO2015_FC2Q_V4_ALT == 15
+	|| ANGLANO2015_FC2Q_V4_ALT == 15 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 20
 		p_iv->addTerm(new fl::Ramp("LOW", 0.20, 0.00));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.20, 0.30));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.20, 1.00));
@@ -330,6 +353,11 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_iv->addTerm(new fl::Ramp("LOW", 0.15, 0.00));
 		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.15, 0.20));
 		p_iv->addTerm(new fl::Ramp("HIGH", 0.15, 1.00));
+#elif  ANGLANO2015_FC2Q_V4_ALT == 19 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 21
+		p_iv->addTerm(new fl::Ramp("LOW", 0.25, 0.00));
+		p_iv->addTerm(new fl::Triangle("FINE", 0.10, 0.25, 0.40));
+		p_iv->addTerm(new fl::Ramp("HIGH", 0.25, 1.00));
 #else
 # error Mem Controller - Mres: Alternative not defined
 #endif
@@ -371,10 +399,17 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_iv->addTerm(new fl::Ramp("POS", 0.20, 1.00));
 #elif  ANGLANO2015_FC2Q_V4_ALT == 14 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 15 \
-	|| ANGLANO2015_FC2Q_V4_ALT == 16
+	|| ANGLANO2015_FC2Q_V4_ALT == 16 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 19 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 20 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 21
 		p_iv->addTerm(new fl::Ramp("NEG", 0.20, -0.10));
 		p_iv->addTerm(new fl::Triangle("OK", 0.10, 0.20, 0.30));
 		p_iv->addTerm(new fl::Ramp("POS", 0.20, 1.00));
+#elif ANGLANO2015_FC2Q_V4_ALT == 18
+		p_iv->addTerm(new fl::Ramp("NEG", 0.20, -0.10));
+		p_iv->addTerm(new fl::Triangle("OK", 0.10, 0.20, 0.30));
+		p_iv->addTerm(new fl::Ramp("POS", 0.20, 0.40));
 #else
 # error Mem Controller - Err: Alternative not defined
 #endif
@@ -426,7 +461,11 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 	|| ANGLANO2015_FC2Q_V4_ALT == 11 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 15 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 16 \
-	|| ANGLANO2015_FC2Q_V4_ALT == 17
+	|| ANGLANO2015_FC2Q_V4_ALT == 17 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 18 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 19 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 20 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 21
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is LOW and " + err_fuzzy_var_name + " is OK and " + cres_fuzzy_var_name + " is HIGH then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
 #else
 # error Mem Controller - Rules: Alternative not defined
@@ -449,11 +488,15 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 	|| ANGLANO2015_FC2Q_V4_ALT == 14 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 15 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 16 \
-	|| ANGLANO2015_FC2Q_V4_ALT == 17
+	|| ANGLANO2015_FC2Q_V4_ALT == 17 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 18 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 21
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 #elif  ANGLANO2015_FC2Q_V4_ALT ==  2 \
 	|| ANGLANO2015_FC2Q_V4_ALT ==  3 \
-	|| ANGLANO2015_FC2Q_V4_ALT == 11
+	|| ANGLANO2015_FC2Q_V4_ALT == 11 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 19 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 20
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is NEG and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is UP", p_mem_fuzzy_eng_.get()));
 #else
 # error Mem Controller - Rules: Alternative not defined
@@ -477,11 +520,15 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 	|| ANGLANO2015_FC2Q_V4_ALT == 14 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 15 \
 	|| ANGLANO2015_FC2Q_V4_ALT == 16 \
-	|| ANGLANO2015_FC2Q_V4_ALT == 17
+	|| ANGLANO2015_FC2Q_V4_ALT == 17 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 18 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 20 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 21
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is STY", p_mem_fuzzy_eng_.get()));
 #elif  ANGLANO2015_FC2Q_V4_ALT ==  2 \
 	|| ANGLANO2015_FC2Q_V4_ALT ==  3 \
-	|| ANGLANO2015_FC2Q_V4_ALT == 11
+	|| ANGLANO2015_FC2Q_V4_ALT == 11 \
+	|| ANGLANO2015_FC2Q_V4_ALT == 19
 		p_rules->addRule(fl::Rule::parse("if " + mres_fuzzy_var_name + " is FINE and " + err_fuzzy_var_name + " is POS and " + cres_fuzzy_var_name + " is FINE then " + deltam_fuzzy_var_name + " is DWN", p_mem_fuzzy_eng_.get()));
 #else
 # error Mem Controller - Rules: Alternative not defined
@@ -840,8 +887,15 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 					p_cpu_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, xres/old_share);
 					p_cpu_fuzzy_eng_->setInputValue(err_fuzzy_var_name, err);
 					p_cpu_fuzzy_eng_->process();
+#if 0
+// Use this when DeltaC is an absolute measure
 					deltax_lb = std::min(1.0, xutil*resource_share_lb_scale_factor)-old_share;
 					deltax_ub = std::max(0.0, 1-old_share);
+#else
+// Use this when DeltaC is a relative measure
+					deltax_lb = (std::min(1.0, xutil*resource_share_lb_scale_factor)-old_share)/old_share;
+					deltax_ub = std::max(0.0, (1-old_share)/old_share);
+#endif
 					fuzzy_deltax = p_cpu_fuzzy_eng_->getOutputValue(deltac_fuzzy_var_name);
 					deltax = dcs::math::clamp(fuzzy_deltax, deltax_lb, deltax_ub);
 					deltaxs[cpu_util_virtual_machine_performance].push_back(deltax);
@@ -850,8 +904,16 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 					DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cpu_util_virtual_machine_performance << " -> DeltaX(k+1): " << deltax << " (computed: " << fuzzy_deltax << ", lb: " << deltax_lb << ", ub: " << deltax_ub << ")");//XXX
 
 					// - Apply control actions
-					new_share = std::max(std::min(old_share+deltax, 1.0), 0.0);
+#if 0
+// Use this when DeltaC is an absolute measure
+					new_share = old_share+deltax;
 					new_share = dcs::math::round(new_share/resource_share_tol)*resource_share_tol;
+#else
+// Use this when DeltaC is a relative measure
+					new_share = old_share*(1+deltax);
+					new_share = std::ceil(new_share/resource_share_tol)*resource_share_tol;
+#endif
+					new_share = std::max(std::min(new_share, 1.0), 0.0);
 
 					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - Performance Category: " << cpu_util_virtual_machine_performance << " - old-share: " << old_share << " - new-share: " << new_share);
 
@@ -881,8 +943,15 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 					p_mem_fuzzy_eng_->setInputValue(mres_fuzzy_var_name, xres/old_share);
 					p_mem_fuzzy_eng_->setInputValue(err_fuzzy_var_name, err);
 					p_mem_fuzzy_eng_->process();
+#if 0
+// Use this when DeltaC is an absolute measure
 					deltax_lb = std::min(1.0, xutil*resource_share_lb_scale_factor)-old_share;
 					deltax_ub = std::max(0.0, 1-old_share);
+#else
+// Use this when DeltaC is a relative measure
+					deltax_lb = (std::min(1.0, xutil*resource_share_lb_scale_factor)-old_share)/old_share;
+					deltax_ub = std::max(0.0, (1-old_share)/old_share);
+#endif
 					fuzzy_deltax = p_mem_fuzzy_eng_->getOutputValue(deltam_fuzzy_var_name);
 					deltax = dcs::math::clamp(fuzzy_deltax, deltax_lb, deltax_ub);
 					deltaxs[memory_util_virtual_machine_performance].push_back(deltax);
@@ -891,8 +960,16 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 					DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << memory_util_virtual_machine_performance << " -> DeltaX(k+1): " << deltax << " (computed: " << fuzzy_deltax << ", lb: " << deltax_lb << ", ub: " << deltax_ub << ")");//XXX
 
 					// - Apply control actions
-					new_share = std::max(std::min(old_share+deltax, 1.0), 0.0);
+#if 0
+// Use this when DeltaC is an absolute measure
+					new_share = old_share+deltax;
 					new_share = dcs::math::round(new_share/resource_share_tol)*resource_share_tol;
+#else
+// Use this when DeltaC is a relative measure
+					new_share = old_share*(1+deltax);
+					new_share = std::ceil(new_share/resource_share_tol)*resource_share_tol;
+#endif
+					new_share = std::max(std::min(new_share, 1.0), 0.0);
 
 					DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - Performance Category: " << memory_util_virtual_machine_performance << " - old-share: " << old_share << " - new-share: " << new_share);
 
