@@ -89,8 +89,9 @@ class anglano2014_fc2q_mimo_application_manager: public base_application_manager
 	private: typedef std::map<virtual_machine_performance_category,std::map<vm_identifier_type,sensor_pointer> > in_sensor_map;
 
 
-	private: static const std::size_t control_warmup_size;
-	private: static const float resource_share_lb_scale_factor;
+	private: static const std::size_t control_warmup_size; ///< The number of control interval to skip before starting the control
+	private: static const float resource_share_tol; ///< The tolerance used to compare two shares 
+	private: static const float resource_share_lb_scale_factor; ///< The scale factor applied to resource utilization when computing resource share lower bound
 
 	private: static const std::string err_fuzzy_var_name;
 	private: static const std::string cres_fuzzy_var_name;
@@ -589,8 +590,15 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 						const real_type old_xshare = old_xshares.at(cat)[i];
                         const real_type xutil = xutils.at(cat)[i];
 						//const real_type deltax_lb = -xress.at(cat)[i]/old_xshare;
+#if 0
+// Use this when DeltaC is an absolute measure
                         const real_type deltax_lb = std::min(1.0, xutil*resource_share_lb_scale_factor)-old_xshare;
                         const real_type deltax_ub = std::max(0.0, 1-old_xshare);
+#else
+// Use this when DeltaC is an relative measure
+                        const real_type deltax_lb = (std::min(1.0, xutil*resource_share_lb_scale_factor)-old_xshare)/old_xshare;
+                        const real_type deltax_ub = std::max(0.0, (1-old_xshare)/old_xshare);
+#endif
 
 						real_type fuzzy_deltax = 0;
 						real_type deltax = 0;
@@ -653,12 +661,22 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " 
 						////old_xshares[cat].push_back(old_share);
 						const real_type old_share = old_xshares.at(cat)[i];
 
-						const real_type new_share = std::max(std::min(old_share+deltaxs[cat][i], 1.0), 0.0);
+						real_type new_share = 0;
+#if 0
+						new_share = old_share+deltaxs.at(cat)[i];
+						new_share = dcs::math::round(new_share/resource_share_tol)*resource_share_tol;
+#else
+						new_share = old_share*(1+deltaxs.at(cat)[i]);
+						new_share = std::ceil(new_share/resource_share_tol)*resource_share_tol;
+#endif
+						new_share = std::max(std::min(new_share, 1.0), 0.0);
 
 						DCS_DEBUG_TRACE("VM '" << p_vm->id() << "' - Performance Category: " << cat << " - old-share: " << old_share << " - new-share: " << new_share);
 
 						if (std::isfinite(new_share) && !::dcs::math::float_traits<real_type>::essentially_equal(old_share, new_share))
 						{
+							DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> C(k+1): " << new_share);//XXX
+
 							switch (cat)
 							{
 								case cpu_util_virtual_machine_performance:
@@ -668,13 +686,12 @@ DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " 
 									p_vm->memory_share(new_share);
 									break;
 							}
-DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> C(k+1): " << new_share);//XXX
-
 							new_xshares[cat].push_back(new_share);
 						}
 						else
 						{
-DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> C(k+1) not set!");//XXX
+							DCS_DEBUG_TRACE("VM " << vms[i]->id() << ", Performance Category: " << cat << " -> C(k+1) not set!");//XXX
+
 							new_xshares[cat].push_back(old_share);
 						}
 					}
@@ -879,6 +896,9 @@ DCS_DEBUG_TRACE("Control applied");//XXX
 
 template <typename T>
 const std::size_t anglano2014_fc2q_mimo_application_manager<T>::control_warmup_size = 5;
+
+template <typename T>
+const float anglano2014_fc2q_mimo_application_manager<T>::resource_share_tol = 1e-2;
 
 template <typename T>
 const float anglano2014_fc2q_mimo_application_manager<T>::resource_share_lb_scale_factor = 1.1;
