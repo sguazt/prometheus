@@ -15,6 +15,8 @@ fuzzylite_header_path=$(HOME)/sys/src/git/fuzzylite/fuzzylite
 fuzzylite_libs_path=$(HOME)/sys/src/git/fuzzylite/fuzzylite/release/bin
 fuzzylitex_home=../fuzzylitex
 gurobi_home=$(HOME)/sys/opt/optim/gurobi605/linux64
+yaml_header_path=$(HOME)/sys/include
+yaml_libs_path=$(HOME)/sys/lib
 
 ## Inform that MATLAB is available
 dcs_testbed_have_matlab=1
@@ -146,8 +148,8 @@ LDFLAGS += -L$(JAVA_HOME)/jre/lib/i386 -L$(JAVA_HOME)/jre/lib/amd64 -L$(JAVA_HOM
 LDLIBS += -ljvm
 
 # yaml
-CXXFLAGS+=-I$(HOME)/sys/include
-LDFLAGS+=-L$(HOME)/sys/lib
+CXXFLAGS+=-I$(yaml_header_path)
+LDFLAGS+=-L$(yaml_libs_path)
 LDLIBS+=-lyaml-cpp
 
 
