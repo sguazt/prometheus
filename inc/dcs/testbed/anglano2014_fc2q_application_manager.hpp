@@ -8,7 +8,8 @@
  * References:
  * -# C. Anglano, M. Canonico and M. Guazzone,
  *    "FC2Q: Exploiting Fuzzy Control in Server Consolidation for Cloud Applications with SLA Constraints,"
- *    Concurrency and Computation: Practice and Experience, Accepted for publication, 2014.
+ *    Concurrency and Computation: Practice and Experience, 27:4491–4514, 2015.
+ *    doi:10.1002/cpe.3410
  * .
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
@@ -69,8 +70,8 @@ namespace dcs { namespace testbed {
  * References:
  * -# C. Anglano, M. Canonico and M. Guazzone,
  *    "FC2Q: Exploiting Fuzzy Control in Server Consolidation for Cloud Applications with SLA Constraints,"
- *    Future Generation Computer Systems, Submitted for publication, 2014.
- * .
+ *    Concurrency and Computation: Practice and Experience, 27:4491–4514, 2015.
+ *    doi:10.1002/cpe.3410
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  */
