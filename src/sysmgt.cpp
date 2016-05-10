@@ -215,12 +215,13 @@ enum app_manager_category
 	anglano2014_fc2q_mimo_v2_app_manager,
 	anglano2014_fc2q_mimo_v3_app_manager,
 	anglano2014_fc2q_mimo_v4_app_manager,
+	anglano2016_fcms_app_manager,
 	dummy_app_manager,
 	guazzone2015_anfis_ssmpc_app_manager,
-	lama2013_appleware_app_manager,
+	lama2015_appleware_app_manager,
 	padala2009_autocontrol_app_manager,
 	rao2013_dynaqos_app_manager,
-	wang2015_qoscloud_app_manager
+	wang2015_fmpc_app_manager
 };
 
 
@@ -431,33 +432,17 @@ inline
 	{
 		cat = anglano2014_fc2q_app_manager;
 	}
-	else if (!s.compare("anglano2014_fc2q_mimo"))
+	else if (!s.compare("anglano2016_fcms"))
 	{
-		cat = anglano2014_fc2q_mimo_app_manager;
-	}
-	else if (!s.compare("anglano2014_fc2q_mimo_v2"))
-	{
-		cat = anglano2014_fc2q_mimo_v2_app_manager;
-	}
-	else if (!s.compare("anglano2014_fc2q_mimo_v3"))
-	{
-		cat = anglano2014_fc2q_mimo_v3_app_manager;
-	}
-	else if (!s.compare("anglano2014_fc2q_mimo_v4"))
-	{
-		cat = anglano2014_fc2q_mimo_v4_app_manager;
+		cat = anglano2016_fcms_app_manager;
 	}
 	else if (!s.compare("dummy"))
 	{
 		cat = dummy_app_manager;
 	}
-	else if (!s.compare("guazzone2015_anfis_ssmpc"))
+	else if (!s.compare("lama2015_appleware"))
 	{
-		cat = guazzone2015_anfis_ssmpc_app_manager;
-	}
-	else if (!s.compare("lama2013_appleware"))
-	{
-		cat = lama2013_appleware_app_manager;
+		cat = lama2015_appleware_app_manager;
 	}
 	else if (!s.compare("padala2009_autocontrol"))
 	{
@@ -467,9 +452,9 @@ inline
 	{
 		cat = rao2013_dynaqos_app_manager;
 	}
-	else if (!s.compare("wang2015_qoscloud"))
+	else if (!s.compare("wang2015_fmpc"))
 	{
-		cat = wang2015_qoscloud_app_manager;
+		cat = wang2015_fmpc_app_manager;
 	}
 	else
 	{
@@ -492,26 +477,23 @@ inline
 		case anglano2014_fc2q_app_manager:
 			os << "anglano2014_fc2q";
 			break;
-		case anglano2014_fc2q_mimo_app_manager:
-			os << "anglano2014_fc2q_mimo";
-			break;
-		case anglano2014_fc2q_mimo_v2_app_manager:
-			os << "anglano2014_fc2q_mimo_v2";
-			break;
-		case anglano2014_fc2q_mimo_v3_app_manager:
-			os << "anglano2014_fc2q_mimo_v3";
-			break;
-		case anglano2014_fc2q_mimo_v4_app_manager:
-			os << "anglano2014_fc2q_mimo_v4";
+		case anglano2016_fcms_app_manager:
+			os << "anglano2016_fcms";
 			break;
 		case dummy_app_manager:
 			os << "dummy";
+			break;
+		case lama2015_appleware_app_manager:
+			os << "lama2015_appleware";
 			break;
 		case padala2009_autocontrol_app_manager:
 			os << "padala2009_autocontrol";
 			break;
 		case rao2013_dynaqos_app_manager:
 			os << "rao2013_dynaqos";
+			break;
+		case wang2015_fmpc_app_manager:
+			os << "wang2015_fmpc";
 			break;
 	}
 
@@ -529,17 +511,14 @@ void usage(char const* progname)
 				<< " --app-manager <name>" << ::std::endl
 				<< "   The name of the application manager to use to manage applications." << ::std::endl
 				<< "   Possible values are:" << ::std::endl
-				<< "   - 'albano2013': the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
-				<< "   - 'anglano2014_fc2q': the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
-				<< "   - 'anglano2014_fc2q_mimo': a MIMO variant of the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
-				<< "   - 'anglano2014_fc2q_mimo_v2': a MIMO variant of the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
-				<< "   - 'anglano2014_fc2q_mimo_v3': a MIMO variant of the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
-				<< "   - 'anglano2014_fc2q_mimo_v4': a MIMO variant of the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
+				<< "   - 'albano2013': Fuzzy-Q&E, the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
+				<< "   - 'anglano2014_fc2q': FC2Q, the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
+				<< "   - 'anglano2016_fcms': FCMS, the fuzzy MIMO controller described in (Anglano et al., 2016)" << ::std::endl
 				<< "   - 'dummy': a 'do-nothing' application manager" << ::std::endl
-				<< "   - 'lama2013_appleware': the ANFIS+MPC controller described in (Lama et al., 2013)" << ::std::endl
-				<< "   - 'padala2009_autocontrol': the LQ controller described in (Padala et al., 2009)" << ::std::endl
-				<< "   - 'rao2013_dynaqos': the fuzzy controller described in (Rao et al., 2013)" << ::std::endl
-				<< "   - 'wang2015_appleware': the FIS+GA controller described in (Wang et al., 2015)" << ::std::endl
+				<< "   - 'lama2015_appleware': APPLEware, the ANFIS+MPC controller described in (Lama et al., 2015)" << ::std::endl
+				<< "   - 'padala2009_autocontrol': AutoControl, the LQ controller described in (Padala et al., 2009)" << ::std::endl
+				<< "   - 'rao2013_dynaqos': DynaQoS, the fuzzy controller described in (Rao et al., 2013)" << ::std::endl
+				<< "   - 'wang2015_fmpc': FMPC, the neuro-FIS+GA controller described in (Wang et al., 2015)" << ::std::endl
 				<< "   [default: '" << default_app_manager << "']." << ::std::endl
 				<< " --data-estimator <name>" << ::std::endl
 				<< "   The name of the estimator to use to estimate summary statistics from observed data." << ::std::endl
@@ -1192,62 +1171,6 @@ int main(int argc, char *argv[])
 					p_mgr = boost::make_shared< testbed::anglano2014_fc2q_application_manager<traits_type> >(anglano2014_fc2q_mgr);
 				}
 				break;
-			case detail::anglano2014_fc2q_mimo_app_manager:
-				{
-					const real_type beta = 0.9;
-
-					testbed::anglano2014_fc2q_mimo_application_manager<traits_type> anglano2014_fc2q_mimo_mgr;
-					anglano2014_fc2q_mimo_mgr.smoothing_factor(beta);
-					if (!opt_app_manager_stats_file.empty())
-					{
-						anglano2014_fc2q_mimo_mgr.export_data_to(opt_app_manager_stats_file);
-					}
-
-					p_mgr = boost::make_shared< testbed::anglano2014_fc2q_mimo_application_manager<traits_type> >(anglano2014_fc2q_mimo_mgr);
-				}
-				break;
-			case detail::anglano2014_fc2q_mimo_v2_app_manager:
-				{
-					const real_type beta = 0.9;
-
-					testbed::anglano2014_fc2q_mimo_v2_application_manager<traits_type> anglano2014_fc2q_mimo_v2_mgr;
-					anglano2014_fc2q_mimo_v2_mgr.smoothing_factor(beta);
-					if (!opt_app_manager_stats_file.empty())
-					{
-						anglano2014_fc2q_mimo_v2_mgr.export_data_to(opt_app_manager_stats_file);
-					}
-
-					p_mgr = boost::make_shared< testbed::anglano2014_fc2q_mimo_v2_application_manager<traits_type> >(anglano2014_fc2q_mimo_v2_mgr);
-				}
-				break;
-			case detail::anglano2014_fc2q_mimo_v3_app_manager:
-				{
-					const real_type beta = 0.9;
-
-					testbed::anglano2014_fc2q_mimo_v3_application_manager<traits_type> anglano2014_fc2q_mimo_v3_mgr;
-					anglano2014_fc2q_mimo_v3_mgr.smoothing_factor(beta);
-					if (!opt_app_manager_stats_file.empty())
-					{
-						anglano2014_fc2q_mimo_v3_mgr.export_data_to(opt_app_manager_stats_file);
-					}
-
-					p_mgr = boost::make_shared< testbed::anglano2014_fc2q_mimo_v3_application_manager<traits_type> >(anglano2014_fc2q_mimo_v3_mgr);
-				}
-				break;
-			case detail::anglano2014_fc2q_mimo_v4_app_manager:
-				{
-					const real_type beta = 0.9;
-
-					testbed::anglano2014_fc2q_mimo_v4_application_manager<traits_type> anglano2014_fc2q_mimo_v4_mgr;
-					anglano2014_fc2q_mimo_v4_mgr.smoothing_factor(beta);
-					if (!opt_app_manager_stats_file.empty())
-					{
-						anglano2014_fc2q_mimo_v4_mgr.export_data_to(opt_app_manager_stats_file);
-					}
-
-					p_mgr = boost::make_shared< testbed::anglano2014_fc2q_mimo_v4_application_manager<traits_type> >(anglano2014_fc2q_mimo_v4_mgr);
-				}
-				break;
 //TODO
 #if 0
 			case detail::guazzone2012_app_manager:
@@ -1276,6 +1199,20 @@ int main(int argc, char *argv[])
 				}
 				break;
 #endif // 0
+			case detail::anglano2016_fcms_app_manager:
+				{
+					const real_type beta = 0.9;
+
+					testbed::anglano2016_fcms_application_manager<traits_type> anglano2016_fcms_mgr;
+					anglano2016_fcms_mgr.smoothing_factor(beta);
+					if (!opt_app_manager_stats_file.empty())
+					{
+						anglano2016_fcms_mgr.export_data_to(opt_app_manager_stats_file);
+					}
+
+					p_mgr = boost::make_shared< testbed::anglano2016_fcms_application_manager<traits_type> >(anglano2016_fcms_mgr);
+				}
+				break;
 			case detail::dummy_app_manager:
 				{
 					testbed::dummy_application_manager<traits_type> dummy_mgr;
@@ -1287,40 +1224,32 @@ int main(int argc, char *argv[])
 					p_mgr = boost::make_shared< testbed::dummy_application_manager<traits_type> >(dummy_mgr);
 				}
 				break;
-			case detail::guazzone2015_anfis_ssmpc_app_manager:
+			case detail::lama2015_appleware_app_manager:
 				{
-					const real_type beta = 0.9;
+					//NOTE: APPLEware needs a prebuilt neuro-fuzzy model.
+					//      You can build by collecting data from real systems and using MATLAB's Fuzzy Logic Toolbox to select the best model.
+					//      Once you've found the best model, you need to export it as a FIS file.
+					//      Finally, the FIS file must be converted into the fuzzylite FLL format.
+					//      To do so, you can use the tools/fis2fll.cpp program (must be linked with the fuzzylite library).
 
-					testbed::guazzone2015_anfis_ssmpc_application_manager<traits_type> guazzone2015_anfis_ssmpc_mgr;
-					guazzone2015_anfis_ssmpc_mgr.smoothing_factor(beta);
-					if (!opt_app_manager_stats_file.empty())
-					{
-						guazzone2015_anfis_ssmpc_mgr.export_data_to(opt_app_manager_stats_file);
-					}
-
-					p_mgr = boost::make_shared< testbed::guazzone2015_anfis_ssmpc_application_manager<traits_type> >(guazzone2015_anfis_ssmpc_mgr);
-				}
-				break;
-			case detail::lama2013_appleware_app_manager:
-				{
 					const bool use_prebuilt_anfis = true;
 					const std::size_t output_order = 1;
 					std::string prebuilt_anfis_fname;
 
 					std::ostringstream oss;
-					oss << "experiments/data/" << opt_wkl << "-lama2013_appleware-order_out_" << output_order << "-anfis_trained.fll";
+					oss << "experiments/data/" << opt_wkl << "-lama2015_appleware-order_out_" << output_order << "-anfis_trained.fll";
 					prebuilt_anfis_fname = oss.str();
 
-					testbed::lama2013_appleware_application_manager<traits_type> lama2013_appleware_mgr;
+					testbed::lama2015_appleware_application_manager<traits_type> lama2015_appleware_mgr;
 					if (!opt_app_manager_stats_file.empty())
 					{
-						lama2013_appleware_mgr.export_data_to(opt_app_manager_stats_file);
+						lama2015_appleware_mgr.export_data_to(opt_app_manager_stats_file);
 					}
-					lama2013_appleware_mgr.output_order(output_order);
-					lama2013_appleware_mgr.use_prebuilt_anfis(use_prebuilt_anfis);
-					lama2013_appleware_mgr.prebuilt_anfis_file(prebuilt_anfis_fname);
+					lama2015_appleware_mgr.output_order(output_order);
+					lama2015_appleware_mgr.use_prebuilt_anfis(use_prebuilt_anfis);
+					lama2015_appleware_mgr.prebuilt_anfis_file(prebuilt_anfis_fname);
 
-					p_mgr = boost::make_shared< testbed::lama2013_appleware_application_manager<traits_type> >(lama2013_appleware_mgr);
+					p_mgr = boost::make_shared< testbed::lama2015_appleware_application_manager<traits_type> >(lama2015_appleware_mgr);
 				}
 				break;
 			case detail::padala2009_autocontrol_app_manager:
@@ -1361,26 +1290,32 @@ int main(int argc, char *argv[])
 					p_mgr = boost::make_shared< testbed::rao2013_dynaqos_application_manager<traits_type> >(rao2013_dynaqos_mgr);
 				}
 				break;
-			case detail::wang2015_qoscloud_app_manager:
+			case detail::wang2015_fmpc_app_manager:
 				{
+					//NOTE: FMPC needs a prebuilt neuro-fuzzy model.
+					//      You can build by collecting data from real systems and using MATLAB's Fuzzy Logic Toolbox to select the best model.
+					//      Once you've found the best model, you need to export it as a FIS file.
+					//      Finally, the FIS file must be converted into the fuzzylite FLL format.
+					//      To do so, you can use the tools/fis2fll.cpp program (must be linked with the fuzzylite library).
+
 					const bool use_prebuilt_anfis = true;
 					const std::size_t output_order = 0;
 					std::string prebuilt_anfis_fname;
 
 					std::ostringstream oss;
-					oss << "experiments/data/" << opt_wkl << "-wang2015_qoscloud-order_out_" << output_order << "-subclust.fll";
+					oss << "experiments/data/" << opt_wkl << "-wang2015_fmpc-order_out_" << output_order << "-subclust.fll";
 					prebuilt_anfis_fname = oss.str();
 
-					testbed::wang2015_qoscloud_application_manager<traits_type> wang2015_qoscloud_mgr;
+					testbed::wang2015_fmpc_application_manager<traits_type> wang2015_fmpc_mgr;
 					if (!opt_app_manager_stats_file.empty())
 					{
-						wang2015_qoscloud_mgr.export_data_to(opt_app_manager_stats_file);
+						wang2015_fmpc_mgr.export_data_to(opt_app_manager_stats_file);
 					}
-					wang2015_qoscloud_mgr.output_order(output_order);
-					wang2015_qoscloud_mgr.use_prebuilt_anfis(use_prebuilt_anfis);
-					wang2015_qoscloud_mgr.prebuilt_anfis_file(prebuilt_anfis_fname);
+					wang2015_fmpc_mgr.output_order(output_order);
+					wang2015_fmpc_mgr.use_prebuilt_anfis(use_prebuilt_anfis);
+					wang2015_fmpc_mgr.prebuilt_anfis_file(prebuilt_anfis_fname);
 
-					p_mgr = boost::make_shared< testbed::wang2015_qoscloud_application_manager<traits_type> >(wang2015_qoscloud_mgr);
+					p_mgr = boost::make_shared< testbed::wang2015_fmpc_application_manager<traits_type> >(wang2015_fmpc_mgr);
 				}
 				break;
 			default:

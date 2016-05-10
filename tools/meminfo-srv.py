@@ -3,6 +3,7 @@ import argparse
 import json
 import socket
 import struct
+import subprocess
 import sys
 
 
@@ -14,6 +15,9 @@ def meminfo():
 	with open('/proc/meminfo') as f:
 		for line in f:
 			meminfo[line.split(':')[0]] = line.split(':')[1].strip()
+
+        vmstat = subprocess.check_output(["vmstat", "-a"])
+        meminfo['vmstat'] = dict(zip(*map(str.split, vmstat.splitlines())[-2:]))
 
 	return meminfo
 
