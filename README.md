@@ -3,8 +3,56 @@ dcsxx-testbed
 
 A set of C++ components for setting up and managing a real computing testbed.
 
-The system under test (SUT) is managed by exploiting virtualization technologies and, in particular, by using the libvirt library (http://www.libvirt.org).
+The system under test (SUT) is managed by exploiting virtualization technologies and, in particular, by using the [libvirt](http://www.libvirt.org) library.
 This testbed allows the experimenter to perform both system identification and resource management experiments
+
+This project has been used in the experimental evaluations presented in the following articles:
+
+> Cosimo Anglano, Massimo Canonico and Marco Guazzone.
+>
+> *FCMS: a Fuzzy Controller for CPU and Memory Consolidation under SLA Constraints*
+>
+> Concurrency and Computation: Practice and Experience, In Press, 2016.
+>
+> doi:[10.1002/cpe.3968](http://dx.doi.org/10.1002/cpe.3968).
+>
+>
+> Cosimo Anglano and Massimo Canonico and Marco Guazzone
+>
+> *FC2Q: Exploiting Fuzzy Control in Server Consolidation for Cloud Applications with SLA Constraints*
+>
+> Concurrency Computat.: Pract. Exper., 27(17):4491-4514, 2015.
+>
+> doi: [10.1002/cpe.3410](http://dx.doi.org/10.1002/cpe.3410)
+
+Please, cite this project as at least on of the following papers (BibTeX format):
+
+    @ARTICLE{CPE:CPE3968,
+        author = {Cosimo Anglano and Massimo Canonico and Marco Guazzone},
+        title = {{FCMS}: a Fuzzy Controller for {CPU} and Memory Consolidation under {SLA} Constraints}
+        journal = {Concurrency and Computation: Practice and Experience},
+        publisher = {Wiley},
+        keywords = {cloud computing, resource management, feedback control, fuzzy control, server consolidation, virtualized cloud applications},
+        year = {2016},
+        doi = {10.1002/cpe.3968},
+        url = {http://dx.doi.org/10.1002/cpe.3968},
+        note = {In Press},
+    }
+
+    @ARTICLE{CPE:CPE3410,
+        author = {Cosimo Anglano and Massimo Canonico and Marco Guazzone},
+        title = {{FC2Q}: Exploiting Fuzzy Control in Server Consolidation for Cloud Applications with {SLA} Constraints},
+        journal = {Concurrency and Computation: Practice and Experience},
+        volume = {27},
+        number = {17},
+        issn = {1532-0634},
+        url = {http://dx.doi.org/10.1002/cpe.3410},
+        doi = {10.1002/cpe.3410},
+        pages = {4491--4514},
+        keywords = {cloud computing, resource management, feedback control, fuzzy control, server consolidation, virtualized cloud applications},
+        year = {2015},
+    }
+
 
 
 Building
