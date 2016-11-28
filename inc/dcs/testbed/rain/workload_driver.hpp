@@ -46,7 +46,7 @@
 #include <exception>
 #include <fstream>
 #include <istream>
-#include <list>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -104,8 +104,17 @@ inline
 	::std::string workload;
 	switch (wkl_cat)
 	{
+		case cassandra_workload:
+			workload = "cassandra";
+			break;
 		case olio_workload:
 			workload = "olio";
+			break;
+		case redis_workload:
+			workload = "redis";
+			break;
+		case rubbos_workload:
+			workload = "rubbos";
 			break;
 		case rubis_workload:
 			workload = "rubis";
@@ -113,7 +122,7 @@ inline
 		default:
 		{
 			::std::ostringstream oss;
-			oss << "Workload '" << to_string(wkl_cat) << "' not handled";
+			oss << "Workload '" << wkl_cat << "' not handled";
 			DCS_EXCEPTION_THROW(::std::invalid_argument, oss.str());
 		}
 	}
@@ -149,9 +158,18 @@ inline
 	::std::string workload;
 	switch (wkl_cat)
 	{
+		case cassandra_workload:
+			workload = "cassandra";
+			break;
 		case olio_workload:
 			//workload = "cloudstone";
 			workload = "olio";
+			break;
+		case redis_workload:
+			workload = "redis";
+			break;
+		case rubbos_workload:
+			workload = "rubbos";
 			break;
 		case rubis_workload:
 			workload = "rubis";
@@ -159,7 +177,7 @@ inline
 		default:
 		{
 			::std::ostringstream oss;
-			oss << "Workload '" << to_string(wkl_cat) << "' not handled";
+			oss << "Workload '" << wkl_cat << "' not handled";
 			DCS_EXCEPTION_THROW(::std::invalid_argument, oss.str());
 		}
 	}
@@ -225,7 +243,9 @@ class workload_driver: public base_workload_driver<TraitsT>
 
 
 	public: workload_driver(workload_category wkl_cat)
-	: cmd_(detail::make_java_command()),
+	: wkl_cat_(wkl_cat),
+	  rain_home_("."),
+	  cmd_(detail::make_java_command()),
 	  args_(detail::make_rain_args(wkl_cat)),
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
@@ -236,7 +256,9 @@ class workload_driver: public base_workload_driver<TraitsT>
 
 	public: workload_driver(workload_category wkl_cat,
 							::std::string const& rain_home)
-	: cmd_(detail::make_java_command()),
+	: wkl_cat_(wkl_cat),
+	  rain_home_(rain_home),
+	  cmd_(detail::make_java_command()),
 	  args_(detail::make_rain_args(wkl_cat, rain_home)),
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
@@ -248,7 +270,9 @@ class workload_driver: public base_workload_driver<TraitsT>
 	public: workload_driver(workload_category wkl_cat,
 							::std::string const& rain_home,
 							::std::string const& java_home)
-	: cmd_(detail::make_java_command(java_home)),
+	: wkl_cat_(wkl_cat),
+	  rain_home_(rain_home),
+	  cmd_(detail::make_java_command(java_home)),
 	  args_(detail::make_rain_args(wkl_cat, rain_home)),
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
@@ -263,7 +287,9 @@ class workload_driver: public base_workload_driver<TraitsT>
 							::std::string const& java_home,
 							FwdIterT arg_first,
 							FwdIterT arg_last)
-	: cmd_(detail::make_java_command(java_home)),
+	: wkl_cat_(wkl_cat),
+	  rain_home_(rain_home),
+	  cmd_(detail::make_java_command(java_home)),
 	  args_(detail::make_rain_args(wkl_cat, rain_home, arg_first, arg_last)),
 	  metrics_path_(detail::make_rain_metrics_file_path(wkl_cat)),
 	  ready_(false),
@@ -296,6 +322,12 @@ class workload_driver: public base_workload_driver<TraitsT>
 		}
 	}
 
+	public: template <typename FwdIterT>
+			void java_arguments(FwdIterT arg_first, FwdIterT arg_last)
+	{
+		args_ = detail::make_rain_args(wkl_cat_, rain_home_, arg_first, arg_last);
+	}
+
 	public: ::std::string metrics_file_path() const
 	{
 		return metrics_path_;
@@ -307,6 +339,8 @@ class workload_driver: public base_workload_driver<TraitsT>
 		{
 			case response_time_application_performance:
 				return ::boost::make_shared< response_time_sensor<traits_type> >(metrics_path_);
+			case throughput_application_performance:
+				return ::boost::make_shared< throughput_sensor<traits_type> >(metrics_path_);
 			default:
 				break;
 		}
@@ -315,6 +349,16 @@ class workload_driver: public base_workload_driver<TraitsT>
 		oss << "Application performance metric '" << cat << "' not handled";
 		DCS_EXCEPTION_THROW(::std::invalid_argument, oss.str());
 	}
+
+	public: std::map<application_performance_category,sensor_pointer> sensors() const
+	{
+		std::map<application_performance_category,sensor_pointer> map;
+
+		map[response_time_application_performance] = this->sensor(response_time_application_performance);
+
+		return map;
+	}
+
 
 	private: void ready(bool val)
 	{
@@ -507,6 +551,8 @@ class workload_driver: public base_workload_driver<TraitsT>
 	}
 
 
+	private: workload_category wkl_cat_;
+	private: ::std::string rain_home_;
 	private: ::std::string cmd_;
 	private: ::std::vector< ::std::string > args_;
 	private: ::std::string metrics_path_;

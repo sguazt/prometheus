@@ -30,7 +30,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <dcs/assert.hpp>
+#include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
+#include <dcs/math/function/round.hpp>
 #include <dcs/uri.hpp>
 #include <libvirt/libvirt.h>
 #include <libvirt/virterror.h>
@@ -51,8 +53,82 @@
 
 namespace dcs { namespace testbed { namespace libvirt { namespace detail {
 
+/** Prototypes **/
+
+void config_max_memory(virConnectPtr conn, virDomainPtr dom, unsigned long mem);
+
+unsigned long config_max_memory(virConnectPtr conn, virDomainPtr dom);
+
+virConnectPtr connect(::std::string const& uri);
+
+virDomainPtr connect_domain(virConnectPtr conn, ::std::string const& name);
+
+void cpu_cap(virConnectPtr conn, virDomainPtr dom, int cap);
+
+int cpu_cap(virConnectPtr conn, virDomainPtr dom);
+
+void cpu_share(virConnectPtr conn, virDomainPtr dom, double share);
+
+double cpu_share(virConnectPtr conn, virDomainPtr dom);
+
+void current_memory(virConnectPtr conn, virDomainPtr dom, unsigned long mem);
+
+unsigned long current_memory(virConnectPtr conn, virDomainPtr dom);
+
+void disconnect(virConnectPtr conn);
+
+void disconnect_domain(virConnectPtr conn, virDomainPtr dom);
+
+std::string domain_hostname(virConnectPtr conn, virDomainPtr dom);
+
+unsigned int domain_id(virConnectPtr conn, virDomainPtr dom);
+
+std::string domain_name(virConnectPtr conn, virDomainPtr dom);
+
+std::string hypervisor_info(virConnectPtr conn);
+
+std::string last_error(virConnectPtr conn);
+
+void max_memory(virConnectPtr conn, virDomainPtr dom, unsigned long mem);
+
+unsigned long max_memory(virConnectPtr conn, virDomainPtr dom);
+
+int max_num_cpus(virConnectPtr conn);
+
+int max_supported_num_vcpus(virConnectPtr conn);
+
+void memory_cap(virConnectPtr conn, virDomainPtr dom, unsigned long cap);
+
+unsigned long memory_cap(virConnectPtr conn, virDomainPtr dom);
+
+void memory_share(virConnectPtr conn, virDomainPtr dom, double share);
+
+double memory_share(virConnectPtr conn, virDomainPtr dom);
+
+int num_cpus(virConnectPtr conn, virDomainPtr dom, int flags);
+
+int num_vcpus(virConnectPtr conn, virDomainPtr dom, int flags);
+
+template <typename ParamT>
+void sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& name, ParamT value, int flags);
+
+template <typename ParamT>
+ParamT sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& name, int flags);
+
+template <typename ParamT>
+struct sched_param_value;
+
+std::string to_string(virTypedParameter const& param);
+
+std::string vm_name(::std::string const& uri);
+
+std::string vmm_uri(::std::string const& uri);
+
+
+/** Implementation **/
+
 inline
-::std::string vmm_uri(::std::string const& uri)
+std::string vmm_uri(::std::string const& uri)
 {
     ::std::ostringstream oss;
 
@@ -79,7 +155,7 @@ inline
 	return name;
 }
 
-::std::string to_string(virTypedParameter const& param)
+std::string to_string(virTypedParameter const& param)
 {
 	::std::ostringstream oss;
 
@@ -115,7 +191,7 @@ inline
 	return oss.str();
 }
 
-::std::string last_error(virConnectPtr conn)
+std::string last_error(virConnectPtr conn)
 {
 	DCS_DEBUG_ASSERT( conn );
 
@@ -182,7 +258,7 @@ void disconnect(virConnectPtr conn)
 	}
 }
 
-::std::string hypervisor_info(virConnectPtr conn)
+std::string hypervisor_info(virConnectPtr conn)
 {
 	/* virConnectGetType returns a pointer to a static string, so no
 	* allocation or freeing is necessary; it is possible for the call
@@ -311,9 +387,6 @@ void disconnect_domain(virConnectPtr conn, virDomainPtr dom)
 		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 }
-
-template <typename ParamT>
-struct sched_param_value;
 
 template <>
 struct sched_param_value<int>
@@ -548,12 +621,93 @@ int num_vcpus(virConnectPtr conn, virDomainPtr dom, int flags)
 	DCS_DEBUG_ASSERT( conn );
 	DCS_DEBUG_ASSERT( dom );
 
+	// Try the new API first; if it fails because we are talking
+	// to an older daemon, generally we try a fallback API before giving up.
+	// Flag VIR_DOMAIN_AFFECT_CURRENT requires the new API, since we don't
+	// know whether the domain is running or inactive.
+
 	int ret = virDomainGetVcpusFlags(dom, flags);
 	if (0 > ret)
 	{
-		::std::ostringstream oss;
-		oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
-		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		if (flags & VIR_DOMAIN_VCPU_GUEST)
+		{
+			::std::ostringstream oss;
+			oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
+
+		if (!(flags & (VIR_DOMAIN_AFFECT_LIVE | VIR_DOMAIN_AFFECT_CONFIG))
+			&& virDomainIsActive(dom) == 1)
+		{
+			 flags |= VIR_DOMAIN_AFFECT_LIVE;
+		}
+
+		if (flags & VIR_DOMAIN_AFFECT_LIVE)
+		{
+			if (flags & VIR_DOMAIN_VCPU_MAXIMUM)
+			{
+				ret = virDomainGetMaxVcpus(dom);
+			}
+			else
+			{
+				virDomainInfo info;
+				ret = virDomainGetInfo(dom, &info);
+				if (ret < 0)
+				{
+					::std::ostringstream oss;
+					oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+					DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				}
+
+				ret = info.nrVirtCpu;
+			}
+		}
+		else
+		{
+/*TODO: parse domain XML
+			char *def = NULL;
+			xmlDocPtr xml = NULL;
+			xmlXPathContextPtr ctxt = NULL;
+
+			def = virDomainGetXMLDesc(dom, VIR_DOMAIN_XML_INACTIVE);
+			if (def == 0)
+			{
+				::std::ostringstream oss;
+				oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+			}
+
+			xml = virXMLParseStringCtxt(def, _("(domain_definition)"), &ctxt);
+			if (xml == 0)
+			{
+				::std::ostringstream oss;
+				oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+			}
+
+			if (flags & VIR_DOMAIN_VCPU_MAXIMUM)
+			{
+				if (virXPathInt("string(/domain/vcpus)", ctxt, &count) < 0)
+				{
+					::std::ostringstream oss;
+					oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+					DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				}
+			}
+			else
+			{
+				if (virXPathInt("string(/domain/vcpus/@current)", ctxt, &count) < 0)
+				{
+					::std::ostringstream oss;
+					oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+					DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				}
+			}
+*/
+			::std::ostringstream oss;
+			oss << "Failed to query the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+		}
 	}
 
 	return ret;
@@ -626,7 +780,7 @@ unsigned int domain_id(virConnectPtr conn, virDomainPtr dom)
 	return ret;
 }
 
-::std::string domain_name(virConnectPtr conn, virDomainPtr dom)
+std::string domain_name(virConnectPtr conn, virDomainPtr dom)
 {
 	DCS_DEBUG_ASSERT( conn );
 	DCS_DEBUG_ASSERT( dom );
@@ -644,7 +798,7 @@ unsigned int domain_id(virConnectPtr conn, virDomainPtr dom)
 	return ret;
 }
 
-::std::string domain_hostname(virConnectPtr conn, virDomainPtr dom)
+std::string domain_hostname(virConnectPtr conn, virDomainPtr dom)
 {
 	DCS_DEBUG_ASSERT( conn );
 	DCS_DEBUG_ASSERT( dom );
@@ -736,6 +890,126 @@ void max_memory(virConnectPtr conn, virDomainPtr dom, unsigned long mem)
 		oss << "Failed to set the max memory for domain \"" << ::virDomainGetName(dom) << "\": " << last_error(conn);
 		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
+}
+
+int cpu_cap(virConnectPtr conn, virDomainPtr dom)
+{
+	assert(conn);
+	assert(dom);
+
+	const int nvcpus = num_vcpus(conn, dom, VIR_DOMAIN_VCPU_MAXIMUM);
+
+	int cap = sched_param<int>(conn, dom, "cap", VIR_DOMAIN_AFFECT_CURRENT);
+	if (cap == 0)
+	{
+		cap = nvcpus*100;
+	}
+
+	return cap;
+}
+
+void cpu_cap(virConnectPtr conn, virDomainPtr dom, int cap)
+{
+	assert(conn);
+	assert(dom);
+
+	const int nvcpus = num_vcpus(conn, dom, VIR_DOMAIN_VCPU_MAXIMUM);
+
+	int kap = cap;
+	if (kap > (nvcpus*100))
+	{
+		kap = 0; //Note: cap == 0 ==> No upper cap
+	}
+	detail::sched_param<int>(conn, dom, "cap", kap, VIR_DOMAIN_AFFECT_CURRENT);
+}
+
+double cpu_share(virConnectPtr conn, virDomainPtr dom)
+{
+	assert(conn);
+	assert(dom);
+
+	const int cap = sched_param<int>(conn, dom, "cap", VIR_DOMAIN_AFFECT_CURRENT);
+
+	const int nvcpus = num_vcpus(conn, dom, VIR_DOMAIN_VCPU_MAXIMUM);
+
+	//FIXME: This is a Xen-related stuff. What for other hypervisors?
+	//FIXME: Actually, since we don't consider the weight parameter, we assume that all VMs have the same weight
+	const double share = cap/(nvcpus*100.0);
+
+	return share > 0 ? share : 1; //Note: cap == 0 ==> No upper cap
+}
+
+void cpu_share(virConnectPtr conn, virDomainPtr dom, double share)
+{
+	assert(conn);
+	assert(dom);
+	assert(share >= 0);
+
+	const int nvcpus = num_vcpus(conn, dom, VIR_DOMAIN_VCPU_MAXIMUM);
+
+	//FIXME: This is a Xen-related stuff. What for other hypervisors?
+	//FIXME: Actually, since we don't consider the weight parameter, we assume that all VMs have the same weight
+	const int cap = share < 1.0 ? dcs::math::round(share*nvcpus*100) : 0; //Note: cap == 0 ==> No upper cap
+	sched_param<int>(conn, dom, "cap", cap, VIR_DOMAIN_AFFECT_CURRENT);
+}
+
+unsigned long memory_cap(virConnectPtr conn, virDomainPtr dom)
+{
+	assert(conn);
+	assert(dom);
+
+#if 0
+	return max_memory(conn, dom);
+#else
+	return current_memory(conn, dom);
+#endif
+}
+
+void memory_cap(virConnectPtr conn, virDomainPtr dom, unsigned long cap)
+{
+	assert(conn);
+	assert(dom);
+
+	const unsigned long max_mem = config_max_memory(conn, dom);
+	const unsigned long mem = std::min(cap, max_mem);
+
+#if 0
+	max_memory(conn, dom, mem);
+#endif
+	current_memory(conn, dom, mem);
+}
+
+double memory_share(virConnectPtr conn, virDomainPtr dom)
+{
+	assert(conn);
+	assert(dom);
+
+	const unsigned long cfg_max_mem = config_max_memory(conn, dom);
+#if 0
+	const unsigned long cur_max_mem = max_memory(conn, dom);
+
+	return cur_max_mem/static_cast<long double>(cfg_max_mem);
+#else
+	const unsigned long cur_mem = current_memory(conn, dom);
+
+	return cur_mem/static_cast<long double>(cfg_max_mem);
+#endif
+}
+
+void memory_share(virConnectPtr conn, virDomainPtr dom, double share)
+{
+	assert(conn);
+	assert(dom);
+	assert(share >= 0);
+
+	const unsigned long max_mem = config_max_memory(conn, dom);
+	//const unsigned long mem = std::min(static_cast<unsigned long>(share*max_mem), max_mem);
+	const unsigned long mem = std::min(static_cast<unsigned long>(dcs::math::round(share*max_mem)), max_mem);
+
+#if 0
+	max_memory(conn, dom, mem);
+#endif
+	current_memory(conn, dom, mem);
 }
 
 }}}} // Namespace dcs::testbed::libvirt::detail

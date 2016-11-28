@@ -32,13 +32,20 @@
 //#include <dcs/testbed/albano2013v4_fuzzyqe_application_manager.hpp>
 //#include <dcs/testbed/albano2013v5_fuzzyqe_application_manager.hpp>
 #include <dcs/testbed/anglano2014_fc2q_application_manager.hpp>
-#include <dcs/testbed/anglano2014_fc2q_mimo_application_manager.hpp>
+//#include <dcs/testbed/anglano2014_fc2q_mimo_application_manager.hpp>
+//#include <dcs/testbed/anglano2014_fc2q_mimo_v2_application_manager.hpp>
+//#include <dcs/testbed/anglano2014_fc2q_mimo_v3_application_manager.hpp>
+//#include <dcs/testbed/anglano2014_fc2q_mimo_v4_application_manager.hpp>
+#include <dcs/testbed/anglano2016_fcms_application_manager.hpp>
 #include <dcs/testbed/base_application_manager.hpp>
 #include <dcs/testbed/dummy_application_manager.hpp>
+//#include <dcs/testbed/guazzone2015_anfis_ssmpc_application_manager.hpp>
+#include <dcs/testbed/lama2015_appleware_application_manager.hpp>
 #include <dcs/testbed/lq_application_manager.hpp>
 #include <dcs/testbed/padala2009_autocontrol_application_manager.hpp>
 #include <dcs/testbed/rao2013_dynaqos_application_manager.hpp>
 #include <dcs/testbed/sysid_application_manager.hpp>
+#include <dcs/testbed/wang2015_fmpc_application_manager.hpp>
 
 
 #endif // DCS_TESTBED_APPLICATION_MANAGERS_HPP

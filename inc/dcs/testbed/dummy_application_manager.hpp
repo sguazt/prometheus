@@ -27,6 +27,7 @@
 
 
 #include <boost/smart_ptr.hpp>
+#include <boost/timer/timer.hpp>
 #include <cstddef>
 #include <dcs/debug.hpp>
 #include <dcs/exception.hpp>
@@ -41,6 +42,15 @@
 
 namespace dcs { namespace testbed {
 
+/**
+ * \brief A do-nothing application manager.
+ *
+ * This application does not act on the application.
+ * It only observes the behavior of the monitored application, together with
+ * its resource usage, and dump statistics.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class dummy_application_manager: public base_application_manager<TraitsT>
 {
@@ -49,9 +59,11 @@ class dummy_application_manager: public base_application_manager<TraitsT>
 	public: typedef typename traits_type::real_type real_type;
 	private: typedef typename base_type::app_type app_type;
 	private: typedef typename base_type::app_pointer app_pointer;
+	private: typedef typename base_type::vm_identifier_type vm_identifier_type;
 	private: typedef typename app_type::sensor_type sensor_type;
 	private: typedef typename app_type::sensor_pointer sensor_pointer;
 	private: typedef ::std::map<application_performance_category,sensor_pointer> out_sensor_map;
+	private: typedef std::map<virtual_machine_performance_category,std::map<vm_identifier_type,sensor_pointer> > in_sensor_map;
 
 
 	private: static const real_type default_sampling_time;
@@ -59,10 +71,21 @@ class dummy_application_manager: public base_application_manager<TraitsT>
 
 
 	public: dummy_application_manager()
-	: ctl_count_(0),
+	: beta_(0.9),
+	  ctl_count_(0),
       ctl_skip_count_(0),
       ctl_fail_count_(0)
 	{
+	}
+
+	public: void smoothing_factor(real_type value)
+	{
+		beta_ = value;
+	}
+
+	public: real_type smoothing_factor() const
+	{
+		return beta_;
 	}
 
 	public: void export_data_to(::std::string const& fname)
@@ -76,17 +99,35 @@ class dummy_application_manager: public base_application_manager<TraitsT>
 		typedef typename app_type::vm_pointer vm_pointer;
 
 		const ::std::vector<vm_pointer> vms = this->app().vms();
+		const std::size_t nvms = this->app().num_vms();
 
 		// Reset output sensors
 		out_sensors_.clear();
-		const target_iterator tgt_end_it = this->target_values().end();
-		for (target_iterator tgt_it = this->target_values().begin();
+		for (target_iterator tgt_it = this->target_values().begin(),
+							 tgt_end_it = this->target_values().end();
 			 tgt_it != tgt_end_it;
 			 ++tgt_it)
 		{
 			const application_performance_category cat = tgt_it->first;
 
 			out_sensors_[cat] = this->app().sensor(cat);
+		}
+
+		// Reset input sensors
+		in_sensors_.clear();
+		for (::std::size_t i = 0; i < nvms; ++i)
+		{
+			vm_pointer p_vm = vms[i];
+
+			in_sensors_[cpu_util_virtual_machine_performance][p_vm->id()] = p_vm->sensor(cpu_util_virtual_machine_performance);
+			in_sensors_[memory_util_virtual_machine_performance][p_vm->id()] = p_vm->sensor(memory_util_virtual_machine_performance);
+		}
+
+		// Reset resource utilization smoothers
+		for (::std::size_t i = 0; i < nvms; ++i)
+		{
+			this->data_smoother(cpu_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
+			this->data_smoother(memory_util_virtual_machine_performance, vms[i]->id(), ::boost::make_shared< testbed::brown_single_exponential_smoother<real_type> >(beta_));
 		}
 
 		// Reset counters
@@ -116,32 +157,79 @@ class dummy_application_manager: public base_application_manager<TraitsT>
 			const ::std::size_t nvms = this->app().num_vms();
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
-				*p_dat_ofs_ << ",\"Cap_{" << i << "}\",\"Share_{" << i << "}\"";
+				*p_dat_ofs_ << ",\"CPUCap_{" << i << "}(k)\",\"CPUShare_{" << i << "}(k)\""
+							<< ",\"MemCap_{" << i << "}(k)\",\"MemShare_{" << i << "}(k)\"";
 			}
-			for (target_iterator tgt_it = this->target_values().begin();
+			for (::std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"CPUShare_{" << vms[i]->id() << "}(k-1)\",\"MemShare_{" << vms[i]->id() << "}(k-1)\"";
+			}
+			for (::std::size_t i = 0; i < nvms; ++i)
+			{
+				*p_dat_ofs_ << ",\"CPUUtil_{" << vms[i]->id() << "}(k-1)\",\"MemUtil_{" << vms[i]->id() << "}(k-1)\"";
+			}
+			for (target_iterator tgt_it = this->target_values().begin(),
+								 tgt_end_it = this->target_values().end();
 				 tgt_it != tgt_end_it;
 				 ++tgt_it)
 			{
 				const application_performance_category cat = tgt_it->first;
 
-				*p_dat_ofs_ << ",\"y_{" << cat << "}\",\"yn_{" << cat << "}\",\"r_{" << cat << "}\"";
+				*p_dat_ofs_ << ",\"ReferenceOutput_{" << cat << "}(k-1)\",\"MeasuredOutput_{" << cat << "}(k-1)\",\"RelativeOutputError_{" << cat << "}(k-1)\"";
 			}
 			*p_dat_ofs_ << ",\"# Controls\",\"# Skip Controls\",\"# Fail Controls\"";
+            *p_dat_ofs_ << ",\"Elapsed Time\"";
 			*p_dat_ofs_ << ::std::endl;
 		}
 	}
 
 	private: void do_sample()
 	{
+		typedef typename in_sensor_map::const_iterator in_sensor_iterator;
 		typedef typename out_sensor_map::const_iterator out_sensor_iterator;
 		typedef ::std::vector<typename sensor_type::observation_type> obs_container;
 		typedef typename obs_container::const_iterator obs_iterator;
 
 		DCS_DEBUG_TRACE("(" << this << ") BEGIN Do SAMPLE - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << ctl_fail_count_);
 
+		// Collect input values
+		for (in_sensor_iterator in_sens_it = in_sensors_.begin(),
+								in_sens_end_it = in_sensors_.end();
+			 in_sens_it != in_sens_end_it;
+			 ++in_sens_it)
+		{
+			const virtual_machine_performance_category cat = in_sens_it->first;
+
+			for (typename in_sensor_map::mapped_type::const_iterator vm_it = in_sens_it->second.begin(),
+																	 vm_end_it = in_sens_it->second.end();
+				 vm_it != vm_end_it;
+				 ++vm_it)
+			{
+				const vm_identifier_type vm_id = vm_it->first;
+				sensor_pointer p_sens = vm_it->second;
+
+				// check: p_sens != null
+				DCS_DEBUG_ASSERT( p_sens );
+
+				p_sens->sense();
+				if (p_sens->has_observations())
+				{
+					const obs_container obs = p_sens->observations();
+					const obs_iterator end_it = obs.end();
+					for (obs_iterator it = obs.begin();
+						 it != end_it;
+						 ++it)
+					{
+						//this->data_estimator(cat, vm_id).collect(it->value());
+						this->data_smoother(cat, vm_id).smooth(it->value());
+					}
+				}
+			}
+		}
+
 		// Collect output values
-		const out_sensor_iterator out_sens_end_it = out_sensors_.end();
-		for (out_sensor_iterator out_sens_it = out_sensors_.begin();
+		for (out_sensor_iterator out_sens_it = out_sensors_.begin(),
+								 out_sens_end_it = out_sensors_.end();
 			 out_sens_it != out_sens_end_it;
 			 ++out_sens_it)
 		{
@@ -162,7 +250,6 @@ class dummy_application_manager: public base_application_manager<TraitsT>
 					 ++it)
 				{
 					this->data_estimator(cat).collect(it->value());
-					this->data_estimator(cat).collect(it->value());
 				}
 			}
 		}
@@ -177,59 +264,124 @@ class dummy_application_manager: public base_application_manager<TraitsT>
 
 		DCS_DEBUG_TRACE("(" << this << ") BEGIN Do CONTROL - Count: " << ctl_count_ << "/" << ctl_skip_count_ << "/" << ctl_fail_count_);
 
+        boost::timer::cpu_timer cpu_timer;
+
 		++ctl_count_;
 
 		bool skip_ctl = false;
 
-		::std::map<virtual_machine_performance_category,::std::vector<real_type> > cress;
-		::std::map<application_performance_category,real_type> rgains;
+		::std::map<virtual_machine_performance_category,::std::vector<real_type> > xshares;
+		::std::map<virtual_machine_performance_category,::std::vector<real_type> > xutils;
+		::std::map<application_performance_category,real_type> perf_errs;
 
 		::std::vector<vm_pointer> vms = this->app().vms();
 		const ::std::size_t nvms = vms.size();
 
-		const target_iterator tgt_end_it = this->target_values().end();
-		for (target_iterator tgt_it = this->target_values().begin();
-			 tgt_it != tgt_end_it;
-			 ++tgt_it)
+		for (::std::size_t i = 0; i < nvms; ++i)
 		{
-			const application_performance_category cat(tgt_it->first);
-
-			// Compute a summary statistics of collected observation
-			if (this->data_estimator(cat).count() > 0)
 			{
-				const real_type yh = this->data_estimator(cat).estimate();
-				const real_type yr = this->target_value(cat);
+				const virtual_machine_performance_category cat = cpu_util_virtual_machine_performance;
+				const vm_pointer p_vm = vms[i];
 
-				switch (cat)
+				const real_type uh = this->data_smoother(cat, p_vm->id()).forecast(0);
+				const real_type c = p_vm->cpu_share();
+
+				xshares[cat].push_back(c);
+				xutils[cat].push_back(uh);
+DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c);//XXX
+			}
+			{
+				const virtual_machine_performance_category cat = memory_util_virtual_machine_performance;
+				const vm_pointer p_vm = vms[i];
+
+				const real_type uh = this->data_smoother(cat, p_vm->id()).forecast(0);
+				const real_type c = p_vm->memory_share();
+
+				xshares[cat].push_back(c);
+				xutils[cat].push_back(uh);
+DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c);//XXX
+			}
+		}
+
+		if (!skip_ctl)
+		{
+			for (target_iterator tgt_it = this->target_values().begin(),
+							 	 tgt_end_it = this->target_values().end();
+				 tgt_it != tgt_end_it;
+				 ++tgt_it)
+			{
+				const application_performance_category cat(tgt_it->first);
+
+				// Compute a summary statistics of collected observation
+				if (this->data_estimator(cat).count() > 0)
 				{
-					case response_time_application_performance:
-						rgains[cat] = (yr-yh)/yr;
-						break;
-					case throughput_application_performance:
-						rgains[cat] = (yh-yr)/yr;
-						break;
+					const real_type yh = this->data_estimator(cat).estimate();
+					const real_type yr = this->target_value(cat);
+
+					switch (cat)
+					{
+						case response_time_application_performance:
+							perf_errs[cat] = (yr-yh)/yr;
+							break;
+						case throughput_application_performance:
+							perf_errs[cat] = (yh-yr)/yr;
+							break;
+					}
+DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << " - R: " << yr << " -> RelatiiveError(k+1): " << perf_errs.at(cat));//XXX
 				}
-DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << " - R: " << yr << " -> Rgain(k+1): " << rgains.at(cat));//XXX
-			}
-			else
-			{
-				// No observation collected during the last control interval
-				DCS_DEBUG_TRACE("No output observation collected during the last control interval -> Skip control");
-				skip_ctl = true;
-				break;
-			}
+				else
+				{
+					// No observation collected during the last control interval
+					DCS_DEBUG_TRACE("No output observation collected during the last control interval -> Skip control");
+					skip_ctl = true;
+					break;
+				}
 #ifdef DCSXX_TESTBED_EXP_APP_MGR_RESET_ESTIMATION_EVERY_INTERVAL
-			this->data_estimator(cat).reset();
+				this->data_estimator(cat).reset();
 #endif // DCSXX_TESTBED_EXP_APP_MGR_RESET_ESTIMATION_EVERY_INTERVAL
+			}
 		}
         if (skip_ctl)
 		{
 			++ctl_skip_count_;
 		}
 
+        cpu_timer.stop();
+
 		// Export to file
 		if (p_dat_ofs_)
 		{
+			if (xshares.size() == 0)
+			{
+				for (::std::size_t i = 0; i < nvms; ++i)
+				{
+					const vm_pointer p_vm = vms[i];
+
+					// check: p_vm != null
+					DCS_DEBUG_ASSERT( p_vm );
+
+					xshares[cpu_util_virtual_machine_performance].push_back(p_vm->cpu_share());
+					xshares[memory_util_virtual_machine_performance].push_back(p_vm->memory_share());
+				}
+			}
+			if (xutils.size() == 0)
+			{
+				xutils[cpu_util_virtual_machine_performance].assign(nvms, std::numeric_limits<real_type>::quiet_NaN());
+				xutils[memory_util_virtual_machine_performance].assign(nvms, std::numeric_limits<real_type>::quiet_NaN());
+			}
+			if (perf_errs.size() == 0)
+			{
+				for (target_iterator tgt_it = this->target_values().begin(),
+									 tgt_end_it = this->target_values().end();
+				tgt_it != tgt_end_it;
+				++tgt_it)
+				{
+					const application_performance_category cat = tgt_it->first;
+
+					perf_errs[cat] = std::numeric_limits<real_type>::quiet_NaN();
+				}
+			}
+
 			*p_dat_ofs_ << ::std::time(0) << ",";
 			for (::std::size_t i = 0; i < nvms; ++i)
 			{
@@ -242,13 +394,40 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 				{
 					*p_dat_ofs_ << ",";
 				}
-				*p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share();
+				*p_dat_ofs_ << p_vm->cpu_cap() << "," << p_vm->cpu_share()
+							<< "," << p_vm->memory_cap() << "," << p_vm->memory_share();
 			}
 			*p_dat_ofs_ << ",";
-			const target_iterator tgt_end_it = this->target_values().end();
-			for (target_iterator tgt_it = this->target_values().begin();
-			tgt_it != tgt_end_it;
-			++tgt_it)
+            for (std::size_t i = 0; i < nvms; ++i)
+            {
+                if (i != 0)
+                {
+                    *p_dat_ofs_ << ",";
+                }
+                *p_dat_ofs_ << xshares.at(cpu_util_virtual_machine_performance)[i]
+                            << "," << xshares.at(memory_util_virtual_machine_performance)[i];
+            }
+			*p_dat_ofs_ << ",";
+            for (std::size_t i = 0; i < nvms; ++i)
+            {
+                const vm_pointer p_vm = vms[i];
+
+                // check: p_vm != null
+                DCS_DEBUG_ASSERT( p_vm );
+
+                if (i != 0)
+                {
+                    *p_dat_ofs_ << ",";
+                }
+
+				*p_dat_ofs_ << xutils.at(cpu_util_virtual_machine_performance)[i]
+							<< "," << xutils.at(memory_util_virtual_machine_performance)[i];
+            }
+            *p_dat_ofs_ << ",";
+			for (target_iterator tgt_it = this->target_values().begin(),
+								 tgt_end_it = this->target_values().end();
+				 tgt_it != tgt_end_it;
+				 ++tgt_it)
 			{
 				const application_performance_category cat = tgt_it->first;
 
@@ -258,10 +437,10 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 				}
 				const real_type yh = this->data_estimator(cat).estimate();
 				const real_type yr = tgt_it->second;
-				const real_type yn = yh/yr;
-				*p_dat_ofs_ << yh << "," << yn << "," << yr;
+				*p_dat_ofs_ << yr << "," << yh << "," << perf_errs.at(cat);
 			}
 			*p_dat_ofs_ << "," << ctl_count_ << "," << ctl_skip_count_ << "," << ctl_fail_count_;
+            *p_dat_ofs_ << "," << (cpu_timer.elapsed().user+cpu_timer.elapsed().system);
 			*p_dat_ofs_ << ::std::endl;
 		}
 
@@ -269,9 +448,11 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 	}
 
 
+	private: real_type beta_; ///< The EWMA smoothing factor for resource utilization
 	private: ::std::size_t ctl_count_; ///< Number of times control function has been invoked
 	private: ::std::size_t ctl_skip_count_; ///< Number of times control has been skipped
 	private: ::std::size_t ctl_fail_count_; ///< Number of times control has failed
+	private: in_sensor_map in_sensors_;
 	private: out_sensor_map out_sensors_;
 	private: ::std::string dat_fname_;
 	private: ::boost::shared_ptr< ::std::ofstream > p_dat_ofs_;

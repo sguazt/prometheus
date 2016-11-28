@@ -22,6 +22,126 @@
  * limitations under the License.
  */
 
+//FIXME: This is still experimental
+#if 0
+
+#include <boost/random.hpp>
+#include <boost/smart_ptr.hpp>
+#include <cstddef>
+#include <cstdlib>
+#include <cstring>
+#include <dcs/cli.hpp>
+#include <dcs/debug.hpp>
+#include <dcs/logging.hpp>
+#include <dcs/testbed/configurators.hpp>
+#include <dcs/testbed/experiment_stats_gatherer.hpp>
+#include <dcs/testbed/system_experiment.hpp>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <stdexcept>
+
+
+namespace detail { namespace /*<unnamed>*/ {
+
+const bool default_verbose = false;
+const std::string default_cfg_file("config.yaml");
+
+
+void usage(char const* progname)
+{
+	std::cerr << "Usage: " << progname << " {options}" << ::std::endl
+			  << " --config <filename>" << ::std::endl
+			  << "   The path to the configuration file." << ::std::endl
+			  << " --help" << ::std::endl
+			  << "   Shows this message." << ::std::endl
+			  << " --verbose" << ::std::endl
+			  << "   Shows verbose messages." << ::std::endl
+			  << "   [default: " << (default_verbose ? "enabled" : "disabled") << "]" << std::endl
+			  << ::std::endl;
+}
+
+}} // Namespace detail::<unnamed>
+
+
+int main(int argc, char *argv[])
+{
+	namespace testbed = ::dcs::testbed;
+
+
+	typedef double real_type;
+	typedef unsigned int uint_type;
+	typedef boost::random::mt19937 rng_type;
+	typedef testbed::traits<real_type,uint_type,rng_type> traits_type;
+
+
+	std::string opt_cfg_file;
+	bool opt_help = false;
+	bool opt_verbose = false;
+
+
+	// Parse command line options
+	try
+	{
+		opt_cfg_file = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--config");
+		opt_help = dcs::cli::simple::get_option(argv, argv+argc, "--help");
+		opt_verbose = dcs::cli::simple::get_option(argv, argv+argc, "--verbose");
+	}
+	catch (std::exception const& e)
+	{
+		std::ostringstream oss;
+		oss << "Error while parsing command-line options: " << e.what();
+		dcs::log_error(DCS_LOGGING_AT, oss.str());
+
+		detail::usage(argv[0]);
+		return EXIT_FAILURE;
+	}
+
+	if (opt_help)
+	{
+		detail::usage(argv[0]);
+		return EXIT_SUCCESS;
+	}
+
+	int ret = 0;
+
+	if (opt_verbose)
+	{
+	}
+
+	try
+	{
+		testbed::conf::yaml_configurator<traits_type> config;
+
+		boost::shared_ptr< testbed::system_experiment<traits_type> > p_sys_exp = config.configure(opt_cfg_file);
+
+		// Set experiment trackers
+		testbed::utility::experiment_stats_gatherer<traits_type> exp_stats;
+		exp_stats.track(*p_sys_exp);
+
+
+		//p_sys_exp->logger(...);
+		//p_sys_exp->output_data_file(out_dat_file);
+
+		// Run!
+		p_sys_exp->run();
+	}
+	catch (std::exception const& e)
+	{
+		ret = 1;
+		dcs::log_error(DCS_LOGGING_AT, e.what());
+	}
+	catch (...)
+	{
+		ret = 1;
+		dcs::log_error(DCS_LOGGING_AT, "Unknown error");
+	}
+
+	return ret;
+}
+
+#else // if 0
+
 //#include <boost/numeric/ublas/banded.hpp>
 #include <boost/smart_ptr.hpp>
 #include <cstddef>
@@ -39,6 +159,7 @@
 #include <dcs/testbed/data_estimators.hpp>
 #include <dcs/testbed/data_smoothers.hpp>
 #include <dcs/testbed/experiment_stats_gatherer.hpp>
+#include <dcs/testbed/io.hpp>
 #include <dcs/testbed/system_experiment.hpp>
 #include <dcs/testbed/system_identification_strategies.hpp>
 //#include <dcs/testbed/system_managers.hpp>
@@ -70,6 +191,7 @@ enum data_estimator_category
 	chen2000_ewma_quantile_estimator,
 	chen2000_ewsa_quantile_estimator,
 	chen2000_sa_quantile_estimator,
+	dunning2013_tdigest_quantile_estimator,
 	jain1985_p2_algorithm_quantile_estimator,
 	most_recently_observed_estimator,
 	true_quantile_estimator,
@@ -90,15 +212,23 @@ enum app_manager_category
 	albano2013_fuzzyqe_app_manager,
 	anglano2014_fc2q_app_manager,
 	anglano2014_fc2q_mimo_app_manager,
+	anglano2014_fc2q_mimo_v2_app_manager,
+	anglano2014_fc2q_mimo_v3_app_manager,
+	anglano2014_fc2q_mimo_v4_app_manager,
+	anglano2016_fcms_app_manager,
 	dummy_app_manager,
+	guazzone2015_anfis_ssmpc_app_manager,
+	lama2015_appleware_app_manager,
 	padala2009_autocontrol_app_manager,
-	rao2013_dynaqos_app_manager
+	rao2013_dynaqos_app_manager,
+	wang2015_fmpc_app_manager
 };
 
 
 const dcs::testbed::workload_category default_workload = dcs::testbed::olio_workload;
 const dcs::testbed::workload_generator_category default_workload_driver = dcs::testbed::rain_workload_generator;
 const ::std::string default_workload_driver_rain_path("/usr/local/opt/rain-workload-toolkit");
+const ::std::string default_workload_rain_java_xarg("");
 const ::std::string default_workload_driver_ycsb_path("/usr/local/opt/YCSB");
 const ::std::string default_workload_ycsb_prop_path("workloads/workloada");
 const ::std::string default_workload_ycsb_classpath;
@@ -114,6 +244,8 @@ const double default_chen2000_ewma_quantile_prob = default_quantile_prob;
 const double default_chen2000_ewsa_w = 0.05;
 const double default_chen2000_ewsa_quantile_prob = default_quantile_prob;
 const double default_chen2000_sa_quantile_prob = default_quantile_prob;
+const double default_dunning2013_tdigest_quantile_prob = default_quantile_prob;
+//TODO: add default values for tdigest category and compression
 const double default_true_quantile_prob = default_quantile_prob;
 const double default_welsh2003_ewma_alpha = 0.7;
 const double default_welsh2003_ewma_quantile_prob = default_quantile_prob;
@@ -214,6 +346,10 @@ inline
 	{
 		cat = chen2000_sa_quantile_estimator;
 	}
+	else if (!s.compare("dunning2013_tdigest_quantile"))
+	{
+		cat = dunning2013_tdigest_quantile_estimator;
+	}
 	else if (!s.compare("jain1985_p2_algorithm_quantile"))
 	{
 		cat = jain1985_p2_algorithm_quantile_estimator;
@@ -260,6 +396,9 @@ inline
 		case chen2000_sa_quantile_estimator:
 				os << "chen2000_sa_quantile";
 				break;
+		case dunning2013_tdigest_quantile_estimator:
+				os << "dunning2013_tdigest_quantile";
+				break;
 		case jain1985_p2_algorithm_quantile_estimator:
 				os << "jain1985_p2_algorithm_quantile";
 				break;
@@ -293,13 +432,17 @@ inline
 	{
 		cat = anglano2014_fc2q_app_manager;
 	}
-	else if (!s.compare("anglano2014_fc2q_mimo"))
+	else if (!s.compare("anglano2016_fcms"))
 	{
-		cat = anglano2014_fc2q_mimo_app_manager;
+		cat = anglano2016_fcms_app_manager;
 	}
 	else if (!s.compare("dummy"))
 	{
 		cat = dummy_app_manager;
+	}
+	else if (!s.compare("lama2015_appleware"))
+	{
+		cat = lama2015_appleware_app_manager;
 	}
 	else if (!s.compare("padala2009_autocontrol"))
 	{
@@ -308,6 +451,10 @@ inline
 	else if (!s.compare("rao2013_dynaqos"))
 	{
 		cat = rao2013_dynaqos_app_manager;
+	}
+	else if (!s.compare("wang2015_fmpc"))
+	{
+		cat = wang2015_fmpc_app_manager;
 	}
 	else
 	{
@@ -330,17 +477,23 @@ inline
 		case anglano2014_fc2q_app_manager:
 			os << "anglano2014_fc2q";
 			break;
-		case anglano2014_fc2q_mimo_app_manager:
-			os << "anglano2014_mimo_fc2q";
+		case anglano2016_fcms_app_manager:
+			os << "anglano2016_fcms";
 			break;
 		case dummy_app_manager:
 			os << "dummy";
+			break;
+		case lama2015_appleware_app_manager:
+			os << "lama2015_appleware";
 			break;
 		case padala2009_autocontrol_app_manager:
 			os << "padala2009_autocontrol";
 			break;
 		case rao2013_dynaqos_app_manager:
 			os << "rao2013_dynaqos";
+			break;
+		case wang2015_fmpc_app_manager:
+			os << "wang2015_fmpc";
 			break;
 	}
 
@@ -358,12 +511,14 @@ void usage(char const* progname)
 				<< " --app-manager <name>" << ::std::endl
 				<< "   The name of the application manager to use to manage applications." << ::std::endl
 				<< "   Possible values are:" << ::std::endl
-				<< "   - 'albano2013': the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
-				<< "   - 'anglano2014_fc2q': the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
-				<< "   - 'anglano2014_fc2q_mimo'_mimo: a MIMO variant of the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
+				<< "   - 'albano2013': Fuzzy-Q&E, the fuzzy controller described in (Albano et al., 2013)" << ::std::endl
+				<< "   - 'anglano2014_fc2q': FC2Q, the fuzzy controller described in (Anglano et al., 2014)" << ::std::endl
+				<< "   - 'anglano2016_fcms': FCMS, the fuzzy MIMO controller described in (Anglano et al., 2016)" << ::std::endl
 				<< "   - 'dummy': a 'do-nothing' application manager" << ::std::endl
-				<< "   - 'padala2009_autocontrol': the LQ controller described in (Padala et al., 2009)" << ::std::endl
-				<< "   - 'rao2013_dynaqos': the fuzzy controller described in (Rao et al., 2013)" << ::std::endl
+				<< "   - 'lama2015_appleware': APPLEware, the ANFIS+MPC controller described in (Lama et al., 2015)" << ::std::endl
+				<< "   - 'padala2009_autocontrol': AutoControl, the LQ controller described in (Padala et al., 2009)" << ::std::endl
+				<< "   - 'rao2013_dynaqos': DynaQoS, the fuzzy controller described in (Rao et al., 2013)" << ::std::endl
+				<< "   - 'wang2015_fmpc': FMPC, the neuro-FIS+GA controller described in (Wang et al., 2015)" << ::std::endl
 				<< "   [default: '" << default_app_manager << "']." << ::std::endl
 				<< " --data-estimator <name>" << ::std::endl
 				<< "   The name of the estimator to use to estimate summary statistics from observed data." << ::std::endl
@@ -371,6 +526,7 @@ void usage(char const* progname)
 				<< "   - 'chen2000_ewma_quantile': quantile estimation according to the EWMA method by (Chen et al., 2000)" << ::std::endl
 				<< "   - 'chen2000_ewsa_quantile': quantile estimation according to the EWSA method by (Chen et al., 2000)" << ::std::endl
 				<< "   - 'chen2000_sa_quantile': quantile estimation according to the SA method by (Chen et al., 2000)" << ::std::endl
+				<< "   - 'dunning2013_tdigest_quantile': quantile estimation according to the t-digest algorithm by (Dunning et al., 2013)" << ::std::endl
 				<< "   - 'jain1985_p2_algorithm_quantile': quantile estimation according to the P^2 algorithm by (Jain et al., 1985)" << ::std::endl
 				<< "   - 'mean': sample mean" << ::std::endl
 				<< "   - 'mro': most recently observed data" << ::std::endl
@@ -396,6 +552,9 @@ void usage(char const* progname)
 				<< " --chen2000_sa-quantile <value>" << ::std::endl
 				<< "   The probability value for the (Chen el al.,2000) SA quantile estimator." << ::std::endl
 				<< "   [default: '" << default_chen2000_sa_quantile_prob << "']." << ::std::endl
+				<< " --dunning2013_tdigest-quantile <value>" << ::std::endl
+				<< "   The probability value for the (Dunning el al.,2013) t-digest quantile estimator." << ::std::endl
+				<< "   [default: '" << default_dunning2013_tdigest_quantile_prob << "']." << ::std::endl
 				<< " --jain1985_p2-quantile <value>" << ::std::endl
 				<< "   The probability value for the (Jain et al.,1985) P^2 quantile estimator." << ::std::endl
 				<< "   [default: '" << default_jain1985_p2_quantile_prob << "']." << ::std::endl
@@ -448,17 +607,21 @@ void usage(char const* progname)
 				<< "   The VM URI to connect." << ::std::endl
 				<< "   Repeat this option as many times as is the number of your VMs." << ::std::endl
 				<< " --wkl <name>" << ::std::endl
-				<< "   The workload to generate. Possible values are: 'cassandra', 'olio', 'rubis'." << ::std::endl
-				<< "   [default: '" << ::dcs::testbed::to_string(default_workload) << "']." << ::std::endl
+				<< "   The workload to generate. Possible values are: 'cassandra', 'olio', 'redis', 'rubbos', 'rubis'." << ::std::endl
+				<< "   [default: '" << default_workload << "']." << ::std::endl
 				<< " --wkl-driver <name>" << ::std::endl
 				<< "   The workload driver to use. Possible values are: 'rain', 'ycsb'." << ::std::endl
-				<< "   [default: '" << ::dcs::testbed::to_string(default_workload_driver) << "']." << ::std::endl
+				<< "   [default: '" << default_workload_driver << "']." << ::std::endl
 				<< " --wkl-driver-rain-path <name>" << ::std::endl
 				<< "   The full path to the RAIN workload driver." << ::std::endl
 				<< "   [default: '" << default_workload_driver_rain_path << "']." << ::std::endl
 				<< " --wkl-driver-ycsb-path <name>" << ::std::endl
 				<< "   The full path to the YCSB workload driver." << ::std::endl
 				<< "   [default: '" << default_workload_driver_ycsb_path << "']." << ::std::endl
+				<< " --wkl-rain-java-xarg <argument>" << ::std::endl
+				<< "   The argument to pass to the java command." << ::std::endl
+				<< "   Repeat this option as many times as is the number of argument you want to specify." << ::std::endl
+				<< "   [default: '" << default_workload_rain_java_xarg << "']." << ::std::endl
 				<< " --wkl-ycsb-prop-path <name>" << ::std::endl
 				<< "   The full path to a YCSB workload property file." << ::std::endl
 				<< "   Repeat this option as many times as is the number of property files you want to use." << ::std::endl
@@ -545,6 +708,7 @@ int main(int argc, char *argv[])
 	real_type opt_chen2000_ewsa_quantile_prob;
 	real_type opt_chen2000_ewsa_w;
 	real_type opt_chen2000_sa_quantile_prob;
+	real_type opt_dunning2013_tdigest_quantile_prob;
 	detail::data_estimator_category opt_data_estimator;
 	detail::data_smoother_category opt_data_smoother;
 	real_type opt_holt_winters_double_exponential_alpha;
@@ -565,6 +729,7 @@ int main(int argc, char *argv[])
 	testbed::workload_category opt_wkl;
 	testbed::workload_generator_category opt_wkl_driver;
 	std::string opt_wkl_driver_rain_path;
+	std::vector<std::string> opt_wkl_rain_java_xargs;
 	std::string opt_wkl_driver_ycsb_path;
 	std::vector<std::string> opt_wkl_ycsb_prop_paths;
 	std::string opt_wkl_ycsb_classpath;
@@ -586,6 +751,7 @@ int main(int argc, char *argv[])
 		opt_chen2000_ewsa_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewsa-quantile", detail::default_chen2000_ewsa_quantile_prob);
 		opt_chen2000_ewsa_w = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_ewsa-w", detail::default_chen2000_ewsa_w);
 		opt_chen2000_sa_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--chen2000_sa-quantile", detail::default_chen2000_sa_quantile_prob);
+		opt_dunning2013_tdigest_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--dunning2013_tdigest-quantile", detail::default_dunning2013_tdigest_quantile_prob);
 		opt_jain1985_p2_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--jain1985_p2-quantile", detail::default_jain1985_p2_quantile_prob);
 		opt_true_quantile_prob = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--true-quantile", detail::default_true_quantile_prob);
 		opt_welsh2003_ewma_alpha = dcs::cli::simple::get_option<real_type>(argv, argv+argc, "--welsh2003_ewma-alpha", detail::default_welsh2003_ewma_alpha);
@@ -603,6 +769,7 @@ int main(int argc, char *argv[])
 		opt_wkl = dcs::cli::simple::get_option<testbed::workload_category>(argv, argv+argc, "--wkl", detail::default_workload);
 		opt_wkl_driver = dcs::cli::simple::get_option<testbed::workload_generator_category>(argv, argv+argc, "--wkl-driver", detail::default_workload_driver);
 		opt_wkl_driver_rain_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-rain-path", detail::default_workload_driver_rain_path);
+		opt_wkl_rain_java_xargs = dcs::cli::simple::get_options<std::string>(argv, argv+argc, "--wkl-rain-java-xarg", detail::default_workload_rain_java_xarg);
 		opt_wkl_driver_ycsb_path = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-driver-ycsb-path", detail::default_workload_driver_ycsb_path);
 		opt_wkl_ycsb_classpath = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-ycsb-classpath", detail::default_workload_ycsb_classpath);
 		opt_wkl_ycsb_db_class = dcs::cli::simple::get_option<std::string>(argv, argv+argc, "--wkl-ycsb-db-class", detail::default_workload_ycsb_db_class);
@@ -634,13 +801,14 @@ int main(int argc, char *argv[])
 	{
 		std::ostringstream oss;
 
+		oss << "VM URIs: ";
 		for (std::size_t i = 0; i < opt_vm_uris.size(); ++i)
 		{
 			if (i > 0)
 			{
 				oss << ", ";
 			}
-			oss << "VM URI: " << opt_vm_uris[i];
+			oss << "'" << opt_vm_uris[i] << "'";
 		}
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
@@ -682,6 +850,10 @@ int main(int argc, char *argv[])
 		oss.str("");
 
 		oss << "(Chen et al.,2000)'s SA quantile estimator probability: " << opt_chen2000_sa_quantile_prob;
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
+		oss << "(Dunning et al.,2013)'s t-digest quantile estimator probability: " << opt_dunning2013_tdigest_quantile_prob;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
@@ -761,6 +933,18 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
+		oss << "Workload RAIN Java extra arguments: ";
+		for (std::size_t i = 0; i < opt_wkl_rain_java_xargs.size(); ++i)
+		{
+			if (i > 0)
+			{
+				oss << ", ";
+			}
+			oss << "'" << opt_wkl_rain_java_xargs[i] << "'";
+		}
+		dcs::log_info(DCS_LOGGING_AT, oss.str());
+		oss.str("");
+
 		oss << "Workload driver YCSB path: " << opt_wkl_driver_ycsb_path;
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
@@ -773,13 +957,14 @@ int main(int argc, char *argv[])
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
 
+		oss << "Workload YCSB property files: ";
 		for (std::size_t i = 0; i < opt_wkl_ycsb_prop_paths.size(); ++i)
 		{
 			if (i > 0)
 			{
 				oss << ", ";
 			}
-			oss << "Workload YCSB property file: " << opt_wkl_ycsb_prop_paths[i];
+			oss << "'" << opt_wkl_ycsb_prop_paths[i] << "'";
 		}
 		dcs::log_info(DCS_LOGGING_AT, oss.str());
 		oss.str("");
@@ -858,7 +1043,14 @@ int main(int argc, char *argv[])
 		{
 			case testbed::rain_workload_generator:
 				{
-					boost::shared_ptr< testbed::rain::workload_driver<traits_type> > p_drv_impl = boost::make_shared< testbed::rain::workload_driver<traits_type> >(opt_wkl, opt_wkl_driver_rain_path);
+					boost::shared_ptr< testbed::rain::workload_driver<traits_type> > p_drv_impl;
+					p_drv_impl = boost::make_shared< testbed::rain::workload_driver<traits_type> >(opt_wkl,
+																								   opt_wkl_driver_rain_path);
+					if (opt_wkl_rain_java_xargs.size() > 0 && !opt_wkl_rain_java_xargs[0].empty())
+					{
+						p_drv_impl->java_arguments(opt_wkl_rain_java_xargs.begin(), opt_wkl_rain_java_xargs.end());
+					}
+
 					p_app->register_sensor(opt_slo_metric, p_drv_impl->sensor(opt_slo_metric));
 					//p_drv = boost::make_shared< testbed::rain::workload_driver<traits_type> >(drv_impl);
 					p_drv = p_drv_impl;
@@ -866,12 +1058,13 @@ int main(int argc, char *argv[])
 				break;
 			case testbed::ycsb_workload_generator:
 				{
-					boost::shared_ptr< testbed::ycsb::workload_driver<traits_type> > p_drv_impl = boost::make_shared< testbed::ycsb::workload_driver<traits_type> >(opt_wkl,
-																																									opt_wkl_ycsb_prop_paths.begin(),
-																																									opt_wkl_ycsb_prop_paths.end(),
-																																									opt_wkl_driver_ycsb_path,
-																																									opt_wkl_ycsb_db_class,
-																																									opt_wkl_ycsb_classpath);
+					boost::shared_ptr< testbed::ycsb::workload_driver<traits_type> > p_drv_impl;
+					p_drv_impl = boost::make_shared< testbed::ycsb::workload_driver<traits_type> >(opt_wkl,
+																								   opt_wkl_ycsb_prop_paths.begin(),
+																								   opt_wkl_ycsb_prop_paths.end(),
+																								   opt_wkl_driver_ycsb_path,
+																								   opt_wkl_ycsb_db_class,
+																								   opt_wkl_ycsb_classpath);
 					p_app->register_sensor(opt_slo_metric, p_drv_impl->sensor(opt_slo_metric));
 					//p_drv = boost::make_shared< testbed::ycsb::workload_driver<traits_type> >(drv_impl);
 					p_drv = p_drv_impl;
@@ -892,6 +1085,9 @@ int main(int argc, char *argv[])
 					break;
 			case detail::chen2000_sa_quantile_estimator:
 					p_estimator = boost::make_shared< testbed::chen2000_sa_quantile_estimator<real_type> >(opt_chen2000_sa_quantile_prob);
+					break;
+			case detail::dunning2013_tdigest_quantile_estimator:
+					p_estimator = boost::make_shared< testbed::dunning2013_tdigest_quantile_estimator<real_type> >(opt_dunning2013_tdigest_quantile_prob);
 					break;
 			case detail::jain1985_p2_algorithm_quantile_estimator:
 					p_estimator = boost::make_shared< testbed::jain1985_p2_algorithm_quantile_estimator<real_type> >(opt_jain1985_p2_quantile_prob);
@@ -975,20 +1171,6 @@ int main(int argc, char *argv[])
 					p_mgr = boost::make_shared< testbed::anglano2014_fc2q_application_manager<traits_type> >(anglano2014_fc2q_mgr);
 				}
 				break;
-			case detail::anglano2014_fc2q_mimo_app_manager:
-				{
-					const real_type beta = 0.9;
-
-					testbed::anglano2014_fc2q_mimo_application_manager<traits_type> anglano2014_fc2q_mimo_mgr;
-					anglano2014_fc2q_mimo_mgr.smoothing_factor(beta);
-					if (!opt_app_manager_stats_file.empty())
-					{
-						anglano2014_fc2q_mimo_mgr.export_data_to(opt_app_manager_stats_file);
-					}
-
-					p_mgr = boost::make_shared< testbed::anglano2014_fc2q_mimo_application_manager<traits_type> >(anglano2014_fc2q_mimo_mgr);
-				}
-				break;
 //TODO
 #if 0
 			case detail::guazzone2012_app_manager:
@@ -1017,6 +1199,20 @@ int main(int argc, char *argv[])
 				}
 				break;
 #endif // 0
+			case detail::anglano2016_fcms_app_manager:
+				{
+					const real_type beta = 0.9;
+
+					testbed::anglano2016_fcms_application_manager<traits_type> anglano2016_fcms_mgr;
+					anglano2016_fcms_mgr.smoothing_factor(beta);
+					if (!opt_app_manager_stats_file.empty())
+					{
+						anglano2016_fcms_mgr.export_data_to(opt_app_manager_stats_file);
+					}
+
+					p_mgr = boost::make_shared< testbed::anglano2016_fcms_application_manager<traits_type> >(anglano2016_fcms_mgr);
+				}
+				break;
 			case detail::dummy_app_manager:
 				{
 					testbed::dummy_application_manager<traits_type> dummy_mgr;
@@ -1026,6 +1222,34 @@ int main(int argc, char *argv[])
 					}
 
 					p_mgr = boost::make_shared< testbed::dummy_application_manager<traits_type> >(dummy_mgr);
+				}
+				break;
+			case detail::lama2015_appleware_app_manager:
+				{
+					//NOTE: APPLEware needs a prebuilt neuro-fuzzy model.
+					//      You can build by collecting data from real systems and using MATLAB's Fuzzy Logic Toolbox to select the best model.
+					//      Once you've found the best model, you need to export it as a FIS file.
+					//      Finally, the FIS file must be converted into the fuzzylite FLL format.
+					//      To do so, you can use the tools/fis2fll.cpp program (must be linked with the fuzzylite library).
+
+					const bool use_prebuilt_anfis = true;
+					const std::size_t output_order = 1;
+					std::string prebuilt_anfis_fname;
+
+					std::ostringstream oss;
+					oss << "experiments/data/" << opt_wkl << "-lama2015_appleware-order_out_" << output_order << "-anfis_trained.fll";
+					prebuilt_anfis_fname = oss.str();
+
+					testbed::lama2015_appleware_application_manager<traits_type> lama2015_appleware_mgr;
+					if (!opt_app_manager_stats_file.empty())
+					{
+						lama2015_appleware_mgr.export_data_to(opt_app_manager_stats_file);
+					}
+					lama2015_appleware_mgr.output_order(output_order);
+					lama2015_appleware_mgr.use_prebuilt_anfis(use_prebuilt_anfis);
+					lama2015_appleware_mgr.prebuilt_anfis_file(prebuilt_anfis_fname);
+
+					p_mgr = boost::make_shared< testbed::lama2015_appleware_application_manager<traits_type> >(lama2015_appleware_mgr);
 				}
 				break;
 			case detail::padala2009_autocontrol_app_manager:
@@ -1064,6 +1288,34 @@ int main(int argc, char *argv[])
 					}
 
 					p_mgr = boost::make_shared< testbed::rao2013_dynaqos_application_manager<traits_type> >(rao2013_dynaqos_mgr);
+				}
+				break;
+			case detail::wang2015_fmpc_app_manager:
+				{
+					//NOTE: FMPC needs a prebuilt neuro-fuzzy model.
+					//      You can build by collecting data from real systems and using MATLAB's Fuzzy Logic Toolbox to select the best model.
+					//      Once you've found the best model, you need to export it as a FIS file.
+					//      Finally, the FIS file must be converted into the fuzzylite FLL format.
+					//      To do so, you can use the tools/fis2fll.cpp program (must be linked with the fuzzylite library).
+
+					const bool use_prebuilt_anfis = true;
+					const std::size_t output_order = 0;
+					std::string prebuilt_anfis_fname;
+
+					std::ostringstream oss;
+					oss << "experiments/data/" << opt_wkl << "-wang2015_fmpc-order_out_" << output_order << "-subclust.fll";
+					prebuilt_anfis_fname = oss.str();
+
+					testbed::wang2015_fmpc_application_manager<traits_type> wang2015_fmpc_mgr;
+					if (!opt_app_manager_stats_file.empty())
+					{
+						wang2015_fmpc_mgr.export_data_to(opt_app_manager_stats_file);
+					}
+					wang2015_fmpc_mgr.output_order(output_order);
+					wang2015_fmpc_mgr.use_prebuilt_anfis(use_prebuilt_anfis);
+					wang2015_fmpc_mgr.prebuilt_anfis_file(prebuilt_anfis_fname);
+
+					p_mgr = boost::make_shared< testbed::wang2015_fmpc_application_manager<traits_type> >(wang2015_fmpc_mgr);
 				}
 				break;
 			default:
@@ -1106,3 +1358,5 @@ int main(int argc, char *argv[])
 
 	return ret;
 }
+
+#endif // if 0

@@ -26,14 +26,19 @@
 #define DCS_TESTBED_TRAITS_HPP
 
 
+#include <boost/random/mersenne_twister.hpp>
+
+
 namespace dcs { namespace testbed {
 
-template <typename RealT,
-		  typename UIntT>
+template <typename RealT=double,
+		  typename UIntT=unsigned long,
+		  typename RNGT=boost::random::mt19937>
 struct traits
 {
 	typedef RealT real_type;
 	typedef UIntT uint_type;
+	typedef RNGT rng_type;
 }; // traits
 
 }} // Namespace dcs::testbed

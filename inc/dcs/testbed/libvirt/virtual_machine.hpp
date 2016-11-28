@@ -222,6 +222,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
+/*
 		const int nvcpus(this->max_num_vcpus());
 
 		//FIXME: This is a Xen-related stuff. What for other hypervisors?
@@ -232,6 +233,8 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 			kap = 0; //Note: cap == 0 ==> No upper cap
 		}
 		detail::sched_param<int>(p_vmm_->connection(), p_dom_, "cap", kap, VIR_DOMAIN_AFFECT_CURRENT);
+*/
+		detail::cpu_cap(p_vmm_->connection(), p_dom_, cap);
 	}
 
 	private: real_type do_cpu_cap() const
@@ -245,6 +248,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
+/*
 		const int nvcpus = this->max_num_vcpus();
 		int kap = detail::sched_param<int>(p_vmm_->connection(), p_dom_, "cap", VIR_DOMAIN_AFFECT_CURRENT);
 		if (kap == 0)
@@ -253,6 +257,8 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		}
 
 		return kap;
+*/
+		return detail::cpu_cap(p_vmm_->connection(), p_dom_);
 	}
 
 	private: void do_cpu_share(real_type share)
@@ -266,12 +272,15 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
+/*
 		const int nvcpus = this->max_num_vcpus();
 
 		//FIXME: This is a Xen-related stuff. What for other hypervisors?
 		//FIXME: Actually we assume that weight is 256 (its default value)
 		const int cap = share < 1.0 ? share*nvcpus*100 : 0; //Note: cap == 0 ==> No upper cap
 		detail::sched_param<int>(p_vmm_->connection(), p_dom_, "cap", cap, VIR_DOMAIN_AFFECT_CURRENT);
+*/
+		detail::cpu_share(p_vmm_->connection(), p_dom_, share);
 	}
 
 	private: real_type do_cpu_share() const
@@ -285,6 +294,7 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
+/*
 		const int cap = detail::sched_param<int>(p_vmm_->connection(), p_dom_, "cap", VIR_DOMAIN_AFFECT_CURRENT);
 
 		const int nvcpus = this->max_num_vcpus();
@@ -294,6 +304,8 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		const real_type share = cap/(nvcpus*100.0);
 
 		return share > 0 ? share : 1; //Note: cap == 0 ==> No upper cap
+*/
+		return detail::cpu_share(p_vmm_->connection(), p_dom_);
 	}
 
 	private: uint_type do_max_memory() const
@@ -339,9 +351,16 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
+/*
 		const unsigned long max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
+		const unsigned long mem = std::min(static_cast<unsigned long>(cap), max_mem);
 
-		detail::current_memory(p_vmm_->connection(), p_dom_, std::min(static_cast<unsigned long>(cap), max_mem));
+#if 0
+		detail::max_memory(p_vmm_->connection(), p_dom_, mem);
+#endif
+		detail::current_memory(p_vmm_->connection(), p_dom_, mem);
+*/
+		detail::memory_cap(p_vmm_->connection(), p_dom_, cap);
 	}
 
 	private: real_type do_memory_cap() const
@@ -355,7 +374,15 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
+/*
+		//return static_cast<real_type>(detail::current_memory(p_vmm_->connection(), p_dom_));
+#if 0
+		return static_cast<real_type>(detail::max_memory(p_vmm_->connection(), p_dom_));
+#else
 		return static_cast<real_type>(detail::current_memory(p_vmm_->connection(), p_dom_));
+#endif
+*/
+		return detail::memory_cap(p_vmm_->connection(), p_dom_);
 	}
 
 	private: void do_memory_share(real_type share)
@@ -369,11 +396,17 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
+/*
 		const unsigned long max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
 		const unsigned long mem = std::min(static_cast<unsigned long>(share*max_mem), max_mem);
 
 DCS_DEBUG_TRACE("Setting Memory: " << mem << " (share: " << share << ")");//XXX
+#if 0
+		detail::max_memory(p_vmm_->connection(), p_dom_, mem);
+#endif
 		detail::current_memory(p_vmm_->connection(), p_dom_, mem);
+*/
+		detail::memory_share(p_vmm_->connection(), p_dom_, share);
 	}
 
 	private: real_type do_memory_share() const
@@ -387,11 +420,26 @@ DCS_DEBUG_TRACE("Setting Memory: " << mem << " (share: " << share << ")");//XXX
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
-		const unsigned long max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
+/*
+//		const unsigned long max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
+//		const unsigned long cur_mem = detail::current_memory(p_vmm_->connection(), p_dom_);
+//
+//DCS_DEBUG_TRACE("Getting Memory: " << cur_mem << " (share: " << (cur_mem/static_cast<real_type>(max_mem)) << ")");//XXX
+//		return cur_mem/static_cast<real_type>(max_mem);
+		const unsigned long cfg_max_mem = detail::config_max_memory(p_vmm_->connection(), p_dom_);
+#if 0
+		const unsigned long cur_max_mem = detail::max_memory(p_vmm_->connection(), p_dom_);
+
+DCS_DEBUG_TRACE("Getting Memory: " << cur_max_mem << " (share: " << (cur_max_mem/static_cast<real_type>(cfg_max_mem)) << ")");//XXX
+		return cur_max_mem/static_cast<real_type>(cfg_max_mem);
+#else
 		const unsigned long cur_mem = detail::current_memory(p_vmm_->connection(), p_dom_);
 
-DCS_DEBUG_TRACE("Getting Memory: " << cur_mem << " (share: " << (cur_mem/static_cast<real_type>(max_mem)) << ")");//XXX
-		return cur_mem/static_cast<real_type>(max_mem);
+DCS_DEBUG_TRACE("Getting Memory: " << cur_mem << " (share: " << (cur_mem/static_cast<real_type>(cfg_max_mem)) << ")");//XXX
+		return cur_mem/static_cast<real_type>(cfg_max_mem);
+#endif
+*/
+		return detail::memory_share(p_vmm_->connection(), p_dom_);
 	}
 
 	private: sensor_pointer do_sensor(virtual_machine_performance_category cat) const

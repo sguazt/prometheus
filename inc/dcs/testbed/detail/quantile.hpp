@@ -64,7 +64,14 @@ inline
 		return qs;
 	}
 
-	if (sorted)
+	if (!sorted)
+	{
+		std::vector<T> data(data_first, data_last);
+		std::sort(data.begin(), data.end());
+
+		return quantile<T>(data.begin(), data.end(), prob_first, prob_last, true, cat);
+	}
+	else
 	{
 		switch (cat)
 		{
@@ -117,6 +124,7 @@ inline
 				throw ::std::runtime_error("Quantile estimators other than type-7 are to be implemented");
 		}
 	}
+#if 0
 	else
 	{
 		::std::vector<T> data(data_first, data_last);
@@ -243,6 +251,7 @@ inline
 			throw ::std::runtime_error("Quantile estimators other than type-7 are to be implemented");
 		}
 	}
+#endif
 
     return qs;
 }

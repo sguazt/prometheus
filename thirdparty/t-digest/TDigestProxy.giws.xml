@@ -1,0 +1,50 @@
+<package name="tdigestx">
+  <object name="TDigestProxy">
+<!--
+    <method name="com.tdunning.math.stats.createAvlTreeDigest"
+			returnType="com.tdunning.math.stats.TDigest"
+			modifier="static">
+		<param type="double" name="compression"/>
+	</method>
+-->
+    <method name="getDefaultDigestType"
+			returnType="int"
+			modifier="static"/>
+    <method name="getArrayDigestType"
+			returnType="int"
+			modifier="static"/>
+    <method name="getAvlTreeDigestType"
+			returnType="int"
+			modifier="static"/>
+    <method name="getTreeDigestType"
+			returnType="int"
+			modifier="static"/>
+    <method name="getDefaultCompressionType"
+			returnType="double"
+			modifier="static"/>
+    <method name="init"
+			returnType="void"/>
+    <method name="init"
+			returnType="void">
+		<param type="int" name="type"/>
+	</method>
+    <method name="init"
+			returnType="void">
+		<param type="int" name="type"/>
+		<param type="double" name="compression"/>
+	</method>
+	<method name="add"
+			returnType="void">
+		<param type="double" name="x"/>
+	</method>
+	<method name="add"
+			returnType="void">
+		<param type="double" name="x"/>
+		<param type="int" name="w"/>
+	</method>
+	<method name="quantile"
+			returnType="double">
+		<param type="double" name="q"/>
+	</method>
+  </object>
+</package>

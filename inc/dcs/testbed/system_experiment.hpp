@@ -38,7 +38,9 @@
 //#include <dcs/testbed/base_workload_driver.hpp>
 //#include <dcs/testbed/detail/application_experiment_runner.hpp>
 #include <dcs/testbed/application_experiment.hpp>
+#include <dcs/testbed/base_virtual_machine_manager.hpp>
 #include <dcs/testbed/detail/runnable.hpp>
+#include <map>
 #include <stdexcept>
 #include <vector>
 
@@ -54,6 +56,9 @@ class system_experiment
 {
 	private: typedef system_experiment<TraitsT> self_type;
 	public: typedef TraitsT traits_type;
+	public: typedef typename traits_type::rng_type rng_type;
+	public: typedef typename base_virtual_machine_manager<TraitsT>::identifier_type vmm_identifier_type;
+	public: typedef typename boost::shared_ptr< base_virtual_machine_manager<TraitsT> > vmm_pointer;
 	//public: typedef typename traits_type::real_type real_type;
 //	private: typedef base_application<traits_type> app_type;
 //	public: typedef ::boost::shared_ptr<app_type> app_pointer;
@@ -71,7 +76,8 @@ class system_experiment
 	public: system_experiment()
 	: running_(false),
 	  p_sta_sig_(new signal_type()),
-	  p_sto_sig_(new signal_type())
+	  p_sto_sig_(new signal_type()),
+	  p_rng_(new rng_type())
 	{
 	}
 
@@ -114,6 +120,16 @@ class system_experiment
 //	{
 //		app_exps_.push_back(::boost::make_shared<app_experiment_type>(p_app, p_drv, p_mgr, first_mon, last_mon));
 //	}
+
+	public: void rng(boost::shared_ptr<rng_type> const& p_rng)
+	{
+		p_rng_ = p_rng;
+	}
+
+	public: boost::shared_ptr<rng_type> const& rng_ptr() const
+	{
+		return p_rng_;
+	}
 
 	/**
 	 * \brief Perform system experiment.
@@ -174,12 +190,29 @@ class system_experiment
 		return running_;
 	}
 
+	public: void vmm(vmm_identifier_type id, vmm_pointer const& p_vmm)
+	{
+		vmms_[id] = p_vmm;
+	}
+
+	public: vmm_pointer const& vmm(vmm_identifier_type id)
+	{
+		return vmms_.at(id);
+	}
+
+	public: vmm_pointer const& vmm(vmm_identifier_type id) const
+	{
+		return vmms_.at(id);
+	}
+
 
 	private: bool running_; ///< Tells if this system experiment is running
 	private: app_experiment_container app_exps_; ///< Application experiments container
 //	private: monitor_container mons_; ///< Experiment monitors container
 	private: signal_pointer p_sta_sig_;
 	private: signal_pointer p_sto_sig_;
+	private: boost::shared_ptr<rng_type> p_rng_;
+	private: std::map<vmm_identifier_type,vmm_pointer> vmms_;
 }; // system_experiment
 
 }} // Namespace dcs::testbed

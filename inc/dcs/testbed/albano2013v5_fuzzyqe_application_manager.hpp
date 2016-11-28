@@ -366,9 +366,10 @@ class albano2013v5_fuzzyqe_application_manager: public base_application_manager<
 //			}
 			const real_type uh = this->data_smoother(cat, p_vm->id()).forecast(0);
 			const real_type c = p_vm->cpu_share();
+			const real_type cres = c-uh;
 
-			cress[cat].push_back(c-uh);
-DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << cress.at(cat).at(i));//XXX
+			cress[cat].push_back(cres);
+DCS_DEBUG_TRACE("VM " << p_vm->id() << " - Performance Category: " << cat << " - Uhat(k): " << uh << " - C(k): " << c << " -> Cres(k+1): " << cres << " (Relative Cres(k+1): " << cres/c << ")");//XXX
 		}
 
 		if (!skip_ctl)
@@ -423,10 +424,12 @@ DCS_DEBUG_TRACE("APP Performance Category: " << cat << " - Yhat(k): " << yh << "
 			{
 				for (::std::size_t i = 0; i < nvms; ++i)
 				{
+					vm_pointer p_vm = vms[i];
+
 					const real_type cres = cress.begin()->second.at(i);
 					const real_type rgain = rgains.begin()->second;
 
-					p_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, cres);
+					p_fuzzy_eng_->setInputValue(cres_fuzzy_var_name, cres/p_vm->cpu_share());
 					p_fuzzy_eng_->setInputValue(rgain_fuzzy_var_name, rgain);
 
 					p_fuzzy_eng_->process();

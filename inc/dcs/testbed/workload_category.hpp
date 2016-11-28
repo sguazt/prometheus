@@ -26,83 +26,18 @@
 #define DCS_TESTBED_WORKLOAD_CATEGORY_HPP
 
 
-#include <dcs/exception.hpp>
-#include <dcs/string/algorithm/to_lower.hpp>
-#include <iostream>
-#include <sstream>
-#include <stdexcept>
-#include <string>
-
-
 namespace dcs { namespace testbed {
 
 enum workload_category
 {
 	cassandra_workload, ///< Workload for the Apache Cassandra project
 	olio_workload, ///< Workload for the Apache Olio project
+	redis_workload, ///< Workload for the Redis project
+	rubbos_workload, ///< Workload for the RUBBoS project
 	rubis_workload ///< Workload for the RUBiS project
 };
 
-
-template <typename CharT, typename CharTraitsT>
-inline
-::std::basic_istream<CharT,CharTraitsT>& operator>>(::std::basic_istream<CharT,CharTraitsT>& is, workload_category& wkl_cat)
-{
-	::std::string s;
-	is >> s;
-	::dcs::string::to_lower(s);
-
-	if (!s.compare("cassandra"))
-	{
-		wkl_cat = cassandra_workload;
-	}
-	else if (!s.compare("olio") || !s.compare("cloudstone"))
-	{
-		wkl_cat = olio_workload;
-	}
-	else if (!s.compare("rubis"))
-	{
-		wkl_cat = rubis_workload;
-	}
-	else
-	{
-		DCS_EXCEPTION_THROW(::std::runtime_error,
-							"Unknown workload category");
-	}
-
-	return is;
-}
-
-template <typename CharT, typename CharTraitsT>
-inline
-::std::basic_ostream<CharT,CharTraitsT>& operator>>(::std::basic_ostream<CharT,CharTraitsT>& os, workload_category wkl_cat)
-{
-	switch (wkl_cat)
-	{
-		case cassandra_workload:
-			os << "cassandra";
-			break;
-		case olio_workload:
-			os << "olio";
-			break;
-		case rubis_workload:
-			os << "rubis";
-			break;
-	}
-
-	return os;
-}
-
-
-inline
-::std::string to_string(workload_category wkl_cat)
-{
-	::std::ostringstream oss;
-	oss << wkl_cat;
-
-	return oss.str();
-}
-
 }} // Namespace dcs::testbed
+
 
 #endif // DCS_TESTBED_WORKLOAD_CATEGORY_HPP

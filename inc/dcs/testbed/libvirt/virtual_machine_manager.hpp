@@ -59,6 +59,14 @@ inline
 }
 */
 
+/// Gets the URI for the virtual machine manager from the given URI
+inline
+std::string vmm_uri(std::string const& uri)
+{
+	return detail::vmm_uri(uri);
+}
+
+
 template <typename TraitsT>
 class virtual_machine_manager: public base_virtual_machine_manager<TraitsT>
 {
