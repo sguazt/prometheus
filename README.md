@@ -25,7 +25,7 @@ This project has been used in the experimental evaluations presented in the foll
 >
 > doi: [10.1002/cpe.3410](http://dx.doi.org/10.1002/cpe.3410)
 
-Please, cite this project as at least on of the following papers (BibTeX format):
+Please, cite this project as at least one of the following papers (BibTeX format):
 
     @ARTICLE{CPE:CPE3968,
         author = {Cosimo Anglano and Massimo Canonico and Marco Guazzone},
