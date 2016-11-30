@@ -17,13 +17,22 @@ This project has been used in the experimental evaluations presented in the foll
 > doi:[10.1002/cpe.3968](http://dx.doi.org/10.1002/cpe.3968).
 >
 >
-> Cosimo Anglano and Massimo Canonico and Marco Guazzone
+> Cosimo Anglano, Massimo Canonico and Marco Guazzone
 >
 > *FC2Q: Exploiting Fuzzy Control in Server Consolidation for Cloud Applications with SLA Constraints*
 >
 > Concurrency Computat.: Pract. Exper., 27(17):4491-4514, 2015.
 >
 > doi: [10.1002/cpe.3410](http://dx.doi.org/10.1002/cpe.3410)
+>
+>
+> Luca Albano, Cosimo Anglano, Massimo Canonico and Marco Guazzone
+>
+> *Fuzzy Q&E: Achieving QoS Guarantees and Energy Savings for Cloud Applications with Fuzzy Control*
+>
+> 2013 International Conference on Cloud and Green Computing (2013), Karlsruhe, Germany, pp. 159-166, 2013.
+>
+> doi: [10.1109/CGC.2013.31](http://dx.doi.org/10.1109/CGC.2013.31)
 
 Please, cite this project as at least one of the following papers (BibTeX format):
 
@@ -32,11 +41,11 @@ Please, cite this project as at least one of the following papers (BibTeX format
         title = {{FCMS}: a Fuzzy Controller for {CPU} and Memory Consolidation under {SLA} Constraints}
         journal = {Concurrency and Computation: Practice and Experience},
         publisher = {Wiley},
-        keywords = {cloud computing, resource management, feedback control, fuzzy control, server consolidation, virtualized cloud applications},
         year = {2016},
+        note = {In Press},
         doi = {10.1002/cpe.3968},
         url = {http://dx.doi.org/10.1002/cpe.3968},
-        note = {In Press},
+        keywords = {cloud computing, resource management, feedback control, fuzzy control, server consolidation, virtualized cloud applications},
     }
 
     @ARTICLE{CPE:CPE3410,
@@ -45,14 +54,25 @@ Please, cite this project as at least one of the following papers (BibTeX format
         journal = {Concurrency and Computation: Practice and Experience},
         volume = {27},
         number = {17},
+        pages = {4491--4514},
+        year = {2015},
         issn = {1532-0634},
         url = {http://dx.doi.org/10.1002/cpe.3410},
         doi = {10.1002/cpe.3410},
-        pages = {4491--4514},
         keywords = {cloud computing, resource management, feedback control, fuzzy control, server consolidation, virtualized cloud applications},
-        year = {2015},
     }
 
+    @INPROCEEDINGS{6686023,
+        author = {Luca Albano and Cosimo Anglano and Massimo Canonico and Marco Guazzone}, 
+        booktitle = {2013 International Conference on Cloud and Green Computing}, 
+        title = {Fuzzy-{Q}{\&}{E}: Achieving QoS Guarantees and Energy Savings for Cloud Applications with Fuzzy Control}, 
+        year = {2013}, 
+        pages = {159-166}, 
+        month = {Sept},
+        doi = {10.1109/CGC.2013.31}, 
+        url = {http://dx.doi.org/10.1109/CGC.2013.31}, 
+        keywords = {cloud computing; fuzzy control; power aware computing; quality of experience; quality of service; virtual machines; QoS; VMs; Xen-based testbed; bursty workload; cloud application management; dynamic workload; e-commerce benchmark; energy consumption; energy savings; fuzzy controller; fuzzy-Q&E; physical capacity; physical infrastructure; quality-of-services; virtual machines; Benchmark testing; Fuzzy control; IP networks; Pragmatics; Quality of service; Time factors; Virtual machine monitors}, 
+    }
 
 
 Building
