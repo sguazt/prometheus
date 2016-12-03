@@ -40,11 +40,11 @@ Please, cite this project as at least one of the following papers (BibTeX format
         author = {Cosimo Anglano and Massimo Canonico and Marco Guazzone},
         title = {{FCMS}: a Fuzzy Controller for {CPU} and Memory Consolidation under {SLA} Constraints}
         journal = {Concurrency and Computation: Practice and Experience},
-        publisher = {Wiley},
         year = {2016},
         note = {In Press},
         doi = {10.1002/cpe.3968},
         url = {http://dx.doi.org/10.1002/cpe.3968},
+        issn = {1532-0634},
         keywords = {cloud computing, resource management, feedback control, fuzzy control, server consolidation, virtualized cloud applications},
     }
 
