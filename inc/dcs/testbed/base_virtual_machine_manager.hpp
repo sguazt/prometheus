@@ -46,6 +46,7 @@ class base_virtual_machine_manager
 
 	public: base_virtual_machine_manager()
 	{
+		// empty
 	}
 
 	public: virtual ~base_virtual_machine_manager()
@@ -53,6 +54,7 @@ class base_virtual_machine_manager
 		// empty
 	}
 
+	/// Return the unique identifier for this hypervisor
 	public: identifier_type id() const
 	{
 		return do_id();
@@ -70,14 +72,21 @@ class base_virtual_machine_manager
 		return do_vm(id);
 	}
 
+	/// Tells if the connection to the hypervisor is still alive
 	public: bool alive() const
 	{
 		return do_alive();
 	}
 
+	/// Returns the maximum number of virtual CPUs supported for a guest VM
 	public: uint_type max_supported_num_vcpus() const
 	{
 		return do_max_supported_num_vcpus();
+	}
+
+	public: std::string hostname() const
+	{
+		return do_hostname();
 	}
 
 	private: virtual identifier_type do_id() const = 0;
@@ -89,6 +98,8 @@ class base_virtual_machine_manager
 	private: virtual bool do_alive() const = 0;
 
 	private: virtual uint_type do_max_supported_num_vcpus() const = 0;
+
+	private: virtual std::string do_hostname() const = 0;
 }; // base_virtual_machine_manager
 
 }} // Namespace dcs::testbed

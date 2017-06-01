@@ -182,6 +182,15 @@ class virtual_machine_manager: public base_virtual_machine_manager<TraitsT>
 		return static_cast<uint_type>(max_nvcpus);
 	}
 
+	private: std::string do_hostname() const
+	{
+		DCS_ASSERT(p_conn_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected"));
+
+		return detail::hypervisor_hostname(p_conn_);
+	}
+
 
 	private: ::std::string uri_;
 	private: ::virConnectPtr p_conn_;

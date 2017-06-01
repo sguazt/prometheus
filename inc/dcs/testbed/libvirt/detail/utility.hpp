@@ -85,6 +85,8 @@ unsigned int domain_id(virConnectPtr conn, virDomainPtr dom);
 
 std::string domain_name(virConnectPtr conn, virDomainPtr dom);
 
+std::string hypervisor_hostname(virConnectPtr conn);
+
 std::string hypervisor_info(virConnectPtr conn);
 
 std::string last_error(virConnectPtr conn);
@@ -256,6 +258,21 @@ void disconnect(virConnectPtr conn)
 		//TODO
 		// One or more references are possible leaked after disconnect from the hypervisor
 	}
+}
+
+std::string hypervisor_hostname(virConnectPtr conn)
+{
+	std::string hostname;
+
+	char* s = 0;
+	s = virConnectGetHostname(conn);
+	if (s != 0)
+	{
+		hostname = s;
+		std::free(s);
+	}
+
+	return s;
 }
 
 std::string hypervisor_info(virConnectPtr conn)
