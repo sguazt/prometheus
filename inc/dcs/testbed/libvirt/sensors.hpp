@@ -54,8 +54,10 @@
 # include <boost/system/error_code.hpp>
 # include <boost/system/system_error.hpp>
 # include <boost/tuple/tuple.hpp>
-# include <jsoncpp/json/value.h>
-# include <jsoncpp/json/reader.h>
+//# include <jsoncpp/json/value.h>
+//# include <jsoncpp/json/reader.h>
+# include <json/value.h>
+# include <json/reader.h>
 #endif // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 
 
