@@ -1,7 +1,7 @@
 /**
  * \file dcs/testbed/base_sensor.hpp
  *
- * \brief Collect observations.
+ * \brief Class to model sensors for collecting observations.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
@@ -32,6 +32,15 @@
 
 namespace dcs { namespace testbed {
 
+/**
+ * \file dcs/testbed/base_sensor.hpp
+ *
+ * \brief Class to model sensors for collecting observations.
+ *
+ * \tparam TraitsT traits type.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class base_sensor
 {
@@ -39,19 +48,28 @@ class base_sensor
 	public: typedef sensor_observation<traits_type> observation_type;
 
 
+	/// Collect next available observations
 	public: void sense()
 	{
 		do_sense();
 	}
 
+	/// Tells if some observations have been collected and are available to be consumed
 	public: bool has_observations() const
 	{
 		return do_has_observations();
 	}
 
+	/// Returns the last collected observations
 	public: ::std::vector<observation_type> observations() const
 	{
 		return do_observations();
+	}
+
+	/// Reset the state of this sensor
+	public: void reset()
+	{
+		do_reset();
 	}
 
 	private: virtual void do_sense() = 0;
