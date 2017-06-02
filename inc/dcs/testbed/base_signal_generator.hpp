@@ -31,6 +31,13 @@
 
 namespace dcs { namespace testbed {
 
+/**
+ * \brief Base class for signal generators.
+ *
+ * \tparam TraitsT Traits type.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename ValueT>
 class base_signal_generator
 {
@@ -38,29 +45,38 @@ class base_signal_generator
 	public: typedef ::std::vector<value_type> vector_type;
 
 
-	public: vector_type operator()()
+	protected: base_signal_generator()
 	{
-		return do_generate();
-	}
-
-	public: void reset()
-	{
-		do_reset();
-	}
-
-	public: void upper_bound(value_type val)
-	{
-		do_upper_bound(val);
-	}
-
-	public: void lower_bound(value_type val)
-	{
-		do_lower_bound(val);
+		// empty
 	}
 
 	public: virtual ~base_signal_generator()
 	{
 		// empty
+	}
+
+	/// Generates and returns a new signal value
+	public: vector_type operator()()
+	{
+		return do_generate();
+	}
+
+	/// Resets this generator
+	public: void reset()
+	{
+		do_reset();
+	}
+
+	/// Sets the given value as an upper bound for the signal to be generated
+	public: void upper_bound(value_type val)
+	{
+		do_upper_bound(val);
+	}
+
+	/// Sets the given value as a lower bound for the signal to be generated
+	public: void lower_bound(value_type val)
+	{
+		do_lower_bound(val);
 	}
 
 	private: virtual vector_type do_generate() = 0;

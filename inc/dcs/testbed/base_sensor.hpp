@@ -1,7 +1,7 @@
 /**
  * \file dcs/testbed/base_sensor.hpp
  *
- * \brief Class to model sensors for collecting observations.
+ * \brief Base class to model sensors for collecting observations.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
@@ -33,11 +33,9 @@
 namespace dcs { namespace testbed {
 
 /**
- * \file dcs/testbed/base_sensor.hpp
+ * \brief Base class to model sensors for collecting observations.
  *
- * \brief Class to model sensors for collecting observations.
- *
- * \tparam TraitsT traits type.
+ * \tparam TraitsT Traits type.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  */
@@ -47,6 +45,16 @@ class base_sensor
 	public: typedef TraitsT traits_type;
 	public: typedef sensor_observation<traits_type> observation_type;
 
+
+	protected: base_sensor()
+	{
+		// empty
+	}
+
+	public: virtual ~base_sensor()
+	{
+		// empty
+	}
 
 	/// Collect next available observations
 	public: void sense()

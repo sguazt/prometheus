@@ -33,6 +33,13 @@
 
 namespace dcs { namespace testbed {
 
+/**
+ * \brief Base class for system managers.
+ *
+ * \tparam TraitsT Traits type.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class base_system_manager
 {
@@ -41,6 +48,17 @@ class base_system_manager
 	protected: typedef ::boost::shared_ptr<vm_type> vm_pointer;
 
 
+	protected: base_system_manager()
+	{
+		// Empty
+	}
+
+	public: virtual ~base_system_manager()
+	{
+		// Empty
+	}
+
+	/// Manages the given VMs
 	public: template <typename IterT>
 			void manage(IterT first, IterT last)
 	{
@@ -50,7 +68,7 @@ class base_system_manager
 	}
 
 	private: virtual void do_manage(::std::vector<vm_pointer> const& vms) = 0;
-};
+}; // base_system_manager
 
 }} // Namespace dcs::testbed
 

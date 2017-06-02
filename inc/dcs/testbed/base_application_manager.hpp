@@ -43,6 +43,13 @@
 
 namespace dcs { namespace testbed {
 
+/**
+ * \brief Base class for application managers.
+ *
+ * \tparam TraitsT Traits type.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class base_application_manager
 {
@@ -65,17 +72,19 @@ class base_application_manager
 	private: typedef ::boost::shared_ptr<signal_type> signal_pointer;
 
 
-	public: base_application_manager()
+	protected: base_application_manager()
 	: ts_(1),
 	  tc_(1),
 	  p_rst_sig_(new signal_type()),
 	  p_smp_sig_(new signal_type()),
 	  p_ctl_sig_(new signal_type())
 	{
+		// Empty
 	}
 
 	public: virtual ~base_application_manager()
 	{
+		// Empty
 	}
 
 	/// Set the sampling time (in millisecs)
@@ -130,6 +139,7 @@ class base_application_manager
 		return *p_app_;
 	}
 
+	/// Sets the given data estimator for the given application performance category
 	public: void data_estimator(application_performance_category cat, data_estimator_pointer const& p_estimator)
 	{
 		// pre: p_estimator != null
@@ -140,6 +150,7 @@ class base_application_manager
         app_estimators_[cat] = p_estimator;
 	}
 
+	/// Gets the data estimator for the given application performance category
 	public: data_estimator_type& data_estimator(application_performance_category cat)
 	{
 		// pre: exists(app_estimators_[cat]) && app_estimators_[cat] != null
@@ -150,6 +161,7 @@ class base_application_manager
 		return *(app_estimators_[cat]);
 	}
 
+	/// Gets the data estimator for the given application performance category
 	public: data_estimator_type const& data_estimator(application_performance_category cat) const
 	{
 		// pre: exists(app_estimators_[cat]) && app_estimators_[cat] != null
@@ -160,6 +172,7 @@ class base_application_manager
 		return *(app_estimators_.at(cat));
 	}
 
+	/// Sets the given data estimator for the given VM performance category and the given VM
 	public: void data_estimator(virtual_machine_performance_category cat, vm_identifier_type const& vm_id, data_estimator_pointer const& p_estimator)
 	{
 		// pre: p_estimator != null
@@ -170,6 +183,7 @@ class base_application_manager
         vm_estimators_[cat][vm_id] = p_estimator;
 	}
 
+	/// Gets the data estimator for the given VM performance category and the given VM
 	public: data_estimator_type& data_estimator(virtual_machine_performance_category cat, vm_identifier_type const& vm_id)
 	{
 		// pre: exists(vm_estimators_[cat])
@@ -184,6 +198,7 @@ class base_application_manager
 		return *(vm_estimators_[cat][vm_id]);
 	}
 
+	/// Gets the data estimator for the given VM performance category and the given VM
 	public: data_estimator_type const& data_estimator(virtual_machine_performance_category cat, vm_identifier_type const& vm_id) const
 	{
 		// pre: exists(vm_estimators_[cat])
@@ -198,6 +213,7 @@ class base_application_manager
 		return *(vm_estimators_.at(cat).at(vm_id));
 	}
 
+	/// Sets the given data smoother for the given application performance category
 	public: void data_smoother(application_performance_category cat, data_smoother_pointer const& p_smoother)
 	{
 		// pre: p_estimator != null
@@ -207,11 +223,13 @@ class base_application_manager
 		app_smoothers_[cat] = p_smoother;
 	}
 
+	/// Gets the data smoother for the given application performance category
 	public: data_smoother_type& data_smoother(application_performance_category cat)
 	{
 		return *(app_smoothers_[cat]);
 	}
 
+	/// Gets the data smoother for the given application performance category
 	public: data_smoother_type const& data_smoother(application_performance_category cat) const
 	{
 		// pre: exists(smoothers_[cat]) && smoothers_[cat] != null
@@ -222,6 +240,7 @@ class base_application_manager
 		return *(app_smoothers_.at(cat));
 	}
 
+	/// Sets the given data smoother for the given VM performance category and the given VM
 	public: void data_smoother(virtual_machine_performance_category cat, vm_identifier_type const& vm_id, data_smoother_pointer const& p_smoother)
 	{
 		// pre: p_estimator != null
@@ -231,6 +250,7 @@ class base_application_manager
 		vm_smoothers_[cat][vm_id] = p_smoother;
 	}
 
+	/// Gets the data smoother for the given VM performance category and the given VM
 	public: data_smoother_type& data_smoother(virtual_machine_performance_category cat, vm_identifier_type const& vm_id)
 	{
 		// pre: exists(vm_smoothers_[cat])
@@ -245,6 +265,7 @@ class base_application_manager
 		return *(vm_smoothers_[cat][vm_id]);
 	}
 
+	/// Gets the data smoother for the given VM performance category and the given VM
 	public: data_smoother_type const& data_smoother(virtual_machine_performance_category cat, vm_identifier_type const& vm_id) const
 	{
 		// pre: exists(vm_smoothers_[cat])
@@ -259,6 +280,7 @@ class base_application_manager
 		return *(vm_smoothers_.at(cat).at(vm_id));
 	}
 
+	/// Gets the application performace category associated with the managed application
 	public: ::std::vector<application_performance_category> target_metrics() const
 	{
 		typedef typename ::std::map<application_performance_category,real_type>::const_iterator iterator;
@@ -275,11 +297,13 @@ class base_application_manager
 		return metrics;
 	}
 
+	/// Sets the given SLO value for the given application performace category
 	public: void target_value(application_performance_category cat, real_type val)
 	{
 		target_values_[cat] = val;
 	}
  
+	/// Gets the SLO value for the given application performace category
 	public: real_type target_value(application_performance_category cat) const
 	{
 		DCS_ASSERT(target_values_.count(cat),
@@ -289,24 +313,28 @@ class base_application_manager
 		return target_values_.at(cat);
 	}
 
+	/// Adds the given callback function for the sample event
 	public: template <typename FuncT>
 			void add_on_sample_handler(FuncT f)
 	{
 		p_smp_sig_->connect(f);
 	}
 
+	/// Adds the given callback function for the control event
 	public: template <typename FuncT>
 			void add_on_control_handler(FuncT f)
 	{
 		p_ctl_sig_->connect(f);
 	}
 
+	/// Adds the given callback function for the reset event
 	public: template <typename FuncT>
 			void add_on_reset_handler(FuncT f)
 	{
 		p_rst_sig_->connect(f);
 	}
 
+	/// Resets the state of this application manager
 	public: void reset()
 	{
 		DCS_ASSERT(p_app_,
@@ -367,6 +395,7 @@ class base_application_manager
 		(*p_rst_sig_)(*this);
 	}
 
+	/// Sample the sensors to collect application performance observations
 	public: void sample()
 	{
 		this->do_sample();
@@ -375,6 +404,7 @@ class base_application_manager
 		(*p_smp_sig_)(*this);
 	}
 
+	/// Applies a specific management strategy for the controlled application
 	public: void control()
 	{
 		this->do_control();
@@ -383,41 +413,49 @@ class base_application_manager
 		(*p_ctl_sig_)(*this);
 	}
 
+	/// Gets a pointer to the managed application
 	protected: app_pointer app_ptr()
 	{
 		return p_app_;
 	}
 
+	/// Gets a pointer to the managed application
 	protected: app_pointer app_ptr() const
 	{
 		return p_app_;
 	}
 
+	/// Gets a map of data estimators as <application performance category, pointer to data estimator> pairs
 	protected: app_data_estimator_map& app_data_estimators()
 	{
 		return app_estimators_;
 	}
 
+	/// Gets a map of data estimators as <application performance category, pointer to data estimator> pairs
 	protected: app_data_estimator_map const& app_data_estimators() const
 	{
 		return app_estimators_;
 	}
 
+	/// Gets a map of data smoothers as <application performance category, pointer to data smoother> pairs
 	protected: app_data_smoother_map& app_data_smoothers()
 	{
 		return app_smoothers_;
 	}
 
+	/// Gets a map of data smoothers as <application performance category, pointer to data smoother> pairs
 	protected: app_data_smoother_map const& app_data_smoothers() const
 	{
 		return app_smoothers_;
 	}
 
+	/// Gets a map of SLO values as <application performance category, SLO value> pairs
 	protected: target_value_map& target_values()
 	{
 		return target_values_;
 	}
 
+	/// Gets a map of SLO values as <application performance category, SLO value> pairs
 	protected: target_value_map const& target_values() const
 	{
 		return target_values_;
@@ -441,7 +479,7 @@ class base_application_manager
 	private: signal_pointer p_rst_sig_; ///< Signal emitter for reset event
 	private: signal_pointer p_smp_sig_; ///< Signal emitter for sample event
 	private: signal_pointer p_ctl_sig_; ///< Signal emitter for control event
-};
+}; // base_application_manager
 
 }} // Namespace dcs::testbed
 

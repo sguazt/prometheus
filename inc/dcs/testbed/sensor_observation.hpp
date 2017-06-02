@@ -1,7 +1,7 @@
 /**
  * \file dcs/testbed/sensor_observation.hpp
  *
- * \brief Observation sampled from a sensor.
+ * \brief Class to model observations sampled from a sensor.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
@@ -32,6 +32,19 @@
 
 namespace dcs { namespace testbed {
 
+/**
+ * \brief Class to model observations sampled from a sensor.
+ *
+ * \tparam TraitsT Traits type.
+ *
+ * An observation is characterized by:
+ * - a timestamp (expressed as Unix epochs), representing the date and the time this observation has been collected,
+ * - a generic textual label (e.g., that can be used to classify an observation), and
+ * - a numeric real value, representing the observed value.
+ * .
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class sensor_observation
 {

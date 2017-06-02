@@ -54,41 +54,49 @@ class base_application
 	private: static identifier_type next_id_;
 
 
+	/// Generate a unique identifier for this application
 	public: static identifier_type make_id()
 	{
 		return next_id_++;
 	}
 
 
-	public: base_application()
+	protected: base_application()
 	: id_(make_id())
 	{
+		// Empty
 	}
 
 	public: virtual ~base_application()
 	{
+		// Empty
 	}
 
+	/// Returns the unique identifier of this application
 	public: identifier_type id() const
 	{
 		return id_;
 	}
 
+	/// Sets the name of this apoplication
 	public: void name(::std::string const& val)
 	{
 		name_ = val;
 	}
 
+	/// Gets the name of this apoplication
 	public: ::std::string name() const
 	{
 		return name_;
 	}
 
+	/// Gets the number of VMs associated with this application
 	public: ::std::size_t num_vms() const
 	{
 		return do_num_vms();
 	}
 
+	/// Gets the VMs associated with this application
 	public: ::std::vector<vm_pointer> vms() const
 	{
 		return do_vms();
@@ -99,32 +107,38 @@ class base_application
 //		return do_vm(id);
 //	}
 
+	/// Registers a sensor for collecting measure related to the given application performance category
 	public: void register_sensor(application_performance_category cat, sensor_pointer const& p_sens)
 	{
 		do_register_sensor(cat, p_sens);
 	}
 
+	/// Deregisters a sensor for collecting measure related to the given application performance category
 	public: void deregister_sensor(application_performance_category cat)
 	{
 		do_deregister_sensor(cat);
 	}
 
+	/// Returns the sensor for collecting measure related to the given application performance category
 	public: sensor_pointer sensor(application_performance_category cat)
 	{
 		return do_sensor(cat);
 	}
 
+	/// Returns the sensor for collecting measure related to the given application performance category
 	public: sensor_pointer sensor(application_performance_category cat) const
 	{
 		return do_sensor(cat);
 	}
 
+	/// Sets the given function as a checker for SLOs of the given category
 	public: template <typename FuncT>
 			void slo(application_performance_category cat, FuncT checker)
 	{
 		do_slo(cat, slo_checker_type(checker));
 	}
 
+	/// Checks if the SLOs of the given category is satisfied against the given value
 	public: bool slo(application_performance_category cat, real_type val)
 	{
 		return do_slo(cat, val);

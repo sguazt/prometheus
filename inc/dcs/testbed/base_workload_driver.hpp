@@ -33,6 +33,13 @@
 
 namespace dcs { namespace testbed {
 
+/**
+ * \brief Base class for workload drivers.
+ *
+ * \tparam TraitsT Traits type.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class base_workload_driver
 {
@@ -42,50 +49,65 @@ class base_workload_driver
 	public: typedef ::boost::shared_ptr<app_type> app_pointer;
 
 
-	public: virtual ~base_workload_driver()
+	protected: base_workload_driver()
 	{
+		// Empty
 	}
 
+	public: virtual ~base_workload_driver()
+	{
+		// Empty
+	}
+
+	/// Gets the category to which this generator belongs to
 	public: workload_generator_category category() const
 	{
 		return do_category();
 	}
 
+	/// Sets the application for which the workload must generated
 	public: void app(app_pointer const& p_app)
 	{
 		do_app(p_app);
 	}
 
+	/// Gets the application for which the workload must generated
 	public: app_pointer app()
 	{
 		return do_app();
 	}
 
+	/// Gets the application for which the workload must generated
 	public: app_pointer app() const
 	{
 		return do_app();
 	}
 
+	/// Resets the state of this generator
 	public: void reset()
 	{
 		do_reset();
 	}
 
+	/// Stats generating the workload
 	public: void start()
 	{
 		do_start();
 	}
 
+	/// Stops generating the workload
 	public: void stop()
 	{
 		do_stop();
 	}
 
+	/// Tells if workload generation is done
 	public: bool done() const
 	{
 		return do_done();
 	}
 
+	/// Tells if this generator is ready to generate the workload
 	public: bool ready() const
 	{
 		return do_ready();

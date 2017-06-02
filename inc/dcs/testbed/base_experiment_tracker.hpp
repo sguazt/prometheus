@@ -38,6 +38,13 @@
 namespace dcs { namespace testbed {
 
 /// Base class for experiment trackers
+/**
+ * \brief Base class for experiment trackers
+ *
+ * \tparam TraitsT Traits type.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class base_experiment_tracker
 {
@@ -50,10 +57,17 @@ class base_experiment_tracker
 	public: typedef ::boost::shared_ptr<app_experiment_type> app_experiment_pointer;
 
 
-	public: virtual ~base_experiment_tracker()
+	protected: base_experiment_tracker()
 	{
+		// Empty
 	}
 
+	public: virtual ~base_experiment_tracker()
+	{
+		// Empty
+	}
+
+	/// Tracks the given system experiment
 	public: void track(sys_experiment_type& exp)
 	{
 		exp.add_on_start_handler(::boost::bind(&self_type::on_start, this, ::_1));
@@ -69,36 +83,43 @@ class base_experiment_tracker
 		exp.add_on_stop_handler(::boost::bind(&self_type::on_stop, this, ::_1));
 	}
 
+	/// Resets this tracker
 	public: void reset()
 	{
 		this->do_reset();
 	}
 
+	/// Handler for the on-experiment-start event
 	private: void on_start(sys_experiment_type const& exp)
 	{
 		this->do_on_start(exp);
 	}
 
+	/// Handler for the on-application-start event
 	private: void on_app_start(app_experiment_type const& exp)
 	{
 		this->do_on_app_start(exp);
 	}
 
+	/// Handler for the on-application-sample event
 	private: void on_app_sample(app_experiment_type const& exp, base_application_manager<traits_type> const&)
 	{
 		this->do_on_app_sample(exp);
 	}
 
+	/// Handler for the on-application-control event
 	private: void on_app_control(app_experiment_type const& exp, base_application_manager<traits_type> const&)
 	{
 		this->do_on_app_control(exp);
 	}
 
+	/// Handler for the on-application-stop event
 	private: void on_app_stop(app_experiment_type const& exp)
 	{
 		this->do_on_app_stop(exp);
 	}
 
+	/// Handler for the on-experiment-stop event
 	private: void on_stop(sys_experiment_type const& exp)
 	{
 		this->do_on_stop(exp);
