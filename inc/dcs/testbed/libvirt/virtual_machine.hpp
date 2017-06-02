@@ -308,6 +308,20 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		return detail::cpu_share(p_vmm_->connection(), p_dom_);
 	}
 
+	private: void do_max_memory(uint_type value)
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		detail::max_memory(p_vmm_->connection(), p_dom_, value);
+	}
+
 	private: uint_type do_max_memory() const
 	{
 		// pre: p_vmm_ != null
@@ -322,6 +336,20 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		const unsigned long max_mem = detail::max_memory(p_vmm_->connection(), p_dom_);
 
 		return static_cast<uint_type>(max_mem);
+	}
+
+	private: void do_memory(uint_type value)
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		detail::current_memory(p_vmm_->connection(), p_dom_, value);
 	}
 
 	private: uint_type do_memory() const
@@ -440,6 +468,141 @@ DCS_DEBUG_TRACE("Getting Memory: " << cur_mem << " (share: " << (cur_mem/static_
 #endif
 */
 		return detail::memory_share(p_vmm_->connection(), p_dom_);
+	}
+
+	private: void do_start()
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		detail::domain_create(p_vmm_->connection(), p_dom_);
+	}
+
+	private: bool do_running() const
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		return detail::domain_is_active(p_vmm_->connection(), p_dom_);
+	}
+
+	private: void do_suspend()
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		detail::domain_suspend(p_vmm_->connection(), p_dom_);
+	}
+
+	private: void do_resume()
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		detail::domain_resume(p_vmm_->connection(), p_dom_);
+	}
+
+	private: void do_reboot()
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		detail::domain_reboot(p_vmm_->connection(), p_dom_);
+	}
+
+	private: void do_shutdown()
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		detail::domain_shutdown(p_vmm_->connection(), p_dom_);
+	}
+
+	private: void do_poweroff()
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		detail::domain_reset(p_vmm_->connection(), p_dom_);
+	}
+
+	private: void do_migrate(vmm_pointer p_dest_vmm)
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+		// pre: p_dest_vmm != null
+		DCS_ASSERT(p_dest_vmm,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Destination VMM is not valid"));
+
+		vmm_impl_pointer p_impl_dest_vmm = dynamic_cast<vmm_impl_pointer>(p_dest_vmm);
+
+		// pre: p_dest_vmm != null
+		DCS_ASSERT(p_impl_dest_vmm,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Incompatible destination VMM"));
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_impl_dest_vmm->connection(),
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to destination VMM"));
+
+		::virDomainPtr p_dest_dom = detail::domain_migrate(p_vmm_->connection(), p_dom_, p_impl_dest_vmm->connection());
+
+		DCS_ASSERT(p_dest_dom != 0,
+				   DCS_EXCEPTION_THROW(::std::runtime_error,
+									   "Unable to migrate the VM"));
+
+		detail::disconnect_domain(p_vmm_->connection(), p_dom_);
+		p_dom_ = p_dest_dom;
+		p_vmm_ = p_impl_dest_vmm;
 	}
 
 	private: sensor_pointer do_sensor(virtual_machine_performance_category cat) const

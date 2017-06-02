@@ -81,9 +81,25 @@ void disconnect_domain(virConnectPtr conn, virDomainPtr dom);
 
 std::string domain_hostname(virConnectPtr conn, virDomainPtr dom);
 
+bool domain_create(::virConnectPtr conn, ::virDomainPtr dom);
+
 unsigned int domain_id(virConnectPtr conn, virDomainPtr dom);
 
+bool domain_is_acrive(::virConnectPtr conn, ::virDomainPtr dom);
+
+::virDomainPtr domain_migrate(::virConnectPtr conn, ::virDomainPtr dom, ::virConnectPtr dest_conn);
+
 std::string domain_name(virConnectPtr conn, virDomainPtr dom);
+
+bool domain_reboot(::virConnectPtr conn, ::virDomainPtr dom);
+
+bool domain_reset(::virConnectPtr conn, ::virDomainPtr dom);
+
+bool domain_resume(::virConnectPtr conn, ::virDomainPtr dom);
+
+bool domain_shutdown(::virConnectPtr conn, ::virDomainPtr dom);
+
+bool domain_suspend(::virConnectPtr conn, ::virDomainPtr dom);
 
 std::string hypervisor_hostname(virConnectPtr conn);
 
@@ -1027,6 +1043,71 @@ void memory_share(virConnectPtr conn, virDomainPtr dom, double share)
 	max_memory(conn, dom, mem);
 #endif
 	current_memory(conn, dom, mem);
+}
+
+bool domain_suspend(::virConnectPtr conn, ::virDomainPtr dom)
+{
+	assert(conn);
+	assert(dom);
+
+	return ::virDomainSuspend(dom) == 0;
+}
+
+bool domain_resume(::virConnectPtr conn, ::virDomainPtr dom)
+{
+	assert(conn);
+	assert(dom);
+
+	return ::virDomainResume(dom) == 0;
+}
+
+bool domain_reboot(::virConnectPtr conn, ::virDomainPtr dom)
+{
+	assert(conn);
+	assert(dom);
+
+	return ::virDomainReboot(dom, VIR_DOMAIN_REBOOT_DEFAULT) == 0;
+}
+
+bool domain_shutdown(::virConnectPtr conn, ::virDomainPtr dom)
+{
+	assert(conn);
+	assert(dom);
+
+	return ::virDomainShutdown(dom) == 0;
+}
+
+bool domain_reset(::virConnectPtr conn, ::virDomainPtr dom)
+{
+	assert(conn);
+	assert(dom);
+
+	return ::virDomainReset(dom, 0) == 0;
+}
+
+bool domain_is_active(::virConnectPtr conn, ::virDomainPtr dom)
+{
+	assert(conn);
+	assert(dom);
+
+	return ::virDomainIsActive(dom) == 1;
+}
+
+bool domain_create(::virConnectPtr conn, ::virDomainPtr dom)
+{
+	assert(conn);
+	assert(dom);
+
+	return ::virDomainCreate(dom) == 0;
+}
+
+::virDomainPtr domain_migrate(::virConnectPtr conn, ::virDomainPtr dom, ::virConnectPtr dest_conn)
+{
+	assert(conn);
+	assert(dom);
+	assert(dest_conn);
+
+	return ::virDomainMigrate(dom, dest_conn, 0, 0, 0, 0);
 }
 
 }}}} // Namespace dcs::testbed::libvirt::detail

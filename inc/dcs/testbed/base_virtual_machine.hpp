@@ -39,6 +39,13 @@ template <typename TraitsT>
 class base_virtual_machine_manager;
 
 
+/**
+ * \brief Base class for VMs.
+ *
+ * \tparam TraitsT Traits type.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class base_virtual_machine
 {
@@ -50,105 +57,171 @@ class base_virtual_machine
 	public: typedef ::boost::shared_ptr< base_sensor<traits_type> > sensor_pointer;
 
 
-	public: virtual ~base_virtual_machine()
+	protected: base_virtual_machine()
 	{
-		// empty
+		// Empty
 	}
 
-	/// Get the VM name
+	public: virtual ~base_virtual_machine()
+	{
+		// Empty
+	}
+
+	/// Gets the VM name
 	public: ::std::string name() const
 	{
 		return do_name();
 	}
 
-	/// Get the VM identifier
+	/// Gets the VM identifier
 	public: identifier_type id() const
 	{
 		return do_id();
 	}
 
+	/// Retuns a points to the VM manager that currently runs this VM
 	public: vmm_pointer vmm() const
 	{
 		return do_vmm();
 	}
 
+	/// Retuns a points to the VM manager that currently runs this VM
 	public: vmm_pointer vmm()
 	{
 		return do_vmm();
 	}
 
-	/// Get the CPU cap
+	/// Gets the CPU cap
 	public: real_type cpu_cap() const
 	{
 		return do_cpu_cap();
 	}
 
-	/// Set the CPU cap
+	/// Sets the CPU cap
 	public: void cpu_cap(real_type value)
 	{
 		do_cpu_cap(value);
 	}
 
-	/// Get the CPU share
+	/// Gets the CPU share
 	public: real_type cpu_share() const
 	{
 		return do_cpu_share();
 	}
 
-	/// Set the CPU share
+	/// Sets the CPU share
 	public: void cpu_share(real_type value)
 	{
 		do_cpu_share(value);
 	}
 
-	// Get the total number of virtual CPUs
+	/// Gets the total number of virtual CPUs
 	public: uint_type max_num_vcpus() const
 	{
 		return do_max_num_vcpus();
 	}
 
-	// Get the current number of virtual CPUs
+	/// Gets the current number of virtual CPUs
 	public: uint_type num_vcpus() const
 	{
 		return do_num_vcpus();
 	}
 
-	/// Get the memory cap
+	/// Gets the memory cap
 	public: real_type memory_cap() const
 	{
 		return do_memory_cap();
 	}
 
-	/// Set the memory cap
+	/// Sets the memory cap
 	public: void memory_cap(real_type value)
 	{
 		do_memory_cap(value);
 	}
 
-	/// Get the memory share
+	/// Gets the memory share
 	public: real_type memory_share() const
 	{
 		return do_memory_share();
 	}
 
-	/// Set the memory share
+	/// Sets the memory share
 	public: void memory_share(real_type value)
 	{
 		do_memory_share(value);
 	}
 
-	// Get the maximum amount of memory (in kB) that can be allocated to this VM
+	/// Sets the maximum amount of memory (in kB) that can be allocated to this VM
+	public: void max_memory(uint_type value)
+	{
+		do_max_memory(value);
+	}
+
+	/// Gets the maximum amount of memory (in kB) that can be allocated to this VM
 	public: uint_type max_memory() const
 	{
 		return do_max_memory();
 	}
 
-	// Get the amount of memory (in kB) that can be used by this VM
+	/// Sets the amount of memory (in kB) to allocate to this VM
+	public: void memory(uint_type value)
+	{
+		return do_memory(value);
+	}
+
+	/// Gets the amount of memory (in kB) to allocate this VM
 	public: uint_type memory() const
 	{
 		return do_memory();
 	}
 
+	/// Starts this VM
+	public: void start()
+	{
+		do_start();
+	}
+
+	public: bool running() const
+	{
+		return do_running();
+	}
+
+	/// Suspends this VM
+	public: void suspend()
+	{
+		do_suspend();
+	}
+
+	/// Resumes this VM
+	public: void resume()
+	{
+		do_resume();
+	}
+
+	/// Reboots this VM
+	public: void reboot()
+	{
+		do_reboot();
+	}
+
+	/// Shuts down this VM
+	public: void shutdown()
+	{
+		do_shutdown();
+	}
+
+	/// Power off this VM (unlike the shutdown method, this method emulates the power reset button thus abruptly powering off the VM)
+	public: void poweroff()
+	{
+		do_poweroff();
+	}
+
+	public: void migrate(vmm_pointer p_dest_vmm)
+	{
+		do_migrate(p_dest_vmm);
+	}
+
+	/// Returns the sensor associated with the given category
 	public: sensor_pointer sensor(virtual_machine_performance_category cat) const
 	{
 		return do_sensor(cat);
@@ -182,11 +255,31 @@ class base_virtual_machine
 
 	private: virtual void do_memory_share(real_type value) = 0;
 
+	private: virtual void do_max_memory(uint_type value) = 0;
+
 	private: virtual uint_type do_max_memory() const = 0;
+
+	private: virtual void do_memory(uint_type value) = 0;
 
 	private: virtual uint_type do_memory() const = 0;
 
-	public: virtual sensor_pointer do_sensor(virtual_machine_performance_category cat) const = 0;
+	private: virtual void do_start() = 0;
+
+	private: virtual bool do_running() const = 0;
+
+	private: virtual void do_suspend() = 0;
+
+	private: virtual void do_resume() = 0;
+
+	private: virtual void do_reboot() = 0;
+
+	private: virtual void do_shutdown() = 0;
+
+	private: virtual void do_poweroff() = 0;
+
+	private: virtual void do_migrate(vmm_pointer p_dest_vmm) = 0;
+
+	private: virtual sensor_pointer do_sensor(virtual_machine_performance_category cat) const = 0;
 }; // base_virtual_machine
 
 }} // Namespace dcs::testbed

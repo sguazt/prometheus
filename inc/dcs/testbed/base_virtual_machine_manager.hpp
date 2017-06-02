@@ -33,6 +33,13 @@
 
 namespace dcs { namespace testbed {
 
+/**
+ * \brief Base class for VM managers.
+ *
+ * \tparam TraitsT Traits type.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class base_virtual_machine_manager
 {
@@ -44,7 +51,7 @@ class base_virtual_machine_manager
 	public: typedef typename traits_type::uint_type uint_type;
 
 
-	public: base_virtual_machine_manager()
+	protected: base_virtual_machine_manager()
 	{
 		// empty
 	}
@@ -84,6 +91,7 @@ class base_virtual_machine_manager
 		return do_max_supported_num_vcpus();
 	}
 
+	/// Returns the name of the host where the hypervisor runs
 	public: std::string hostname() const
 	{
 		return do_hostname();
