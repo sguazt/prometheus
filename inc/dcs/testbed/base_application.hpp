@@ -37,6 +37,13 @@
 
 namespace dcs { namespace testbed {
 
+/**
+ * \brief Base class for applications.
+ *
+ * \tparam TraitsT Traits type.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class base_application
 {
