@@ -162,6 +162,13 @@ struct monitor_runnable
 */
  }} // Namespace detail::<unnamed>
 
+/**
+ * \brief Represents an experiment for a single application.
+ *
+ * \tparam TraitsT Traits type.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class application_experiment
 {
@@ -183,6 +190,7 @@ class application_experiment
 	private: static identifier_type next_id_;
 
 
+	/// Generates a unique identifier for an instance of this class
 	private: static identifier_type make_id()
 	{
 		//::boost::lock_guard< ::boost::mutex > lock(mtx_);
@@ -190,6 +198,7 @@ class application_experiment
 		return next_id_++;
 	}
 
+	/// Generates a name for an instance of this class
 	private: static std::string make_name(identifier_type id)
 	{
 		std::ostringstream oss;
@@ -231,88 +240,105 @@ class application_experiment
 		}
 	}
 
+	/// Gets the unique identifier associated with this experiment
 	public: identifier_type id() const
 	{
 		return id_;
 	}
 
+	/// Gets the name associated with this experiment
 	public: std::string name() const
 	{
 		return name_;
 	}
 
+	/// Sets the name to associate with this experiment
 	public: void name(std::string const& s)
 	{
 		name_ = s;
 	}
 
+	/// Sets the application under test
 	public: void app(app_pointer const& p_app)
 	{
 		p_app_ = p_app;
 	}
 
+	/// Gets the application under test
 	public: app_type& app()
 	{
 		return *p_app_;
 	}
 
+	/// Gets the application under test
 	public: app_type const& app() const
 	{
 		return *p_app_;
 	}
 
+	/// Sets the workload generator for the application under test
 	public: void driver(driver_pointer const& p_drv)
 	{
 		p_drv_ = p_drv;
 	}
 
+	/// Gets the workload generator for the application under test
 	public: driver_type& driver()
 	{
 		return *p_drv_;
 	}
 
+	/// Gets the workload generator for the application under test
 	public: driver_type const& driver() const
 	{
 		return *p_drv_;
 	}
 
+	/// Sets the manager for the application under test
 	public: void manager(manager_pointer const& p_mgr)
 	{
 		p_mgr_ = p_mgr;
 	}
 
+	/// Gets the manager for the application under test
 	public: manager_type& manager()
 	{
 		return *p_mgr_;
 	}
 
+	/// Gets the manager for the application under test
 	public: manager_type const& manager() const
 	{
 		return *p_mgr_;
 	}
 
+	/// Controls if at the end of the experiment the state of the application VMs must be restored to the one before the experiment started
 	public: void restore_state(bool value)
 	{
 		restore_state_ = value;
 	}
 
+	/// Tells if at the end of the experiment the state of the application VMs must be restored to the one before the experiment started
 	public: bool restore_state() const
 	{
 		return restore_state_;
 	}
 
+	/// Adds a callback for the on-start event
 	public: template <typename FuncT>
 			void add_on_start_handler(FuncT f)
 	{
 		p_sta_sig_->connect(f);
 	}
 
+	/// Adds a callback for the on-stop event
 	public: template <typename FuncT>
 			void add_on_stop_handler(FuncT f)
 	{
 		p_sto_sig_->connect(f);
 	}
 
+	/// Runs the experiment
 	public: void run()
 	{
 		DCS_ASSERT(p_app_,
@@ -440,6 +466,11 @@ class application_experiment
 
 			// check: p_vm != null
 			DCS_DEBUG_ASSERT( p_vm );
+
+			//TODO: add a new class (e.g., vm_state) and new methods in the VM
+			//      class so that we can simply call "old_state = vm->state()"
+			//      and "vm->state(old_state)" and all the internals are
+			//      managed by the VM class
 
 			vm_states_[p_vm->id()] = p_vm->cpu_share();
 		}
