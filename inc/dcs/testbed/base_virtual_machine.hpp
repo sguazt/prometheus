@@ -121,6 +121,12 @@ class base_virtual_machine
 		return do_max_num_vcpus();
 	}
 
+	/// Sets the current number of virtual CPUs
+	public: void num_vcpus(uint_type value)
+	{
+		do_num_vcpus(value);
+	}
+
 	/// Gets the current number of virtual CPUs
 	public: uint_type num_vcpus() const
 	{
@@ -166,13 +172,25 @@ class base_virtual_machine
 	/// Sets the amount of memory (in kB) to allocate to this VM
 	public: void memory(uint_type value)
 	{
-		return do_memory(value);
+		do_memory(value);
 	}
 
 	/// Gets the amount of memory (in kB) to allocate this VM
 	public: uint_type memory() const
 	{
 		return do_memory();
+	}
+
+	/// Sets the desired average incoming bit rate for the given network interface (specified either as device name of as MAC address) being shaped (in kilobytes/second)
+	public: void network_average_inbound_bandwidth(const std::string& interface, uint_type value)
+	{
+		do_network_average_inbound_bandwidth(interface, value);
+	}
+
+	/// Gets the desired average incoming bit rate for the given network interface (specified either as device name of as MAC address) being shaped (in kilobytes/second)
+	public: uint_type network_average_inbound_bandwidth(const std::string& interface)
+	{
+		return do_network_average_inbound_bandwidth(interface);
 	}
 
 	/// Starts this VM
@@ -245,6 +263,8 @@ class base_virtual_machine
 
 	private: virtual uint_type do_max_num_vcpus() const = 0;
 
+	private: virtual void do_num_vcpus(uint_type value) = 0;
+
 	private: virtual uint_type do_num_vcpus() const = 0;
 
 	private: virtual real_type do_memory_cap() const = 0;
@@ -262,6 +282,10 @@ class base_virtual_machine
 	private: virtual void do_memory(uint_type value) = 0;
 
 	private: virtual uint_type do_memory() const = 0;
+
+	private: virtual void do_network_average_inbound_bandwidth(const std::string& interface, uint_type value) = 0;
+
+	private: virtual uint_type do_network_average_inbound_bandwidth(const std::string& interface) const = 0;
 
 	private: virtual void do_start() = 0;
 

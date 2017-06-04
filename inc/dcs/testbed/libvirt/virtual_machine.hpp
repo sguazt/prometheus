@@ -195,6 +195,20 @@ class virtual_machine: public base_virtual_machine<TraitsT>
 		return static_cast<uint_type>(nvcpus);
 	}
 
+	private: void do_num_vcpus(uint_type value)
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		detail::num_vcpus(p_vmm_->connection(), p_dom_, value, VIR_DOMAIN_AFFECT_CURRENT);
+	}
+
 	private: uint_type do_num_vcpus() const
 	{
 		// pre: p_vmm_ != null
@@ -468,6 +482,34 @@ DCS_DEBUG_TRACE("Getting Memory: " << cur_mem << " (share: " << (cur_mem/static_
 #endif
 */
 		return detail::memory_share(p_vmm_->connection(), p_dom_);
+	}
+
+	private: void do_network_average_inbound_bandwidth(const std::string& interface, uint_type value)
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		detail::domain_network_average_inbound_bandwidth(p_vmm_->connection(), p_dom_, interface.c_str(), value);
+	}
+
+	private: uint_type do_network_average_inbound_bandwidth(const std::string& interface) const
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		return detail::domain_network_average_inbound_bandwidth(p_vmm_->connection(), p_dom_, interface.c_str());
 	}
 
 	private: void do_start()

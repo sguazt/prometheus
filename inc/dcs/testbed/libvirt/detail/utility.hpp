@@ -91,6 +91,10 @@ bool domain_is_acrive(::virConnectPtr conn, ::virDomainPtr dom);
 
 std::string domain_name(virConnectPtr conn, virDomainPtr dom);
 
+void domain_network_average_inbound_bandwidth(::virConnectPtr conn, ::virDomainPtr dom, unsigned int value);
+
+unsigned int domain_network_average_inbound_bandwidth(::virConnectPtr conn, ::virDomainPtr dom, const char* device);
+
 bool domain_reboot(::virConnectPtr conn, ::virDomainPtr dom);
 
 bool domain_reset(::virConnectPtr conn, ::virDomainPtr dom);
@@ -124,6 +128,8 @@ void memory_share(virConnectPtr conn, virDomainPtr dom, double share);
 double memory_share(virConnectPtr conn, virDomainPtr dom);
 
 int num_cpus(virConnectPtr conn, virDomainPtr dom, int flags);
+
+void num_vcpus(virConnectPtr conn, virDomainPtr dom, unsigned int nvcpus, int flags);
 
 int num_vcpus(virConnectPtr conn, virDomainPtr dom, int flags);
 
@@ -649,6 +655,25 @@ void sched_param(virConnectPtr conn, virDomainPtr dom, ::std::string const& name
 	}
 }
 
+void num_vcpus(virConnectPtr conn, virDomainPtr dom, unsigned int nvcpus, int flags)
+{
+	DCS_DEBUG_ASSERT( conn );
+	DCS_DEBUG_ASSERT( dom );
+
+	// Try the new API first; if it fails because we are talking
+	// to an older daemon, generally we try a fallback API before giving up.
+	// Flag VIR_DOMAIN_AFFECT_CURRENT requires the new API, since we don't
+	// know whether the domain is running or inactive.
+
+	int ret = virDomainSetVcpusFlags(dom, nvcpus, flags);
+	if (0 > ret)
+	{
+		::std::ostringstream oss;
+		oss << "Failed to change the number of vCPUs for domain \"" << virDomainGetName(dom) << "\": " << last_error(conn);
+		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+	}
+}
+
 int num_vcpus(virConnectPtr conn, virDomainPtr dom, int flags)
 {
 	DCS_DEBUG_ASSERT( conn );
@@ -831,22 +856,83 @@ std::string domain_name(virConnectPtr conn, virDomainPtr dom)
 	return ret;
 }
 
+void domain_network_average_inbound_bandwidth(::virConnectPtr conn, ::virDomainPtr dom, const char* device, unsigned int value)
+{
+	DCS_DEBUG_ASSERT( conn );
+	DCS_DEBUG_ASSERT( dom );
+
+	unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
+	int nparams = 0;
+	int maxparams = 0;
+	::virTypedParameterPtr params = 0;
+
+	int ret = 0;
+
+	ret = ::virTypedParamsAddUInt(&params, &nparams, &maxparams, VIR_DOMAIN_BANDWIDTH_IN_AVERAGE, value);
+	if (ret != 0)
+	{
+		std::ostringstream oss;
+		oss << "Failed to setup bandwitdh parameter for domain: " << last_error(conn);
+		DCS_EXCEPTION_THROW(std::runtime_error, oss.str());
+	}
+
+	ret = ::virDomainSetInterfaceParameters(dom, device, params, nparams, flags);
+	if (ret != 0)
+	{
+		std::ostringstream oss;
+		oss << "Failed to set bandwitdh parameter for domain: " << last_error(conn);
+		DCS_EXCEPTION_THROW(std::runtime_error, oss.str());
+	}
+}
+
+unsigned int domain_network_average_inbound_bandwidth(::virConnectPtr conn, ::virDomainPtr dom, const char* device)
+{
+	DCS_DEBUG_ASSERT( conn );
+	DCS_DEBUG_ASSERT( dom );
+
+	unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
+	int nparams = 1;
+	::virTypedParameterPtr params = 0;
+
+	int ret = 0;
+
+    params = new ::virTypedParameter[nparams];
+    std::memset(params, 0, sizeof(*params) * nparams);
+
+	ret = ::virDomainGetInterfaceParameters(dom, device, params, &nparams, flags);
+	if (ret != 0 || nparams == 0)
+	{
+		delete[] params;
+
+		std::ostringstream oss;
+		oss << "Failed to get bandwitdh parameter for domain: " << last_error(conn);
+		DCS_EXCEPTION_THROW(std::runtime_error, oss.str());
+	}
+
+	unsigned int avg_bw = params[0].value.ui;
+
+	delete[] params;
+
+	return avg_bw;
+}
+
+
 std::string domain_hostname(virConnectPtr conn, virDomainPtr dom)
 {
 	DCS_DEBUG_ASSERT( conn );
 	DCS_DEBUG_ASSERT( dom );
 
-	char const* ret = 0;
+	char const* hostname = 0;
 
-	ret = virDomainGetHostname(dom, 0);
-	if (0 == ret)
+	hostname = virDomainGetHostname(dom, 0);
+	if (0 == hostname)
 	{
 		::std::ostringstream oss;
 		oss << "Failed to query the hostname for domain: " << last_error(conn);
 		DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 	}
 
-	return ret;
+	return hostname;
 }
 
 unsigned long current_memory(virConnectPtr conn, virDomainPtr dom)
