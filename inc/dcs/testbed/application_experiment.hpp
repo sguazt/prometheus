@@ -47,6 +47,11 @@ namespace dcs { namespace testbed {
 
 namespace detail { namespace /*<unnamed>*/ {
 
+/**
+ * \brief Class used by the sampler thread.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename T, typename MT>
 struct sampler_runnable
 {
@@ -84,6 +89,11 @@ struct sampler_runnable
 	MT& mtx_;
 }; // sampler_runnable
 
+/**
+ * \brief Class used by the controller thread.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename T, typename MT>
 struct controller_runnable
 {

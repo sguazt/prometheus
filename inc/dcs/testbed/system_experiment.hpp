@@ -51,6 +51,13 @@
 
 namespace dcs { namespace testbed {
 
+/**
+ * \brief Performs system experiment experiments.
+ *
+ * \tparam TraitsT Traits type.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class system_experiment
 {
@@ -81,22 +88,26 @@ class system_experiment
 	{
 	}
 
+	/// Adds an application experiment
 	public: void add_app_experiment(app_experiment_pointer const& p_exp)
 	{
 		app_exps_.push_back(p_exp);
 	}
 
+	/// Gets all the application experiments
 	public: ::std::vector<app_experiment_pointer> experiments() const
 	{
 		return app_exps_;
 	}
 
+	/// Sets a callback function for the on-start event
 	public: template <typename FuncT>
 			void add_on_start_handler(FuncT f)
 	{
 		p_sta_sig_->connect(f);
 	}
 
+	/// Sets a callback function for the on-stop event
 	public: template <typename FuncT>
 			void add_on_stop_handler(FuncT f)
 	{
@@ -121,11 +132,13 @@ class system_experiment
 //		app_exps_.push_back(::boost::make_shared<app_experiment_type>(p_app, p_drv, p_mgr, first_mon, last_mon));
 //	}
 
+	/// Sets the random number generator engine
 	public: void rng(boost::shared_ptr<rng_type> const& p_rng)
 	{
 		p_rng_ = p_rng;
 	}
 
+	/// Gets the random number generator engine
 	public: boost::shared_ptr<rng_type> const& rng_ptr() const
 	{
 		return p_rng_;
