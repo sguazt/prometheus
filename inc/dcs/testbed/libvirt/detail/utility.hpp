@@ -91,9 +91,9 @@ bool domain_is_acrive(::virConnectPtr conn, ::virDomainPtr dom);
 
 std::string domain_name(virConnectPtr conn, virDomainPtr dom);
 
-void domain_network_average_inbound_bandwidth(::virConnectPtr conn, ::virDomainPtr dom, unsigned int value);
+void domain_network_bandwidth(::virConnectPtr conn, ::virDomainPtr dom, const char* device, const char* param_name, unsigned int param_value, unsigned int flags);
 
-unsigned int domain_network_average_inbound_bandwidth(::virConnectPtr conn, ::virDomainPtr dom, const char* device);
+unsigned int domain_network_bandwidth(::virConnectPtr conn, ::virDomainPtr dom, const char* device, const char* param_name, unsigned int flags);
 
 bool domain_reboot(::virConnectPtr conn, ::virDomainPtr dom);
 
@@ -856,23 +856,24 @@ std::string domain_name(virConnectPtr conn, virDomainPtr dom)
 	return ret;
 }
 
-void domain_network_average_inbound_bandwidth(::virConnectPtr conn, ::virDomainPtr dom, const char* device, unsigned int value)
+void domain_network_bandwidth(::virConnectPtr conn, ::virDomainPtr dom, const char* device, const char* param_name, unsigned int param_value, unsigned int flags)
 {
 	DCS_DEBUG_ASSERT( conn );
 	DCS_DEBUG_ASSERT( dom );
+	DCS_DEBUG_ASSERT( device );
+	DCS_DEBUG_ASSERT( param_name );
 
-	unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
 	int nparams = 0;
 	int maxparams = 0;
 	::virTypedParameterPtr params = 0;
 
 	int ret = 0;
 
-	ret = ::virTypedParamsAddUInt(&params, &nparams, &maxparams, VIR_DOMAIN_BANDWIDTH_IN_AVERAGE, value);
+	ret = ::virTypedParamsAddUInt(&params, &nparams, &maxparams, param_name, param_value);
 	if (ret != 0)
 	{
 		std::ostringstream oss;
-		oss << "Failed to setup bandwitdh parameter for domain: " << last_error(conn);
+		oss << "Failed to setup bandwitdh parameter '" << param_name << "' for domain: " << last_error(conn);
 		DCS_EXCEPTION_THROW(std::runtime_error, oss.str());
 	}
 
@@ -880,42 +881,86 @@ void domain_network_average_inbound_bandwidth(::virConnectPtr conn, ::virDomainP
 	if (ret != 0)
 	{
 		std::ostringstream oss;
-		oss << "Failed to set bandwitdh parameter for domain: " << last_error(conn);
+		oss << "Failed to set bandwitdh parameter '" << param_name << "' to value " << param_value << " for domain: " << last_error(conn);
 		DCS_EXCEPTION_THROW(std::runtime_error, oss.str());
 	}
 }
 
-unsigned int domain_network_average_inbound_bandwidth(::virConnectPtr conn, ::virDomainPtr dom, const char* device)
+unsigned int domain_network_bandwidth(::virConnectPtr conn, ::virDomainPtr dom, const char* device, const char* param_name, unsigned int flags)
 {
 	DCS_DEBUG_ASSERT( conn );
 	DCS_DEBUG_ASSERT( dom );
+	DCS_DEBUG_ASSERT( device );
+	DCS_DEBUG_ASSERT( param_name );
 
-	unsigned int flags = VIR_DOMAIN_AFFECT_CURRENT;
-	int nparams = 1;
+	int nparams = 0;
 	::virTypedParameterPtr params = 0;
 
 	int ret = 0;
 
-    params = new ::virTypedParameter[nparams];
-    std::memset(params, 0, sizeof(*params) * nparams);
-
-	ret = ::virDomainGetInterfaceParameters(dom, device, params, &nparams, flags);
-	if (ret != 0 || nparams == 0)
+	// Get the number of interface parameters
+	ret = virDomainGetInterfaceParameters(dom, device, NULL, &nparams, flags);
+	if (ret != 0)
 	{
-		delete[] params;
-
 		std::ostringstream oss;
-		oss << "Failed to get bandwitdh parameter for domain: " << last_error(conn);
+		oss << "Failed to get number of interface parameters for domain: " << last_error(conn);
 		DCS_EXCEPTION_THROW(std::runtime_error, oss.str());
 	}
 
-	unsigned int avg_bw = params[0].value.ui;
+	if (nparams == 0)
+	{
+		/* nothing to output */
+		std::ostringstream oss;
+		oss << "No interface parameters found for domain: " << last_error(conn);
+		DCS_EXCEPTION_THROW(std::runtime_error, oss.str());
+	}
 
-	delete[] params;
+	// Get all interface parameters
+    params = static_cast<virTypedParameterPtr>(std::malloc(sizeof(*params)*nparams));
+    if (params == 0)
+	{
+		std::ostringstream oss;
+		oss << "Failed to allocate memory to get all interface parameters for domain: " << last_error(conn);
+		DCS_EXCEPTION_THROW(std::runtime_error, oss.str());
+	}
+    std::memset(params, 0, sizeof(*params) * nparams);
+	ret = virDomainGetInterfaceParameters(dom, device, params, &nparams, flags);
+	if (ret != 0)
+	{
+		::virTypedParamsFree(params, nparams);
 
-	return avg_bw;
+		std::ostringstream oss;
+		oss << "Failed to get all interface parameters for domain: " << last_error(conn);
+		DCS_EXCEPTION_THROW(std::runtime_error, oss.str());
+	}
+
+	// Get the requested bandwidth parameter
+	unsigned int bw = 0;
+	for (int i = 0; i < nparams; ++i)
+	{
+		if (!std::strcmp(params[i].field, param_name))
+		{
+			bw = params[i].value.ui;
+			break;
+		}
+	} 
+
+	::virTypedParamsFree(params, nparams);
+
+	return bw;
 }
 
+/*
+void domain_network_average_inbound_bandwidth(::virConnectPtr conn, ::virDomainPtr dom, const char* device, unsigned int value)
+{
+	domain_network_bandwidth(conn, dom, device, VIR_DOMAIN_BANDWIDTH_IN_AVERAGE, value);
+}
+
+unsigned int domain_network_average_inbound_bandwidth(::virConnectPtr conn, ::virDomainPtr dom, const char* device)
+{
+	return domain_network_bandwidth(conn, dom, device, VIR_DOMAIN_BANDWIDTH_IN_AVERAGE);
+}
+*/
 
 std::string domain_hostname(virConnectPtr conn, virDomainPtr dom)
 {

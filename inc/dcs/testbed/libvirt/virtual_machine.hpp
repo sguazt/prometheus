@@ -495,7 +495,7 @@ DCS_DEBUG_TRACE("Getting Memory: " << cur_mem << " (share: " << (cur_mem/static_
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
-		detail::domain_network_average_inbound_bandwidth(p_vmm_->connection(), p_dom_, interface.c_str(), value);
+		detail::domain_network_bandwidth(p_vmm_->connection(), p_dom_, interface.c_str(), VIR_DOMAIN_BANDWIDTH_IN_AVERAGE, value, VIR_DOMAIN_AFFECT_CURRENT);
 	}
 
 	private: uint_type do_network_average_inbound_bandwidth(const std::string& interface) const
@@ -509,7 +509,35 @@ DCS_DEBUG_TRACE("Getting Memory: " << cur_mem << " (share: " << (cur_mem/static_
 				   DCS_EXCEPTION_THROW(::std::logic_error,
 									   "Not attached to a domain"));
 
-		return detail::domain_network_average_inbound_bandwidth(p_vmm_->connection(), p_dom_, interface.c_str());
+		return detail::domain_network_bandwidth(p_vmm_->connection(), p_dom_, interface.c_str(), VIR_DOMAIN_BANDWIDTH_IN_AVERAGE, VIR_DOMAIN_AFFECT_CURRENT);
+	}
+
+	private: void do_network_average_outbound_bandwidth(const std::string& interface, uint_type value)
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		detail::domain_network_bandwidth(p_vmm_->connection(), p_dom_, interface.c_str(), VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE, value, VIR_DOMAIN_AFFECT_CURRENT);
+	}
+
+	private: uint_type do_network_average_outbound_bandwidth(const std::string& interface) const
+	{
+		// pre: p_vmm_ != null
+		DCS_ASSERT(p_vmm_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not connected to VMM"));
+		// pre: p_dom_ != null
+		DCS_ASSERT(p_dom_,
+				   DCS_EXCEPTION_THROW(::std::logic_error,
+									   "Not attached to a domain"));
+
+		return detail::domain_network_bandwidth(p_vmm_->connection(), p_dom_, interface.c_str(), VIR_DOMAIN_BANDWIDTH_OUT_AVERAGE, VIR_DOMAIN_AFFECT_CURRENT);
 	}
 
 	private: void do_start()

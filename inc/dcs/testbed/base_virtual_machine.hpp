@@ -193,6 +193,18 @@ class base_virtual_machine
 		return do_network_average_inbound_bandwidth(interface);
 	}
 
+	/// Sets the desired average outgoing bit rate for the given network interface (specified either as device name of as MAC address) being shaped (in kilobytes/second)
+	public: void network_average_outbound_bandwidth(const std::string& interface, uint_type value)
+	{
+		do_network_average_outbound_bandwidth(interface, value);
+	}
+
+	/// Gets the desired average outgoing bit rate for the given network interface (specified either as device name of as MAC address) being shaped (in kilobytes/second)
+	public: uint_type network_average_outbound_bandwidth(const std::string& interface)
+	{
+		return do_network_average_outbound_bandwidth(interface);
+	}
+
 	/// Starts this VM
 	public: void start()
 	{
@@ -286,6 +298,10 @@ class base_virtual_machine
 	private: virtual void do_network_average_inbound_bandwidth(const std::string& interface, uint_type value) = 0;
 
 	private: virtual uint_type do_network_average_inbound_bandwidth(const std::string& interface) const = 0;
+
+	private: virtual void do_network_average_outbound_bandwidth(const std::string& interface, uint_type value) = 0;
+
+	private: virtual uint_type do_network_average_outbound_bandwidth(const std::string& interface) const = 0;
 
 	private: virtual void do_start() = 0;
 
