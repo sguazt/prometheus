@@ -35,6 +35,18 @@ enum virtual_machine_performance_category
 	memory_util_virtual_machine_performance
 };
 
+
+/// Gets all the available virtual machine performance categories
+std::vector<virtual_machine_performance_category> virtual_machine_performance_categories()
+{
+	std::vector<virtual_machine_performance_category> v;
+
+	v.push_back(cpu_util_virtual_machine_performance);
+	v.push_back(memory_util_virtual_machine_performance);
+
+	return v;
+}
+
 }} // Namespace dcs::testbed
 
 #endif // DCS_TESTBED_VIRTUAL_MACHINE_PERFORMANCE_CATEGORY_HPP
