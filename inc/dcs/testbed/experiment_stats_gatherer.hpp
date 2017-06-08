@@ -1,7 +1,7 @@
 /**
  * \file dcs/testbed/experiment_stats_gatherer.hpp
  *
- * \brief Gathers statistics for an experiment.
+ * \brief Gathers summary statistics for a system experiment.
  *
  * \author Marco Guazzone (marco.guazzone@gmail.com)
  *
@@ -167,9 +167,6 @@ class experiment_stats_gatherer: public base_experiment_tracker<TraitsT>
 		{
 			const vm_pointer p_vm = *vm_it;
 
-			//vm_cpu_shares_summary_[p_vm->id()] = summary_accumulator_type();
-			//vm_cpu_shares_quantile_[p_vm->id()] = quantile_accumulator_type(::boost::accumulators::extended_p_square_probabilities = probs);
-
 			const ::std::vector<virtual_machine_performance_category> metrics = virtual_machine_performance_categories();
 			for (std::size_t i = 0; i < metrics.size(); ++i)
 			{
@@ -180,7 +177,6 @@ class experiment_stats_gatherer: public base_experiment_tracker<TraitsT>
 			}
 		}
 
-		//FIXME: application performance category is hard-coded
 		const ::std::vector<application_performance_category> metrics = exp.manager().target_metrics();
 		for (::std::size_t i = 0; i < metrics.size(); ++i)
 		{
@@ -211,8 +207,6 @@ class experiment_stats_gatherer: public base_experiment_tracker<TraitsT>
 		{
 			const vm_pointer p_vm(*vm_it);
 
-			//vm_cpu_shares_summary_[p_vm->id()](p_vm->cpu_share());
-			//vm_cpu_shares_summary_[p_vm->id()](p_vm->cpu_share());
 			const ::std::vector<virtual_machine_performance_category> metrics = virtual_machine_performance_categories();
 			for (std::size_t i = 0; i < metrics.size(); ++i)
 			{
@@ -232,7 +226,6 @@ class experiment_stats_gatherer: public base_experiment_tracker<TraitsT>
 			}
 		}
 
-		//FIXME: application performance category is hard-coded
 		::std::vector<application_performance_category> metrics = exp.manager().target_metrics();
 		for (::std::size_t i = 0; i < metrics.size(); ++i)
 		{
@@ -254,8 +247,6 @@ class experiment_stats_gatherer: public base_experiment_tracker<TraitsT>
 	}
 
 
-	//private: vm_summary_accumulator_map vm_cpu_shares_summary_; 
-	//private: vm_quantile_accumulator_map vm_cpu_shares_quantile_; 
 	private: vm_summary_accumulator_map vm_perfs_summary_; 
 	private: vm_quantile_accumulator_map vm_perfs_quantile_; 
 	private: app_summary_accumulator_map app_perfs_summary_;
