@@ -149,6 +149,14 @@ class system_experiment
 	 */
 	public: void run()
 	{
+		//TODO: add a parameter "async" (or a different method run_async()) to avoid
+		//      blocking the caller.
+		//      This way, we can add another method "stop()" to stop all running experiments.
+		//      This should be easy to do:
+		//      - Replace the exp_thds variable with a member field exp_thds_
+		//      - Remove the call to the join_all() method.
+		//      - Probably, we need to add to the thread running a call to the interruption_point() method
+
 		typedef typename app_experiment_container::const_iterator app_experiment_iterator;
 //		typedef typename monitor_container::const_iterator monitor_iterator;
 
@@ -197,6 +205,16 @@ class system_experiment
 
 		DCS_DEBUG_TRACE( "END Execution of System EXPERIMENT" );
 	}
+
+	//TODO: Uncomment (and test) when async run is managed (see run() method)
+	//public: void stop()
+	//{
+	//	if (running_)
+	//	{
+	//		exp_thds_.interrupt_all();
+	//		exp_thds_.join_all();
+	//	}
+	//}
 
 	public: bool running() const
 	{
