@@ -1061,6 +1061,16 @@ int cpu_cap(virConnectPtr conn, virDomainPtr dom)
 	assert(conn);
 	assert(dom);
 
+	//FIXME: This is a Xen-related stuff. What for other hypervisors?
+	//       - For VMware, we can use the "config.cpuAllocation.shares" parameter, see:
+	//         https://www.vmware.com/support/developer/vc-sdk/visdk25pubs/ReferenceGuide/vim.ResourceAllocationInfo.html
+	//         https://pubs.vmware.com/vsphere-4-esx-vcenter/topic/com.vmware.vsphere.vmadmin.doc_41/vsp_vm_guide/configuring_virtual_machines/t_allocate_cpu_resources.html
+	//         libvirt source code (src/esx/esx_driver.c)
+	//       - For QEMU (and KVM), we can use the VIR_DOMAIN_SCHEDULER_CPU_SHARES parameter, see:
+	//         libvirt source code (src/qemu/qemu_driver.c)
+	//
+	//FIXME: Actually, since we don't consider the weight parameter, we assume that all VMs have the same weight
+
 	const int nvcpus = num_vcpus(conn, dom, VIR_DOMAIN_VCPU_MAXIMUM);
 
 	int cap = sched_param<int>(conn, dom, "cap", VIR_DOMAIN_AFFECT_CURRENT);
@@ -1076,6 +1086,17 @@ void cpu_cap(virConnectPtr conn, virDomainPtr dom, int cap)
 {
 	assert(conn);
 	assert(dom);
+	assert(cap >= 0);
+
+	//FIXME: This is a Xen-related stuff. What for other hypervisors?
+	//       - For VMware, we can use the "config.cpuAllocation.shares" parameter, see:
+	//         https://www.vmware.com/support/developer/vc-sdk/visdk25pubs/ReferenceGuide/vim.ResourceAllocationInfo.html
+	//         https://pubs.vmware.com/vsphere-4-esx-vcenter/topic/com.vmware.vsphere.vmadmin.doc_41/vsp_vm_guide/configuring_virtual_machines/t_allocate_cpu_resources.html
+	//         libvirt source code (src/esx/esx_driver.c)
+	//       - For QEMU (and KVM), we can use the VIR_DOMAIN_SCHEDULER_CPU_SHARES parameter, see:
+	//         libvirt source code (src/qemu/qemu_driver.c)
+	//
+	//FIXME: Actually, since we don't consider the weight parameter, we assume that all VMs have the same weight
 
 	const int nvcpus = num_vcpus(conn, dom, VIR_DOMAIN_VCPU_MAXIMUM);
 
@@ -1092,12 +1113,11 @@ double cpu_share(virConnectPtr conn, virDomainPtr dom)
 	assert(conn);
 	assert(dom);
 
-	const int cap = sched_param<int>(conn, dom, "cap", VIR_DOMAIN_AFFECT_CURRENT);
+	//const int cap = sched_param<int>(conn, dom, "cap", VIR_DOMAIN_AFFECT_CURRENT);
+	const int cap = cpu_cap(conn, dom);
 
 	const int nvcpus = num_vcpus(conn, dom, VIR_DOMAIN_VCPU_MAXIMUM);
 
-	//FIXME: This is a Xen-related stuff. What for other hypervisors?
-	//FIXME: Actually, since we don't consider the weight parameter, we assume that all VMs have the same weight
 	const double share = cap/(nvcpus*100.0);
 
 	return share > 0 ? share : 1; //Note: cap == 0 ==> No upper cap
@@ -1111,10 +1131,9 @@ void cpu_share(virConnectPtr conn, virDomainPtr dom, double share)
 
 	const int nvcpus = num_vcpus(conn, dom, VIR_DOMAIN_VCPU_MAXIMUM);
 
-	//FIXME: This is a Xen-related stuff. What for other hypervisors?
-	//FIXME: Actually, since we don't consider the weight parameter, we assume that all VMs have the same weight
 	const int cap = share < 1.0 ? dcs::math::round(share*nvcpus*100) : 0; //Note: cap == 0 ==> No upper cap
-	sched_param<int>(conn, dom, "cap", cap, VIR_DOMAIN_AFFECT_CURRENT);
+	//sched_param<int>(conn, dom, "cap", cap, VIR_DOMAIN_AFFECT_CURRENT);
+	cpu_cap(conn, dom, cap);
 }
 
 unsigned long memory_cap(virConnectPtr conn, virDomainPtr dom)
