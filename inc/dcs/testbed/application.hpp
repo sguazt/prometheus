@@ -39,6 +39,13 @@
 
 namespace dcs { namespace testbed {
 
+/**
+ * \brief Generic application.
+ *
+ * \tparam TraitsT Traits type.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class application: public base_application<TraitsT>
 {
@@ -57,6 +64,7 @@ class application: public base_application<TraitsT>
 
 	public: application()
 	{
+		// Empty
 	}
 
 	public: template <typename IterT>
