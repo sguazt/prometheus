@@ -482,7 +482,8 @@ class application_experiment
 			//      and "vm->state(old_state)" and all the internals are
 			//      managed by the VM class
 
-			vm_states_[p_vm->id()] = p_vm->cpu_share();
+			vm_states_[p_vm->id()].push_back(p_vm->cpu_share());
+			vm_states_[p_vm->id()].push_back(p_vm->memory_share());
 		}
 	}
 
@@ -507,7 +508,13 @@ class application_experiment
 			// check: p_vm != null
 			DCS_DEBUG_ASSERT( p_vm );
 
-			p_vm->cpu_share(vm_states_.at(p_vm->id()));
+			if (vm_states_.count(p_vm->id()) > 0)
+			{
+				p_vm->memory_share(vm_states_.at(p_vm->id()).back());
+				vm_states_.at(p_vm->id()).pop_back();
+				p_vm->cpu_share(vm_states_.at(p_vm->id()).back());
+				vm_states_.at(p_vm->id()).pop_back();
+			}
 		}
 	}
 
@@ -520,7 +527,7 @@ class application_experiment
 	private: bool restore_state_; ///< Tell if the state of the application should or should not be restored after experiment's completion
 	private: signal_pointer p_sta_sig_;
 	private: signal_pointer p_sto_sig_;
-	private: ::std::map<typename app_type::vm_type::identifier_type,real_type> vm_states_;
+	private: ::std::map< typename app_type::vm_type::identifier_type,std::vector<real_type> > vm_states_;
 	private: bool running_;
 }; // application_experiment
 
