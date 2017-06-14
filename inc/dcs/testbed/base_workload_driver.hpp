@@ -68,19 +68,22 @@ class base_workload_driver
 	/// Sets the application for which the workload must generated
 	public: void app(app_pointer const& p_app)
 	{
-		do_app(p_app);
+		//do_app(p_app);
+        p_app_ = p_app;
 	}
 
 	/// Gets the application for which the workload must generated
 	public: app_pointer app()
 	{
-		return do_app();
+		//return do_app();
+        return p_app_;
 	}
 
 	/// Gets the application for which the workload must generated
 	public: app_pointer app() const
 	{
-		return do_app();
+		//return do_app();
+        return p_app_;
 	}
 
 	/// Resets the state of this generator
@@ -115,11 +118,13 @@ class base_workload_driver
 
 	private: virtual workload_generator_category do_category() const = 0;
 
+/*
 	private: virtual void do_app(app_pointer const& p_app) = 0;
 
 	private: virtual app_pointer do_app() = 0;
 
 	private: virtual app_pointer do_app() const = 0;
+*/
 
 	private: virtual void do_reset() = 0;
 
@@ -130,6 +135,10 @@ class base_workload_driver
 	private: virtual bool do_done() const = 0;
 
 	private: virtual bool do_ready() const = 0;
+
+
+private:
+	app_pointer p_app_;
 }; // base_workload_driver
 
 }} // Namespace dcs::testbed

@@ -425,6 +425,7 @@ class workload_driver: public base_workload_driver<TraitsT>
 		return logger_thread_active_;
 	}
 
+/*
 	private: void do_app(app_pointer const& p_app)
 	{
 		p_app_ = p_app;
@@ -439,6 +440,7 @@ class workload_driver: public base_workload_driver<TraitsT>
 	{
 		return p_app_;
 	}
+*/
 
 	private: workload_generator_category do_category() const
 	{
@@ -559,7 +561,7 @@ class workload_driver: public base_workload_driver<TraitsT>
 	private: bool ready_;
 	private: bool rampup_thread_active_;
 	private: bool logger_thread_active_;
-	private: app_pointer p_app_;
+//	private: app_pointer p_app_;
 	private: sys_process_type proc_;
 	private: ::boost::thread rampup_thread_;
 	private: ::boost::thread logger_thread_;
