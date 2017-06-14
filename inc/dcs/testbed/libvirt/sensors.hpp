@@ -215,9 +215,10 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 	private: typedef typename traits_type::real_type real_type;
 
 
-	public: memory_utilization_sensor(::virConnectPtr p_conn, ::virDomainPtr p_dom)
+	public: memory_utilization_sensor(::virConnectPtr p_conn, ::virDomainPtr p_dom, bool use_meminfo_server = false)
 	: p_conn_(p_conn),
 	  p_dom_(p_dom),
+	  use_meminfo_srv_(use_meminfo_server),
 	  mem_util_(0),
 	  first_(true)
 	{
@@ -279,172 +280,178 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 		}
 		else
 		{
-#if DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
-			try
+//#if DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
+			if (use_meminfo_srv_)
 			{
-				namespace asio = boost::asio;
-
-				//std::string server_addr = DCS_TESTBED_SENSOR_MEMINFO_SERVER_ADDRESS;
-				//std::string server_port = DCS_TESTBED_SENSOR_MEMINFO_SERVER_PORT;
-				std::string server_addr = detail::domain_name(p_conn_, p_dom_);
-				std::string server_port = DCS_TESTBED_SENSOR_MEMINFO_SERVER_PORT;
-
-				DCS_DEBUG_TRACE("Connecting to " << server_addr << " on port " << server_port);
-
-				asio::io_service io_service;
-
-				asio::ip::tcp::resolver resolver(io_service);
-				asio::ip::tcp::resolver::query query(server_addr, server_port);
-				asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-
-				asio::ip::tcp::socket socket(io_service);
-				boost::asio::connect(socket, endpoint_iterator);
-
-				std::ostringstream oss;
-				for (;;)
+				try
 				{
-					boost::array<char, 1024> buf;
-					boost::system::error_code error;
+					namespace asio = boost::asio;
 
-					const std::size_t len = socket.read_some(boost::asio::buffer(buf), error);
-					if (error == boost::asio::error::eof)
-					{
-						break; // Connection closed cleanly by peer.
-					}
-					else if (error)
-					{
-						throw boost::system::system_error(error); // Some other error.
-					}
+					//std::string server_addr = DCS_TESTBED_SENSOR_MEMINFO_SERVER_ADDRESS;
+					//std::string server_port = DCS_TESTBED_SENSOR_MEMINFO_SERVER_PORT;
+					std::string server_addr = detail::domain_name(p_conn_, p_dom_);
+					std::string server_port = DCS_TESTBED_SENSOR_MEMINFO_SERVER_PORT;
 
-					oss << std::string(buf.data(), len);
-				}
-				socket.close();
-				
-				if (!oss.str().empty())
-				{
-					boost::uint32_t sz;
-					std::string meminfo;
+					DCS_DEBUG_TRACE("Connecting to " << server_addr << " on port " << server_port);
+
+					asio::io_service io_service;
+
+					asio::ip::tcp::resolver resolver(io_service);
+					asio::ip::tcp::resolver::query query(server_addr, server_port);
+					asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+
+					asio::ip::tcp::socket socket(io_service);
+					boost::asio::connect(socket, endpoint_iterator);
+
+					std::ostringstream oss;
+					for (;;)
+					{
+						boost::array<char, 1024> buf;
+						boost::system::error_code error;
+
+						const std::size_t len = socket.read_some(boost::asio::buffer(buf), error);
+						if (error == boost::asio::error::eof)
+						{
+							break; // Connection closed cleanly by peer.
+						}
+						else if (error)
+						{
+							throw boost::system::system_error(error); // Some other error.
+						}
+
+						oss << std::string(buf.data(), len);
+					}
+					socket.close();
 					
-					boost::tie(sz, meminfo) = detail::meminfo_unpack(oss.str().c_str());
-
-					DCS_DEBUG_TRACE("CONFIG MAX MEM: " << cfg_max_mem);
-					DCS_DEBUG_TRACE("CURRENT MAX MEM: " << cur_max_mem);
-					DCS_DEBUG_TRACE("CURRENT MEM: " << detail::current_memory(p_conn_, p_dom_));
-					DCS_DEBUG_TRACE("MEMINFO: " << meminfo);
-
-					Json::Value root;   // will contains the root value after parsing
-					Json::Reader reader;
-					bool parse_ok = reader.parse(meminfo, root);
-					if (parse_ok)
+					if (!oss.str().empty())
 					{
-						// From linux kernel 3.x:
-						//  Many load balancing and workload placing programs check /proc/meminfo to
-						//  estimate how much free memory is available.
-						//  They generally do this by adding up "free" and "cached", which was fine ten
-						//  years ago, but is pretty much guaranteed to be wrong today.
-						//  It is wrong because Cached includes memory that is not freeable as page
-						//  cache, for example shared memory segments, tmpfs, and ramfs, and it does not
-						//  include reclaimable slab memory, which can take up a large fraction of
-						//  system memory on mostly idle systems with lots of files.
-						//  Currently, the amount of memory that is available for a new workload,
-						//  without pushing the system into swap, can be estimated from MemFree,
-						//  Active(file), Inactive(file), and SReclaimable, as well as the "low"
-						//  watermarks from /proc/zoneinfo.
-						//  See also '<linux-kernel-source>/fs/proc/meminfo.c'.
+						boost::uint32_t sz;
+						std::string meminfo;
+						
+						boost::tie(sz, meminfo) = detail::meminfo_unpack(oss.str().c_str());
 
-						long double mem_avail = 0;
-						if (root.isMember("MemAvailable"))
+						DCS_DEBUG_TRACE("CONFIG MAX MEM: " << cfg_max_mem);
+						DCS_DEBUG_TRACE("CURRENT MAX MEM: " << cur_max_mem);
+						DCS_DEBUG_TRACE("CURRENT MEM: " << detail::current_memory(p_conn_, p_dom_));
+						DCS_DEBUG_TRACE("MEMINFO: " << meminfo);
+
+						Json::Value root;   // will contains the root value after parsing
+						Json::Reader reader;
+						bool parse_ok = reader.parse(meminfo, root);
+						if (parse_ok)
 						{
-							//long double mem_tot = 0;
-							std::istringstream iss;
-							//iss.str(root.get("MemTotal", "").asString());
-							//iss >> mem_tot;
-							iss.str(root.get("MemAvailable", "").asString());
-							iss >> mem_avail;
-						}
-						else if (root.isMember("MemFree"))
-						{
-							// Use the old (and unreliable) method
+							// From linux kernel 3.x:
+							//  Many load balancing and workload placing programs check /proc/meminfo to
+							//  estimate how much free memory is available.
+							//  They generally do this by adding up "free" and "cached", which was fine ten
+							//  years ago, but is pretty much guaranteed to be wrong today.
+							//  It is wrong because Cached includes memory that is not freeable as page
+							//  cache, for example shared memory segments, tmpfs, and ramfs, and it does not
+							//  include reclaimable slab memory, which can take up a large fraction of
+							//  system memory on mostly idle systems with lots of files.
+							//  Currently, the amount of memory that is available for a new workload,
+							//  without pushing the system into swap, can be estimated from MemFree,
+							//  Active(file), Inactive(file), and SReclaimable, as well as the "low"
+							//  watermarks from /proc/zoneinfo.
+							//  See also '<linux-kernel-source>/fs/proc/meminfo.c'.
 
-							long double mem_free = 0;
-							std::istringstream iss;
-							iss.str(root.get("MemFree", "").asString());
-							iss >> mem_free;
-							long double mem_cache = 0;
-							iss.str(root.get("Cached", "0").asString());
-							iss >> mem_cache;
+							long double mem_avail = 0;
+							if (root.isMember("MemAvailable"))
+							{
+								//long double mem_tot = 0;
+								std::istringstream iss;
+								//iss.str(root.get("MemTotal", "").asString());
+								//iss >> mem_tot;
+								iss.str(root.get("MemAvailable", "").asString());
+								iss >> mem_avail;
+							}
+							else if (root.isMember("MemFree"))
+							{
+								// Use the old (and unreliable) method
 
-							mem_avail = mem_free+mem_cache;
-						}
+								long double mem_free = 0;
+								std::istringstream iss;
+								iss.str(root.get("MemFree", "").asString());
+								iss >> mem_free;
+								long double mem_cache = 0;
+								iss.str(root.get("Cached", "0").asString());
+								iss >> mem_cache;
 
-						long double mem_tot = 0;
-						if (root.isMember("MemTotal"))
-						{
-							std::istringstream iss;
-							iss.str(root.get("MemTotal", "").asString());
-							iss >> mem_tot;
+								mem_avail = mem_free+mem_cache;
+							}
+
+							long double mem_tot = 0;
+							if (root.isMember("MemTotal"))
+							{
+								std::istringstream iss;
+								iss.str(root.get("MemTotal", "").asString());
+								iss >> mem_tot;
+							}
+							else
+							{
+								//mem_tot = static_cast<long double>(cur_max_mem);
+								mem_tot = detail::current_memory(p_conn_, p_dom_);
+							}
+
+							if (root.isMember("Committed_AS"))
+							{
+								long double mem_committed = 0;
+								std::istringstream iss;
+								iss.str(root.get("Committed_AS", "").asString());
+								iss >> mem_committed;
+
+								if (mem_avail > (mem_tot-mem_committed))
+								{
+									DCS_DEBUG_TRACE("COMMITTED: " << mem_committed << " => Adjust Available Memory: "  << mem_avail << " -> " << (mem_tot-mem_committed));
+									mem_avail = mem_tot-mem_committed;
+								}
+							}
+
+							//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
+							//      So use the 'memory' field which should give a reasonable value.
+							//////mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(node_info.maxMem));
+							//////mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.memory));
+							////mem_util_ = 1.0-static_cast<double>(mem_avail/mem_tot);
+							//mem_util_ = static_cast<double>((cur_max_mem-mem_avail)/static_cast<long double>(cfg_max_mem));
+#if 1
+							// Use internal+external information (needs the scale factor, see below at the end of the function)
+							mem_util_ = static_cast<double>((mem_tot-mem_avail)/static_cast<long double>(cfg_max_mem));
+#else
+							// Only use internal information (no need to use the scale factor, see below at the end of the function)
+							mem_util_ = 1.0 - mem_avail/static_cast<long double>(mem_tot);
+#endif
+							dom_mem_tot = mem_tot;
 						}
 						else
 						{
-							//mem_tot = static_cast<long double>(cur_max_mem);
-							mem_tot = detail::current_memory(p_conn_, p_dom_);
+							DCS_EXCEPTION_THROW(std::runtime_error, "Unexpected format for JSON file");
 						}
-
-						if (root.isMember("Committed_AS"))
-						{
-							long double mem_committed = 0;
-							std::istringstream iss;
-							iss.str(root.get("Committed_AS", "").asString());
-							iss >> mem_committed;
-
-							if (mem_avail > (mem_tot-mem_committed))
-							{
-								DCS_DEBUG_TRACE("COMMITTED: " << mem_committed << " => Adjust Available Memory: "  << mem_avail << " -> " << (mem_tot-mem_committed));
-								mem_avail = mem_tot-mem_committed;
-							}
-						}
-
-						//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
-						//      So use the 'memory' field which should give a reasonable value.
-						//////mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(node_info.maxMem));
-						//////mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.memory));
-						////mem_util_ = 1.0-static_cast<double>(mem_avail/mem_tot);
-						//mem_util_ = static_cast<double>((cur_max_mem-mem_avail)/static_cast<long double>(cfg_max_mem));
-#if 1
-						// Use internal+external information (needs the scale factor, see below at the end of the function)
-						mem_util_ = static_cast<double>((mem_tot-mem_avail)/static_cast<long double>(cfg_max_mem));
-#else
-						// Only use internal information (no need to use the scale factor, see below at the end of the function)
-						mem_util_ = 1.0 - mem_avail/static_cast<long double>(mem_tot);
-#endif
-						dom_mem_tot = mem_tot;
 					}
 					else
 					{
-						DCS_EXCEPTION_THROW(std::runtime_error, "Unexpected format for JSON file");
+						ok = false;
 					}
 				}
-				else
+				catch (std::exception const& e)
 				{
+					dcs::log_warn(DCS_LOGGING_AT, std::string("Failed to get precise domain memory stats: ") + e.what());
 					ok = false;
 				}
+//#else // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 			}
-			catch (std::exception const& e)
+			else
 			{
-				dcs::log_warn(DCS_LOGGING_AT, std::string("Failed to get precise domain memory stats: ") + e.what());
+				dcs::log_warn(DCS_LOGGING_AT, std::string("Unsupported precise domain memory stats: ") + detail::last_error(p_conn_));
+
+				//// The most supported solution in libvirt is to use the following information:
+				//// - memory: the memory used by the domain (in kB)
+				//// - maxMem: the maximum memory allowed by the domain (in kB)
+				//// However, note that 'memory' is a static value (i.e., the currently allocated memory) that doesn't reflect the amount of memory effectively used by the domain
+				//mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(node_info.maxMem));
+
 				ok = false;
+//#endif // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 			}
-#else // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
-			dcs::log_warn(DCS_LOGGING_AT, std::string("Unsupported precise domain memory stats: ") + detail::last_error(p_conn_));
-
-			//// The most supported solution in libvirt is to use the following information:
-			//// - memory: the memory used by the domain (in kB)
-			//// - maxMem: the maximum memory allowed by the domain (in kB)
-			//// However, note that 'memory' is a static value (i.e., the currently allocated memory) that doesn't reflect the amount of memory effectively used by the domain
-			//mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(node_info.maxMem));
-
-			ok = false;
-#endif // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 		}
 
 		if (!ok)
@@ -520,6 +527,7 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 
 	private: ::virConnectPtr p_conn_;
 	private: ::virDomainPtr p_dom_;
+	private: bool use_meminfo_srv_;
 	private: real_type mem_util_;
 	private: bool first_;
 	//private: ::virDomainInfo prev_node_info_;

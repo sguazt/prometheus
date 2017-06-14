@@ -50,6 +50,13 @@ template <typename TraitsT>
 class virtual_machine_manager;
 
 
+/**
+ * \brief Manages VMs by means of libvirt toolkit.
+ *
+ * \tparam TraitsT Traits type.
+ *
+ * \author Marco Guazzone (marco.guazzone@gmail.com)
+ */
 template <typename TraitsT>
 class virtual_machine: public base_virtual_machine<TraitsT>
 {
@@ -682,7 +689,11 @@ DCS_DEBUG_TRACE("Getting Memory: " << cur_mem << " (share: " << (cur_mem/static_
 			case cpu_util_virtual_machine_performance:
 				return ::boost::make_shared< cpu_utilization_sensor<traits_type> >(p_vmm_->connection(), p_dom_);
 			case memory_util_virtual_machine_performance:
-				return ::boost::make_shared< memory_utilization_sensor<traits_type> >(p_vmm_->connection(), p_dom_);
+#if DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
+				return ::boost::make_shared< memory_utilization_sensor<traits_type> >(p_vmm_->connection(), p_dom_, true);
+#else // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
+				return ::boost::make_shared< memory_utilization_sensor<traits_type> >(p_vmm_->connection(), p_dom_, false);
+#endif // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 		}
 
 		DCS_EXCEPTION_THROW(::std::runtime_error, "Sensor not available");
