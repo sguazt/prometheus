@@ -109,7 +109,7 @@ Building
 ### Prerequisites
 
 * A modern C++98 compiler (e.g., GCC v4.8 or newer is fine)
-* [Boost](http://boost.org) C++ libraries (v1.60 or newer)
+* [Boost](http://boost.org) C++ libraries (v1.60 or newer, but v1.64 which is broken)
 * [Boost.Numeric Bindings](http://svn.boost.org/svn/boost/sandbox/numeric_bindings) library (v2 or newer)
 * [Boost.uBLASx](https://github.com/sguazt/boost-ublasx) library (v1 or newer)
 * [dcsxx-commons](https://github.com/sguazt/dcsxx-commons) library (v2 or newer)
