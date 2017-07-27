@@ -103,6 +103,13 @@ class base_application
 		return do_num_vms();
 	}
 
+	/// Sets the VMs associated with this application
+	public: template <typename IterT>
+			void vms(IterT first_vm, IterT last_vm)
+	{
+		do_vms(std::vector<vm_pointer>(first_vm, last_vm));
+	}
+
 	/// Gets the VMs associated with this application
 	public: ::std::vector<vm_pointer> vms() const
 	{
@@ -152,6 +159,8 @@ class base_application
 	}
 
 	private: virtual ::std::size_t do_num_vms() const = 0;
+
+	private: virtual void do_vms(const ::std::vector<vm_pointer>& vms) = 0;
 
 	private: virtual ::std::vector<vm_pointer> do_vms() const = 0;
 

@@ -32,9 +32,9 @@
 #include <boost/accumulators/statistics/p_square_quantile.hpp>
 #include <boost/accumulators/statistics/stats.hpp>
 #include <boost/circular_buffer.hpp>
-#include <boost/numeric/ublas/vector.hpp>
-#include <boost/numeric/ublasx/operation/log10.hpp>
-#include <boost/numeric/ublasx/operation/logspace.hpp>
+//#include <boost/numeric/ublas/vector.hpp>
+//#include <boost/numeric/ublasx/operation/log10.hpp>
+//#include <boost/numeric/ublasx/operation/logspace.hpp>
 #include <boost/random.hpp>
 #include <cmath>
 #include <cstddef>

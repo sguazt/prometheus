@@ -47,7 +47,7 @@
 #include <unistd.h>
 
 
-#if DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
+#ifdef DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 # include <boost/array.hpp>
 # include <boost/asio.hpp>
 # include <boost/cstdint.hpp>
@@ -63,7 +63,7 @@
 
 namespace dcs { namespace testbed { namespace libvirt {
 
-#if DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
+#ifdef DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 namespace detail { namespace /*<unnamed>*/ {
 
 inline
@@ -280,7 +280,7 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 		}
 		else
 		{
-//#if DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
+#ifdef DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 			if (use_meminfo_srv_)
 			{
 				try
@@ -437,7 +437,6 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 					dcs::log_warn(DCS_LOGGING_AT, std::string("Failed to get precise domain memory stats: ") + e.what());
 					ok = false;
 				}
-//#else // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 			}
 			else
 			{
@@ -449,9 +448,19 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 				//// However, note that 'memory' is a static value (i.e., the currently allocated memory) that doesn't reflect the amount of memory effectively used by the domain
 				//mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(node_info.maxMem));
 
-				ok = false;
-//#endif // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
+				ok = false; // see below
 			}
+#else // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
+			dcs::log_warn(DCS_LOGGING_AT, std::string("Unsupported precise domain memory stats: ") + detail::last_error(p_conn_));
+
+			//// The most supported solution in libvirt is to use the following information:
+			//// - memory: the memory used by the domain (in kB)
+			//// - maxMem: the maximum memory allowed by the domain (in kB)
+			//// However, note that 'memory' is a static value (i.e., the currently allocated memory) that doesn't reflect the amount of memory effectively used by the domain
+			//mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(node_info.maxMem));
+
+			ok = false; // see below
+#endif // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 		}
 
 		if (!ok)

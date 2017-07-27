@@ -25,6 +25,10 @@
 #ifndef DCS_TESTBED_VIRTUAL_MACHINE_PERFORMANCE_CATEGORY_HPP
 #define DCS_TESTBED_VIRTUAL_MACHINE_PERFORMANCE_CATEGORY_HPP
 
+
+#include <vector>
+
+
 namespace dcs { namespace testbed {
 
 enum virtual_machine_performance_category
@@ -48,5 +52,6 @@ std::vector<virtual_machine_performance_category> virtual_machine_performance_ca
 }
 
 }} // Namespace dcs::testbed
+
 
 #endif // DCS_TESTBED_VIRTUAL_MACHINE_PERFORMANCE_CATEGORY_HPP

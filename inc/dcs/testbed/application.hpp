@@ -83,6 +83,11 @@ class application: public base_application<TraitsT>
 		return vms_.size();
 	}
 
+	private: void do_vms(const std::vector<vm_pointer>& vms)
+	{
+		vms_.assign(vms.begin(), vms.end());
+	}
+
 	private: ::std::vector<vm_pointer> do_vms() const
 	{
 //		::std::vector<vm_pointer> vms(vms_.size());

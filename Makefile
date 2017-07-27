@@ -1,11 +1,13 @@
 ###### User-configurable parameteres
 
 ## Paths
-boost_header_path=$(HOME)/sys/src/git/boost
-boost_libs_path=$(HOME)/sys/src/git/boost/stage/lib
+#boost_header_path=$(HOME)/sys/src/git/boost
+boost_header_path=$(CURDIR)/thirdparty/boost_1_65_0
+#boost_libs_path=$(HOME)/sys/src/git/boost/stage/lib
+boost_libs_path=$(CURDIR)/thirdparty/boost_1_65_0/stage/lib
 boost_numeric_bindings_home=$(HOME)/sys/src/svn/boost-numeric_bindings
 boost_ublasx_home=../boost-ublasx
-cplex_home=$(HOME)/sys/opt/optim/ibm/ILOG/CPLEX_Studio1262
+cplex_home=$(HOME)/sys/opt/optim/ibm/ILOG/CPLEX_Studio1271
 dcsxx_commons_home=../dcsxx-commons
 dcsxx_control_home=../dcsxx-control
 dcsxx_network_home=../dcsxx-network
@@ -36,7 +38,7 @@ flx_have_lapack=1
 ifeq (1,$(dcs_control_qp_use_cplex))
 #cplex_version=126
 cplex_incs=-I$(cplex_home)/cplex/include -I$(cplex_home)/concert/include -DIL_STD
-cplex_libs=-L$(cplex_home)/cplex/lib/x86-64_linux/static_pic -L$(cplex_home)/concert/lib/x86-64_linux/static_pic -lilocplex -lconcert -lcplex -lm -lpthread
+cplex_libs=-L$(cplex_home)/cplex/lib/x86-64_linux/static_pic -L$(cplex_home)/concert/lib/x86-64_linux/static_pic -lilocplex -lcplex -lconcert -lm -lpthread
 else ifeq (1,$(dcs_control_qp_use_gurobi))
 gurobi_incs=-I$(gurobi_home)/include
 gurobi_libs=-L$(gurobi_home)/lib -lgurobi60 -lgurobi_c++ -Wl,-rpath,$(gurobi_home)/lib
@@ -53,6 +55,7 @@ project_home=$(PWD)
 export project_home
 
 CXXFLAGS+=-Wall -Wextra -ansi -pedantic
+#CXXFLAGS+=-Wall -Wextra -std=c++11 -pedantic
 CXXFLAGS+=-g
 
 # boost
