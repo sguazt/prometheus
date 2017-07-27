@@ -1,38 +1,18 @@
-dcsxx-testbed
-=============
+Prometheus
+==========
 
-A set of C++ components for setting up and managing a real computing testbed.
+How to Cite
+-----------
 
-The system under test (SUT) is managed by exploiting virtualization technologies and, in particular, by using the [libvirt](http://www.libvirt.org) library.
-This testbed allows the experimenter to perform both system identification and resource management experiments
+Main publication:
 
-This project has been used in the experimental evaluations presented in the following articles:
+    @MISC{Prometheus,
+        author = {Cosimo Anglano and Massimo Canonico and Marco Guazzone},
+        title = {{Prometheus}: a flexible toolkit for the experimentation with virtualized infrastructures}
+        keywords = {toolkit, resource management, experimental evaluation, physical testbed, virtualization},
+		note = {Submitted for publication},
+    }
 
-> Cosimo Anglano, Massimo Canonico and Marco Guazzone.
->
-> *FCMS: a Fuzzy Controller for CPU and Memory Consolidation under SLA Constraints*
->
-> Concurrency and Computation: Practice and Experience, 29(5), 2017.
->
-> doi:[10.1002/cpe.3968](http://dx.doi.org/10.1002/cpe.3968).
->
->
-> Cosimo Anglano, Massimo Canonico and Marco Guazzone
->
-> *FC2Q: Exploiting Fuzzy Control in Server Consolidation for Cloud Applications with SLA Constraints*
->
-> Concurrency Computat.: Pract. Exper., 27(17):4491-4514, 2015.
->
-> doi: [10.1002/cpe.3410](http://dx.doi.org/10.1002/cpe.3410)
->
->
-> Luca Albano, Cosimo Anglano, Massimo Canonico and Marco Guazzone
->
-> *Fuzzy Q&E: Achieving QoS Guarantees and Energy Savings for Cloud Applications with Fuzzy Control*
->
-> 2013 International Conference on Cloud and Green Computing (2013), Karlsruhe, Germany, pp. 159-166, 2013.
->
-> doi: [10.1109/CGC.2013.31](http://dx.doi.org/10.1109/CGC.2013.31)
 
 Please, cite this project as at least one of the following papers (BibTeX format):
 
@@ -75,6 +55,51 @@ Please, cite this project as at least one of the following papers (BibTeX format
         url = {http://dx.doi.org/10.1109/CGC.2013.31}, 
         keywords = {cloud computing; fuzzy control; power aware computing; quality of experience; quality of service; virtual machines; QoS; VMs; Xen-based testbed; bursty workload; cloud application management; dynamic workload; e-commerce benchmark; energy consumption; energy savings; fuzzy controller; fuzzy-Q&E; physical capacity; physical infrastructure; quality-of-services; virtual machines; Benchmark testing; Fuzzy control; IP networks; Pragmatics; Quality of service; Time factors; Virtual machine monitors}, 
     }
+
+Overview
+--------
+
+Prometheus is a flexible toolkit for the experimentation with virtualized infrastructures.
+The System Under Test (SUT) is managed by exploiting virtualization technologies and, in particular, by using the [libvirt](http://www.libvirt.org) library.
+
+Prometheus consists of a set of C++ components for setting up and managing a physical testbed.
+This testbed allows the experimenter to perform both system identification and resource management experiments
+
+This project has been published in the following article:
+
+> Cosimo Anglano, Massimo Canonico and Marco Guazzone.
+>
+> *Prometheus: a flexible toolkit for the experimentation with virtualized infrastructures*
+>
+> Submitted for publication, 2017.
+
+Furthermore, this project has been successfully used for the experimental evaluations presented in the following articles:
+
+> Cosimo Anglano, Massimo Canonico and Marco Guazzone.
+>
+> *FCMS: a Fuzzy Controller for CPU and Memory Consolidation under SLA Constraints*
+>
+> Concurrency and Computation: Practice and Experience, 29(5), 2017.
+>
+> doi:[10.1002/cpe.3968](http://dx.doi.org/10.1002/cpe.3968).
+>
+>
+> Cosimo Anglano, Massimo Canonico and Marco Guazzone
+>
+> *FC2Q: Exploiting Fuzzy Control in Server Consolidation for Cloud Applications with SLA Constraints*
+>
+> Concurrency Computat.: Pract. Exper., 27(17):4491-4514, 2015.
+>
+> doi: [10.1002/cpe.3410](http://dx.doi.org/10.1002/cpe.3410)
+>
+>
+> Luca Albano, Cosimo Anglano, Massimo Canonico and Marco Guazzone
+>
+> *Fuzzy Q&E: Achieving QoS Guarantees and Energy Savings for Cloud Applications with Fuzzy Control*
+>
+> 2013 International Conference on Cloud and Green Computing (2013), Karlsruhe, Germany, pp. 159-166, 2013.
+>
+> doi: [10.1109/CGC.2013.31](http://dx.doi.org/10.1109/CGC.2013.31)
 
 
 Building
