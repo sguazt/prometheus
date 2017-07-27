@@ -4,7 +4,7 @@ Prometheus
 How to Cite
 -----------
 
-Main publication:
+Please, cite this project as the following paper (BibTeX format):
 
     @MISC{Prometheus,
         author = {Cosimo Anglano and Massimo Canonico and Marco Guazzone},
@@ -14,7 +14,7 @@ Main publication:
     }
 
 
-Please, cite this project as at least one of the following papers (BibTeX format):
+In addition, you can cite the following papers where Prometheus has been used to carry out the experimental evaluation (BibTeX format):
 
     @ARTICLE{CPE:CPE3968,
         author = {Cosimo Anglano and Massimo Canonico and Marco Guazzone},
@@ -55,6 +55,7 @@ Please, cite this project as at least one of the following papers (BibTeX format
         url = {http://dx.doi.org/10.1109/CGC.2013.31}, 
         keywords = {cloud computing; fuzzy control; power aware computing; quality of experience; quality of service; virtual machines; QoS; VMs; Xen-based testbed; bursty workload; cloud application management; dynamic workload; e-commerce benchmark; energy consumption; energy savings; fuzzy controller; fuzzy-Q&E; physical capacity; physical infrastructure; quality-of-services; virtual machines; Benchmark testing; Fuzzy control; IP networks; Pragmatics; Quality of service; Time factors; Virtual machine monitors}, 
     }
+
 
 Overview
 --------
