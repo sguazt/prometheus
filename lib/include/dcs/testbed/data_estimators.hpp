@@ -49,7 +49,8 @@
 #include <dcs/testbed/detail/variance.hpp>
 #include <limits>
 #include <list>
-#include "../../../thirdparty/t-digest/tdigestx.hxx"
+//#include "../../../thirdparty/t-digest/tdigestx.hxx"
+#include "tdigestx.hxx"
 #include <stdexcept>
 #include <vector>
 
