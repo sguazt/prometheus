@@ -225,16 +225,16 @@ In addition to the compile-time prerequisites, you also need:
 
 * Run:
 
-    $ ./src/sysid {options}
+    $ ./app/src/sysid {options}
 * To get a complete list of all supported command-line options, run:
 
-    $ ./src/sysid --help
+    $ ./app/src/sysid --help
 
 #### The `sysmgt` Application
 
 * Run:
 
-    $ ./src/sysmgt {options}
+    $ ./app/src/sysmgt {options}
 * To get a complete list of all supported command-line options, run:
 
-    $ ./src/sysmgt --help
+    $ ./app/src/sysmgt --help
