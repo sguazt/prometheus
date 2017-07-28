@@ -117,51 +117,97 @@ Building
 * [dcsxx-commons](https://github.com/sguazt/dcsxx-commons) library (v2 or newer)
 * [dcsxx-control](https://github.com/sguazt/dcsxx-control) library (v2 or newer)
 * [dcsxx-sysid](https://github.com/sguazt/dcsxx-sysid) library (v1 or newer)
-* [fuzzylite](http://www.fuzzylite.com) fuzzy logic control library (v5 or newer)
-* [fuzzylitex](http://github.com/sguazt/fuzzylitex) fuzzy logic control library (v1.1.1 or newer)
-* [jsoncpp](https://github.com/open-source-parsers/jsoncpp) C++ library for interacting with JSON (v0.6 or newer)
+* [Fuzzylite](http://www.fuzzylite.com) fuzzy logic control library (v5 or newer)
+* [Fuzzylitex](http://github.com/sguazt/fuzzylitex) fuzzy logic control library (v1.1.1 or newer)
+* [JsonCpp](https://github.com/open-source-parsers/jsoncpp) C++ library for interacting with JSON (v0.6 or newer)
 * [LAPACK](http://www.netlib.org/lapack/) Linear Algebra PACKage (v3.5 or newer)
 * [libvirt](http://libvirt.org) virtualization API library (v1 or newer)
+* Either [IBM CPLEX](https://www.ibm.com/software/products/it/ibmilogcpleoptistud) optimizer (v12.6 or newer) or [GUROBI](http://www.gurobi.com/products/gurobi-optimizer) optimizer (v6.0 or newer)
 * ... and related prerequisites
 
 ### Compilation
 
-1. Edit the `Makefile` file to properly set library paths, specifically:
-	* `boost_header_path` is the path to the *Boost* header files; for instance:
+Note, since this is a header-only library, compilation is needed only when you create a full application or you want to compile the provided applications.
 
-						boost_header_path=/usr/include
-	* `boost_libs_path` is the path to the *Boost* library files; for instance:
+1. Make sure all the above prerequisites are satisfied.
 
-						boost_libs_path=/usr/lib64
-	* `boost_numeric_bindings_home` is the base path of the *Boost.NumericBindings* library; for instance:
+2. Make sure you have properly set configuration parameters.
 
-						boost_numeric_bindings_home=/opt/boost-numeric_bindings
-	* `boost_ublasx_home` is the base path of the *Boost.uBLASx* library; for instance:
+   Configuration parameters are specified as *GNU Make* variables.
+   Default values are stored in `config_default.mk` file.
+   If you need to change some parameter, do this in a new file called `config.mk`.
+   Don't change the `config_default.mk` file!
+   If you need to create a new `config.mk` file, you can use as template the `config_sample.mk` file.
 
-						boost_ublasx_home=/opt/boost-ublasx
-	* `dcsxx_commons_home` is the base path of the *dcsxx-commons* library; for instance:
+   Valid configuration parameters are:
 
-						dcsxx_commons_home=/opt/dcsxx-commons
-	* `dcsxx_control_home` is the base path of the *dcsxx-control* library; for instance:
+    * *Boost*:
+        - `boost_cflags`: values to append to the `CXXFLAGS`.
+        - `boost_ldflags`: values to append to the `LDFLAGS` variable.
+        - `boost_ldlibs`: values to append to the `LDLIBS` variable.
+    * *Boost.NumericBindings*:
+        - `boost_numeric_bindings_cflags`: values to append to the `CXXFLAGS` variable.
+        - `boost_numeric_bindings_ldflags`: values to append to the `LDFLAGS` variable.
+        - `boost_numeric_bindings_ldlibs`: values to append to the `LDLIBS` variable.
+    * *Boost.uBLASx*:
+        - `boost_ublasx_cflags`: values to append to the `CXXFLAGS` variable.
+        - `boost_ublasx_ldflags`: values to append to the `LDFLAGS` variable.
+        - `boost_ublasx_ldlibs`: values to append to the `LDLIBS` variable.
+    * Build system:
+        - `build_cflags`: values to append to the `CXXFLAGS` variable.
+        - `build_ldflags`: values to append to the `LDFLAGS` variable.
+        - `build_ldlibs`: values to append to the `LDLIBS` variable.
+    * *IBM CPLEX* optimizer:
+        - `cplex_cflags`: values to append to the `CXXFLAGS`.
+        - `cplex_ldflags`: values to append to the `LDFLAGS`.
+        - `cplex_ldlibs`: values to append to the `LDLIBS`.
+    * *dcsxx-commons*:
+        - `dcs_commons_cflags`: values to append to the `CXXFLAGS`.
+        - `dcs_commons_ldflags`: values to append to the `LDFLAGS`.
+        - `dcs_commons_ldlibs`: values to append to the `LDLIBS`.
+    * *dcsxx-control*:
+        - `dcs_control_cflags`: values to append to the `CXXFLAGS`.
+        - `dcs_control_ldflags`: values to append to the `LDFLAGS`.
+        - `dcs_control_ldlibs`: values to append to the `LDLIBS`.
+        - `dcs_control_qp_use_cplex`: integer value telling whether to use (1) or not (0) the CPLEX optimizer to solve quadratic programming problems.
+        - `dcs_control_qp_use_gurobi`: integer value telling whether to use (1) or not (0) the GUROBI optimizer to solve quadratic programming problems.
+    * *dcsxx-sysid*:
+        - `dcs_sysid_cflags`: values to append to the `CXXFLAGS`.
+        - `dcs_sysid_ldflags`: values to append to the `LDFLAGS`.
+        - `dcs_sysid_ldlibs`: values to append to the `LDLIBS`.
+    * *Fuzzylite*:
+        - `fuzzylite_cflags`: values to append to the `CXXFLAGS`.
+        - `fuzzylite_ldflags`: values to append to the `LDFLAGS`.
+        - `fuzzylite_ldlibs`: values to append to the `LDLIBS`.
+    * *Fuzzylitex*:
+        - `fuzzylitex_cflags`: values to append to the `CXXFLAGS`.
+        - `fuzzylitex_ldflags`: values to append to the `LDFLAGS`.
+        - `fuzzylitex_ldlibs`: values to append to the `LDLIBS`.
+        - `fuzzylitex_use_lapack`: integer value telling whether to use (1) or not (0) the LAPACK library to solve linear algebra problems.
+    * *Java*:
+        - `java_home`: point to the Java installation directory.
+        - `java_jni_cflags`: values to append to the `CXXFLAGS`.
+        - `java_jni_ldflags`: values to append to the `LDFLAGS`.
+        - `java_jni_ldlibs`: values to append to the `LDLIBS`.
+    * *JsonCpp*:
+        - `json_cflags`: values to append to the `CXXFLAGS`.
+        - `json_ldflags`: values to append to the `LDFLAGS`.
+        - `json_ldlibs`: values to append to the `LDLIBS`.
+    * *LAPACK*:
+        - `lapack_cflags`: values to append to the `CXXFLAGS`.
+        - `lapack_ldflags`: values to append to the `LDFLAGS`.
+        - `lapack_ldlibs`: values to append to the `LDLIBS`.
+    * *libvirt*:
+        - `libvirt_cflags`: values to append to the `CXXFLAGS`.
+        - `libvirt_ldflags`: values to append to the `LDFLAGS`.
+        - `libvirt_ldlibs`: values to append to the `LDLIBS`.
+    * *Prometheus*:
+        - `prometheus_have_meminfo_server`: integer value telling whether to use (1) or not (0) the meminfo server to collect VM memory utilizations.
+        - `prometheus_meminfo_server_port`: port number at which the meminfo server is accepting connections.
+        - `prometheus_have_matlab`: integer value telling whether to use (1) or not (0) MATLAB specific code.
+3. Run the `make` program to build the provided applications
 
-						dcsxx_control_home=/opt/dcsxx-control
-	* `dcsxx_sysid_home` is the base path of the *dcsxx-sysid* library; for instance:
-
-						dcsxx_sysid_home=/opt/dcsxx-sysid
-	* `fuzzylite_header_path` is the path to the *fuzzylite* header files; for instance:
-
-						fuzzylite_header_path=/usr/include
-	* `fuzzylite_libs_path` is the path to the *fuzzylite* library files; for instance:
-
-						fuzzylite_libs_path=/usr/lib64
-	* `fuzzylitex_home` is the base path of the *fuzzylitex* library; for instance:
-
-						fuzzylitex_home=/opt/fuzzylitex
-2. If not already done, compile the *fuzzylitex* library in the related directory.
-
-3. Run the `make` program
-
-				$ make
+            $ make clean apps
 
 
 Running
@@ -175,9 +221,20 @@ In addition to the compile-time prerequisites, you also need:
 
 ### Execution
 
+#### The `sysid` Application
+
 * Run:
 
-				$ ./src/sysmgt {options}
+    $ ./src/sysid {options}
 * To get a complete list of all supported command-line options, run:
 
-				$ ./src/sysmgt --help
+    $ ./src/sysid --help
+
+#### The `sysmgt` Application
+
+* Run:
+
+    $ ./src/sysmgt {options}
+* To get a complete list of all supported command-line options, run:
+
+    $ ./src/sysmgt --help

@@ -94,24 +94,25 @@ gurobi_ldlibs ?=
 
 ## [Java]
 ## Settings for the Java virtual machine
-# Environment variable to point to the Java installation directory
+# # Variable pointing to the Java installation directory
 java_home = $(JAVA_HOME)
-# Compiler flags
+# Variables for JNI
+# - Compiler flags
 java_jni_cflags ?= -I$(java_home)/include -I$(java_home)/include/linux
-# Linker flags (x86 arch)
+# - Linker flags (x86 arch)
 #java_jni_ldflags ?= -L$(java_home)/jre/lib/i386 -L$(java_home)/jre/lib/i386/client
-# Linker flags (x86_64 arch)
+# - Linker flags (x86_64 arch)
 java_jni_ldflags ?= -L$(java_home)/jre/lib/amd64 -L$(java_home)/jre/lib/amd64/server
-# Libraries to link
+# - Libraries to link
 java_jni_ldlibs ?= -ljvm
 
-## [jsoncpp]
+## [JsonCpp]
 ## Settings for the JSONcpp library
 json_cflags ?= $(shell pkg-config jsoncpp --cflags)
 json_ldflags ?= $(shell pkg-config jsoncpp --libs)
 json_ldlibs ?= 
 
-## [lapack]
+## [LAPACK]
 ## Settings for the LAPACK library
 lapack_cflags ?=
 lapack_ldflags ?=
