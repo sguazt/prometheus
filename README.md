@@ -1,6 +1,8 @@
 Prometheus
 ==========
 
+A flexible toolkit for the experimentation with virtualized infrastructures.
+
 How to Cite
 -----------
 
