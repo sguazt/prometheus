@@ -10,7 +10,7 @@ Please, cite this project as the following paper (BibTeX format):
         author = {Cosimo Anglano and Massimo Canonico and Marco Guazzone},
         title = {{Prometheus}: a flexible toolkit for the experimentation with virtualized infrastructures}
         keywords = {toolkit, resource management, experimental evaluation, physical testbed, virtualization},
-		note = {Submitted for publication},
+        note = {Submitted for publication},
     }
 
 
