@@ -13,5 +13,6 @@
 
 # Other files
 certs
+config.mk
 tmp
 olio_runme.sh
