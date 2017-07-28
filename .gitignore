@@ -11,6 +11,12 @@
 *.la
 *.a
 
+# Compiled Java files
+*.class
+
+# Compiled Python files
+*.pyc
+
 # Other files
 certs
 config.mk
