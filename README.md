@@ -110,20 +110,29 @@ Building
 
 ### Prerequisites
 
+#### Hard Requirements
+
+The following software components are always required:
+
 * A modern C++98 compiler (e.g., GCC v4.8 or newer is fine)
 * [Boost](http://boost.org) C++ libraries (v1.60 or newer, but v1.64 which is broken)
+* [dcsxx-commons](https://github.com/sguazt/dcsxx-commons) library (v2 or newer)
+* [JsonCpp](https://github.com/open-source-parsers/jsoncpp) C++ library for interacting with JSON (v0.6 or newer)
+* [libvirt](http://libvirt.org) virtualization API library (v1 or newer)
+* ... and related prerequisites
+
+#### Soft Requirements
+
+The following software modules are needed only by certain classes of Prometheus (e.g., the Fuzzylite and Fuzzylitex libraries are needed only by those application managers that use fuzzy logic, like FCMS, APPLEware and FMPC):
+
 * [Boost.Numeric Bindings](http://svn.boost.org/svn/boost/sandbox/numeric_bindings) library (v2 or newer)
 * [Boost.uBLASx](https://github.com/sguazt/boost-ublasx) library (v1 or newer)
-* [dcsxx-commons](https://github.com/sguazt/dcsxx-commons) library (v2 or newer)
 * [dcsxx-control](https://github.com/sguazt/dcsxx-control) library (v2 or newer)
 * [dcsxx-sysid](https://github.com/sguazt/dcsxx-sysid) library (v1 or newer)
 * [Fuzzylite](http://www.fuzzylite.com) fuzzy logic control library (v5 or newer)
 * [Fuzzylitex](http://github.com/sguazt/fuzzylitex) fuzzy logic control library (v1.1.1 or newer)
-* [JsonCpp](https://github.com/open-source-parsers/jsoncpp) C++ library for interacting with JSON (v0.6 or newer)
 * [LAPACK](http://www.netlib.org/lapack/) Linear Algebra PACKage (v3.5 or newer)
-* [libvirt](http://libvirt.org) virtualization API library (v1 or newer)
 * Either [IBM CPLEX](https://www.ibm.com/software/products/it/ibmilogcpleoptistud) optimizer (v12.6 or newer) or [GUROBI](http://www.gurobi.com/products/gurobi-optimizer) optimizer (v6.0 or newer)
-* ... and related prerequisites
 
 ### Compilation
 
@@ -215,9 +224,12 @@ Running
 
 ### Prerequisite
 
-In addition to the compile-time prerequisites, you also need:
-* [optional] [RAIN](https://github.com/yungsters/rain-workload-toolkit) Workload toolkit (development version)
-* [optional] [YCSB](https://github.com/brianfrankcooper/YCSB) benchmark (development version)
+In addition to the compile-time prerequisites, you may also need the following software components:
+
+* [optional] [RAIN](https://github.com/yungsters/rain-workload-toolkit) Workload toolkit (development version).
+* [optional] [YCSB](https://github.com/brianfrankcooper/YCSB) benchmark.
+  The exact version of YCSB varies according to the workload one wants to generate.
+  Visit the YCSB project page for more details.
 
 ### Execution
 
