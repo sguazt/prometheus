@@ -10,7 +10,7 @@ Please, cite this project as the following paper (BibTeX format):
 
     @MISC{Prometheus,
         author = {Cosimo Anglano and Massimo Canonico and Marco Guazzone},
-        title = {{Prometheus}: a flexible toolkit for the experimentation with virtualized infrastructures}
+        title = {{Prometheus}: a flexible toolkit for the experimentation with virtualized infrastructures},
         keywords = {toolkit, resource management, experimental evaluation, physical testbed, virtualization},
         note = {Submitted for publication},
     }
@@ -20,7 +20,7 @@ In addition, you can cite the following papers where Prometheus has been used to
 
     @ARTICLE{CPE:CPE3968,
         author = {Cosimo Anglano and Massimo Canonico and Marco Guazzone},
-        title = {{FCMS}: a Fuzzy Controller for {CPU} and Memory Consolidation under {SLA} Constraints}
+        title = {{FCMS}: a Fuzzy Controller for {CPU} and Memory Consolidation under {SLA} Constraints},
         journal = {Concurrency and Computation: Practice and Experience},
         year = {2017},
         volume = {29},
