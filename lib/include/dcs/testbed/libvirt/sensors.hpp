@@ -224,6 +224,16 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 	{
 	}
 
+	public: void use_meminfo_server(bool value)
+	{
+		use_meminfo_srv_ = value;
+	}
+
+	public: bool use_meminfo_server() const
+	{
+		return use_meminfo_srv_;
+	}
+
 	private: void do_sense()
 	{
 		int ret;
@@ -245,244 +255,224 @@ class memory_utilization_sensor: public base_sensor<TraitsT>
 //			DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
 //		}
 
-		bool ok = true;
+		bool ok = false;
 
-		//NOTE: not all domains support virDomainMemoryStats. So be prepared to get a failure
-		virDomainMemoryStatStruct stats[VIR_DOMAIN_MEMORY_STAT_NR];
-		int nr_stats = virDomainMemoryStats(p_dom_, stats, VIR_DOMAIN_MEMORY_STAT_NR, VIR_DOMAIN_AFFECT_CURRENT);
-		if (0 <= nr_stats)
-		{
-			// Currently libvirt offers these stats:
-			// - ..._SWAP_IN: The total amount of data read from swap space (in kB).
-			// - ..._SWAP_OUT: The total amount of memory written out to swap space (in kB).
-			// - ..._MAJOR_FAULT: Number of page faults that have occured when a process makes a valid access to virtual memory that is not available, for which disk I/O is required.
-			// - ..._MINOR_FAULT: Number of page faults that have occurred when a process makes a valid access to virtual memory that is not available, for which disk I/O is'nt required.
-			// - ..._UNUSED: The amount of memory left completely unused by the system (in kB). Memory that is available but used for reclaimable caches should NOT be reported as free.
-			// - ..._AVAILABLE: The total amount of usable memory as seen by the domain (in kB). This value may be less than the amount of memory assigned to the domain if a balloon driver is in use or if the guest OS does not initialize all assigned pages.
-			// - ..._ACTUAL_BALLOON: Current balloon value (in KB).
-			// - ..._RSS: Resident Set Size of the process running the domain (in kB).
-
-			long double mem_avail = 0;
-			for (int i = 0; i < nr_stats; ++i)
-			{
-				if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_AVAILABLE)
-				{
-					mem_avail = stats[i].val;
-				}
-			}
-
-			////NOTE: Currently, it seems that 'maxMem' field gives a too high value.
-			////      So use the 'memory' field which should give a reasonable value.
-			////mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.maxMem));
-			//mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.memory));
-			mem_util_ = static_cast<double>((cur_max_mem-mem_avail)/static_cast<long double>(cfg_max_mem));
-			dom_mem_tot = cur_max_mem; //FIXME: what is the best value to use?
-		}
-		else
-		{
 #ifdef DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
-			if (use_meminfo_srv_)
+		if (use_meminfo_srv_)
+		{
+			try
 			{
-				try
+				namespace asio = boost::asio;
+
+				//std::string server_addr = DCS_TESTBED_SENSOR_MEMINFO_SERVER_ADDRESS;
+				//std::string server_port = DCS_TESTBED_SENSOR_MEMINFO_SERVER_PORT;
+				std::string server_addr = detail::domain_name(p_conn_, p_dom_);
+				std::string server_port = DCS_TESTBED_SENSOR_MEMINFO_SERVER_PORT;
+
+				DCS_DEBUG_TRACE("Connecting to " << server_addr << " on port " << server_port);
+
+				asio::io_service io_service;
+
+				asio::ip::tcp::resolver resolver(io_service);
+				asio::ip::tcp::resolver::query query(server_addr, server_port);
+				asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+
+				asio::ip::tcp::socket socket(io_service);
+				boost::asio::connect(socket, endpoint_iterator);
+
+				std::ostringstream oss;
+				for (;;)
 				{
-					namespace asio = boost::asio;
+					boost::array<char, 1024> buf;
+					boost::system::error_code error;
 
-					//std::string server_addr = DCS_TESTBED_SENSOR_MEMINFO_SERVER_ADDRESS;
-					//std::string server_port = DCS_TESTBED_SENSOR_MEMINFO_SERVER_PORT;
-					std::string server_addr = detail::domain_name(p_conn_, p_dom_);
-					std::string server_port = DCS_TESTBED_SENSOR_MEMINFO_SERVER_PORT;
-
-					DCS_DEBUG_TRACE("Connecting to " << server_addr << " on port " << server_port);
-
-					asio::io_service io_service;
-
-					asio::ip::tcp::resolver resolver(io_service);
-					asio::ip::tcp::resolver::query query(server_addr, server_port);
-					asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-
-					asio::ip::tcp::socket socket(io_service);
-					boost::asio::connect(socket, endpoint_iterator);
-
-					std::ostringstream oss;
-					for (;;)
+					const std::size_t len = socket.read_some(boost::asio::buffer(buf), error);
+					if (error == boost::asio::error::eof)
 					{
-						boost::array<char, 1024> buf;
-						boost::system::error_code error;
-
-						const std::size_t len = socket.read_some(boost::asio::buffer(buf), error);
-						if (error == boost::asio::error::eof)
-						{
-							break; // Connection closed cleanly by peer.
-						}
-						else if (error)
-						{
-							throw boost::system::system_error(error); // Some other error.
-						}
-
-						oss << std::string(buf.data(), len);
+						break; // Connection closed cleanly by peer.
 					}
-					socket.close();
-					
-					if (!oss.str().empty())
+					else if (error)
 					{
-						boost::uint32_t sz;
-						std::string meminfo;
-						
-						boost::tie(sz, meminfo) = detail::meminfo_unpack(oss.str().c_str());
+						throw boost::system::system_error(error); // Some other error.
+					}
 
-						DCS_DEBUG_TRACE("CONFIG MAX MEM: " << cfg_max_mem);
-						DCS_DEBUG_TRACE("CURRENT MAX MEM: " << cur_max_mem);
-						DCS_DEBUG_TRACE("CURRENT MEM: " << detail::current_memory(p_conn_, p_dom_));
-						DCS_DEBUG_TRACE("MEMINFO: " << meminfo);
+					oss << std::string(buf.data(), len);
+				}
+				socket.close();
+				
+				if (!oss.str().empty())
+				{
+					boost::uint32_t sz;
+					std::string meminfo;
+					
+					boost::tie(sz, meminfo) = detail::meminfo_unpack(oss.str().c_str());
 
-						Json::Value root;   // will contains the root value after parsing
-						Json::Reader reader;
-						bool parse_ok = reader.parse(meminfo, root);
-						if (parse_ok)
+					DCS_DEBUG_TRACE("CONFIG MAX MEM: " << cfg_max_mem);
+					DCS_DEBUG_TRACE("CURRENT MAX MEM: " << cur_max_mem);
+					DCS_DEBUG_TRACE("CURRENT MEM: " << detail::current_memory(p_conn_, p_dom_));
+					DCS_DEBUG_TRACE("MEMINFO: " << meminfo);
+
+					Json::Value root;   // will contains the root value after parsing
+					Json::Reader reader;
+					bool parse_ok = reader.parse(meminfo, root);
+					if (parse_ok)
+					{
+						// From linux kernel 3.x:
+						//  Many load balancing and workload placing programs check /proc/meminfo to
+						//  estimate how much free memory is available.
+						//  They generally do this by adding up "free" and "cached", which was fine ten
+						//  years ago, but is pretty much guaranteed to be wrong today.
+						//  It is wrong because Cached includes memory that is not freeable as page
+						//  cache, for example shared memory segments, tmpfs, and ramfs, and it does not
+						//  include reclaimable slab memory, which can take up a large fraction of
+						//  system memory on mostly idle systems with lots of files.
+						//  Currently, the amount of memory that is available for a new workload,
+						//  without pushing the system into swap, can be estimated from MemFree,
+						//  Active(file), Inactive(file), and SReclaimable, as well as the "low"
+						//  watermarks from /proc/zoneinfo.
+						//  See also '<linux-kernel-source>/fs/proc/meminfo.c'.
+
+						long double mem_avail = 0;
+						if (root.isMember("MemAvailable"))
 						{
-							// From linux kernel 3.x:
-							//  Many load balancing and workload placing programs check /proc/meminfo to
-							//  estimate how much free memory is available.
-							//  They generally do this by adding up "free" and "cached", which was fine ten
-							//  years ago, but is pretty much guaranteed to be wrong today.
-							//  It is wrong because Cached includes memory that is not freeable as page
-							//  cache, for example shared memory segments, tmpfs, and ramfs, and it does not
-							//  include reclaimable slab memory, which can take up a large fraction of
-							//  system memory on mostly idle systems with lots of files.
-							//  Currently, the amount of memory that is available for a new workload,
-							//  without pushing the system into swap, can be estimated from MemFree,
-							//  Active(file), Inactive(file), and SReclaimable, as well as the "low"
-							//  watermarks from /proc/zoneinfo.
-							//  See also '<linux-kernel-source>/fs/proc/meminfo.c'.
+							//long double mem_tot = 0;
+							std::istringstream iss;
+							//iss.str(root.get("MemTotal", "").asString());
+							//iss >> mem_tot;
+							iss.str(root.get("MemAvailable", "").asString());
+							iss >> mem_avail;
+						}
+						else if (root.isMember("MemFree"))
+						{
+							// Use the old (and unreliable) method
 
-							long double mem_avail = 0;
-							if (root.isMember("MemAvailable"))
-							{
-								//long double mem_tot = 0;
-								std::istringstream iss;
-								//iss.str(root.get("MemTotal", "").asString());
-								//iss >> mem_tot;
-								iss.str(root.get("MemAvailable", "").asString());
-								iss >> mem_avail;
-							}
-							else if (root.isMember("MemFree"))
-							{
-								// Use the old (and unreliable) method
+							long double mem_free = 0;
+							std::istringstream iss;
+							iss.str(root.get("MemFree", "").asString());
+							iss >> mem_free;
+							long double mem_cache = 0;
+							iss.str(root.get("Cached", "0").asString());
+							iss >> mem_cache;
 
-								long double mem_free = 0;
-								std::istringstream iss;
-								iss.str(root.get("MemFree", "").asString());
-								iss >> mem_free;
-								long double mem_cache = 0;
-								iss.str(root.get("Cached", "0").asString());
-								iss >> mem_cache;
+							mem_avail = mem_free+mem_cache;
+						}
 
-								mem_avail = mem_free+mem_cache;
-							}
-
-							long double mem_tot = 0;
-							if (root.isMember("MemTotal"))
-							{
-								std::istringstream iss;
-								iss.str(root.get("MemTotal", "").asString());
-								iss >> mem_tot;
-							}
-							else
-							{
-								//mem_tot = static_cast<long double>(cur_max_mem);
-								mem_tot = detail::current_memory(p_conn_, p_dom_);
-							}
-
-							if (root.isMember("Committed_AS"))
-							{
-								long double mem_committed = 0;
-								std::istringstream iss;
-								iss.str(root.get("Committed_AS", "").asString());
-								iss >> mem_committed;
-
-								if (mem_avail > (mem_tot-mem_committed))
-								{
-									DCS_DEBUG_TRACE("COMMITTED: " << mem_committed << " => Adjust Available Memory: "  << mem_avail << " -> " << (mem_tot-mem_committed));
-									mem_avail = mem_tot-mem_committed;
-								}
-							}
-
-							//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
-							//      So use the 'memory' field which should give a reasonable value.
-							//////mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(node_info.maxMem));
-							//////mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.memory));
-							////mem_util_ = 1.0-static_cast<double>(mem_avail/mem_tot);
-							//mem_util_ = static_cast<double>((cur_max_mem-mem_avail)/static_cast<long double>(cfg_max_mem));
-#if 1
-							// Use internal+external information (needs the scale factor, see below at the end of the function)
-							mem_util_ = static_cast<double>((mem_tot-mem_avail)/static_cast<long double>(cfg_max_mem));
-#else
-							// Only use internal information (no need to use the scale factor, see below at the end of the function)
-							mem_util_ = 1.0 - mem_avail/static_cast<long double>(mem_tot);
-#endif
-							dom_mem_tot = mem_tot;
+						long double mem_tot = 0;
+						if (root.isMember("MemTotal"))
+						{
+							std::istringstream iss;
+							iss.str(root.get("MemTotal", "").asString());
+							iss >> mem_tot;
 						}
 						else
 						{
-							DCS_EXCEPTION_THROW(std::runtime_error, "Unexpected format for JSON file");
+							//mem_tot = static_cast<long double>(cur_max_mem);
+							mem_tot = detail::current_memory(p_conn_, p_dom_);
 						}
+
+						if (root.isMember("Committed_AS"))
+						{
+							long double mem_committed = 0;
+							std::istringstream iss;
+							iss.str(root.get("Committed_AS", "").asString());
+							iss >> mem_committed;
+
+							if (mem_avail > (mem_tot-mem_committed))
+							{
+								DCS_DEBUG_TRACE("COMMITTED: " << mem_committed << " => Adjust Available Memory: "  << mem_avail << " -> " << (mem_tot-mem_committed));
+								mem_avail = mem_tot-mem_committed;
+							}
+						}
+
+						//NOTE: Currently, it seems that 'maxMem' field gives a too high value.
+						//      So use the 'memory' field which should give a reasonable value.
+						//////mem_util_ = static_cast<double>(mem_avail/static_cast<long double>(node_info.maxMem));
+						//////mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.memory));
+						////mem_util_ = 1.0-static_cast<double>(mem_avail/mem_tot);
+						//mem_util_ = static_cast<double>((cur_max_mem-mem_avail)/static_cast<long double>(cfg_max_mem));
+#if 1
+						// Use internal+external information (needs the scale factor, see below at the end of the function)
+						mem_util_ = static_cast<double>((mem_tot-mem_avail)/static_cast<long double>(cfg_max_mem));
+#else
+						// Only use internal information (no need to use the scale factor, see below at the end of the function)
+						mem_util_ = 1.0 - mem_avail/static_cast<long double>(mem_tot);
+#endif
+						dom_mem_tot = mem_tot;
+
+						ok = true;
 					}
 					else
 					{
-						ok = false;
+						DCS_EXCEPTION_THROW(std::runtime_error, "Unexpected format for JSON file");
 					}
 				}
-				catch (std::exception const& e)
-				{
-					dcs::log_warn(DCS_LOGGING_AT, std::string("Failed to get precise domain memory stats: ") + e.what());
-					ok = false;
-				}
 			}
-			else
+			catch (std::exception const& e)
 			{
-				dcs::log_warn(DCS_LOGGING_AT, std::string("Unsupported precise domain memory stats: ") + detail::last_error(p_conn_));
-
-				//// The most supported solution in libvirt is to use the following information:
-				//// - memory: the memory used by the domain (in kB)
-				//// - maxMem: the maximum memory allowed by the domain (in kB)
-				//// However, note that 'memory' is a static value (i.e., the currently allocated memory) that doesn't reflect the amount of memory effectively used by the domain
-				//mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(node_info.maxMem));
-
-				ok = false; // see below
+				dcs::log_warn(DCS_LOGGING_AT, std::string("Failed to get precise domain memory stats: ") + e.what());
+				ok = false;
 			}
-#else // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
-			dcs::log_warn(DCS_LOGGING_AT, std::string("Unsupported precise domain memory stats: ") + detail::last_error(p_conn_));
-
-			//// The most supported solution in libvirt is to use the following information:
-			//// - memory: the memory used by the domain (in kB)
-			//// - maxMem: the maximum memory allowed by the domain (in kB)
-			//// However, note that 'memory' is a static value (i.e., the currently allocated memory) that doesn't reflect the amount of memory effectively used by the domain
-			//mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(node_info.maxMem));
-
-			ok = false; // see below
-#endif // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 		}
+#endif // DCS_TESTBED_SENSOR_HAVE_MEMINFO_SERVER
 
 		if (!ok)
 		{
-			// Get the RAM used
-			::virDomainInfo node_info;
-			ret = ::virDomainGetInfo(p_dom_, &node_info);
-			if (-1 == ret)
+			//NOTE: not all domains support virDomainMemoryStats and those that support it may not support all stats. So be prepared to get a failure
+			virDomainMemoryStatStruct stats[VIR_DOMAIN_MEMORY_STAT_NR];
+			int nr_stats = virDomainMemoryStats(p_dom_, stats, VIR_DOMAIN_MEMORY_STAT_NR, VIR_DOMAIN_AFFECT_CURRENT);
+			if (0 <= nr_stats)
 			{
-				::std::ostringstream oss;
-				oss << "Failed to get domain info: " << detail::last_error(p_conn_);
+				// Currently libvirt offers these stats:
+				// - ..._SWAP_IN: The total amount of data read from swap space (in kB).
+				// - ..._SWAP_OUT: The total amount of memory written out to swap space (in kB).
+				// - ..._MAJOR_FAULT: Number of page faults that have occured when a process makes a valid access to virtual memory that is not available, for which disk I/O is required.
+				// - ..._MINOR_FAULT: Number of page faults that have occurred when a process makes a valid access to virtual memory that is not available, for which disk I/O is'nt required.
+				// - ..._UNUSED: The amount of memory left completely unused by the system (in kB). Memory that is available but used for reclaimable caches should NOT be reported as free.
+				// - ..._AVAILABLE: The total amount of usable memory as seen by the domain (in kB). This value may be less than the amount of memory assigned to the domain if a balloon driver is in use or if the guest OS does not initialize all assigned pages.
+				// - ..._ACTUAL_BALLOON: Current balloon value (in KB).
+				// - ..._RSS: Resident Set Size of the process running the domain (in kB).
 
-				DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				long double mem_avail = 0;
+				for (int i = 0; i < nr_stats; ++i)
+				{
+					if (stats[i].tag == VIR_DOMAIN_MEMORY_STAT_AVAILABLE)
+					{
+						mem_avail = stats[i].val;
+						ok = true;
+					}
+				}
+
+				////NOTE: Currently, it seems that 'maxMem' field gives a too high value.
+				////      So use the 'memory' field which should give a reasonable value.
+				////mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.maxMem));
+				//mem_util_ = 1.0-static_cast<double>(mem_avail/static_cast<long double>(node_info.memory));
+				mem_util_ = static_cast<double>((cur_max_mem-mem_avail)/static_cast<long double>(cfg_max_mem));
+				dom_mem_tot = cur_max_mem; //FIXME: what is the best value to use?
 			}
 
-			// The most supported solution in libvirt is to use the following information:
-			// - memory: the memory used by the domain (in kB)
-			// - maxMem: the maximum memory allowed by the domain (in kB)
-			// However, note that 'memory' is a static value (i.e., the currently allocated memory) that doesn't reflect the amount of memory effectively used by the domain
-			//mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(node_info.maxMem));
-			mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(cfg_max_mem));
-			dom_mem_tot = cur_max_mem; //FIXME: what is the best value to use?
+			if (!ok)
+			{
+				//NOTE: this should be the most supported way to get memory info with libvirt but also the most inaccurate one
+
+				// Get the RAM used
+				::virDomainInfo node_info;
+				ret = ::virDomainGetInfo(p_dom_, &node_info);
+				if (-1 == ret)
+				{
+					::std::ostringstream oss;
+					oss << "Failed to get domain info: " << detail::last_error(p_conn_);
+
+					DCS_EXCEPTION_THROW(::std::runtime_error, oss.str());
+				}
+
+				// The most supported solution in libvirt is to use the following information:
+				// - memory: the memory used by the domain (in kB)
+				// - maxMem: the maximum memory allowed by the domain (in kB)
+				// However, note that 'memory' is a static value (i.e., the currently allocated memory) that doesn't reflect the amount of memory effectively used by the domain
+				//mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(node_info.maxMem));
+				mem_util_ = static_cast<double>(node_info.memory/static_cast<long double>(cfg_max_mem));
+				dom_mem_tot = cur_max_mem; //FIXME: what is the best value to use?
+			}
 		}
 
 #if 1
