@@ -126,7 +126,7 @@ class response_time_sensor: public base_sensor<TraitsT>
 				continue;
 			}
 
-			std::time_t obs_ts = 0; // timestamp (in secs from Epoch)
+			std::time_t obs_ts = 0; // timestamp (in msecs from Epoch)
 			std::string obs_op; // Operation label
 			long obs_rtns = 0; // response time (in ns)
 			std::size_t field = 0;
@@ -193,7 +193,7 @@ class response_time_sensor: public base_sensor<TraitsT>
 				}
 			}
 
-			obs_.push_back(observation_type(obs_ts, obs_op, obs_rtns*1.0e-9));
+			obs_.push_back(observation_type(obs_ts*1.0e-3, obs_op, obs_rtns*1.0e-9));
 		}
 
 		DCS_DEBUG_TRACE("END Do Sense");
