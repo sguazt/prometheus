@@ -158,11 +158,11 @@ class application: public base_application<TraitsT>
 
 	private: bool do_slo(application_performance_category cat, real_type val) const
 	{
-		DCS_ASSERT(slo_map_.count(cat) > 0,
-				   DCS_EXCEPTION_THROW(::std::invalid_argument,
-									   "Invalid category: SLO checker not found"));
+		//DCS_ASSERT(slo_map_.count(cat) > 0,
+		//		   DCS_EXCEPTION_THROW(::std::invalid_argument,
+		//							   "Invalid category: SLO checker not found"));
 
-		return slo_map_.at(cat)(val);
+		return slo_map_.count(cat) > 0 ? slo_map_.at(cat)(val) : true;
 	}
 
 
