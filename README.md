@@ -76,7 +76,9 @@ This project has been published in the following article:
 >
 > *Prometheus: a flexible toolkit for the experimentation with virtualized infrastructures*
 >
-> Submitted for publication, 2017.
+> Concurrency and Computation: Practice and Experience, 2017.
+>
+> Accepted for publication.
 
 Furthermore, this project has been successfully used for the experimental evaluations presented in the following articles:
 
