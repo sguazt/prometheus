@@ -8,11 +8,13 @@ How to Cite
 
 Please, cite this project as the following paper (BibTeX format):
 
-    @MISC{Prometheus,
+    @JOURNAL{Prometheus,
         author = {Cosimo Anglano and Massimo Canonico and Marco Guazzone},
         title = {{Prometheus}: a flexible toolkit for the experimentation with virtualized infrastructures},
         journal = {Concurrency and Computation: Practice and Experience},
 		year = {2017},
+        doi = {10.1002/cpe.4400},
+        url = {http://dx.doi.org/10.1002/cpe.4400},
         keywords = {toolkit, resource management, experimental evaluation, physical testbed, virtualization},
         note = {Accepted for publication},
     }
