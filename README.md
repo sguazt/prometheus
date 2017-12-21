@@ -18,6 +18,7 @@ Please, cite this project as the following paper (BibTeX format):
 		doi = {10.1002/cpe.4400},
 		pages = {e4400--n/a},
 		keywords = {experimental evaluation, physical testbed, resource management, toolkit, virtualization},
+		note = {In Press},
 	}
 
 
