@@ -83,7 +83,9 @@ This project has been published in the following article:
 >
 > Concurrency and Computation: Practice and Experience, 2017.
 >
-> Accepted for publication.
+> In Press.
+>
+> doi:[10.1002/cpe.4400](http://dx.doi.org/10.1002/cpe.4400).
 
 Furthermore, this project has been successfully used for the experimental evaluations presented in the following articles:
 
