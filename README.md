@@ -85,7 +85,7 @@ This project has been published in the following article:
 >
 > In Press.
 >
-> doi:[10.1002/cpe.4400](http://dx.doi.org/10.1002/cpe.4400).
+> doi:[10.1002/cpe.4400](https://doi.org/10.1002/cpe.4400).
 
 Furthermore, this project has been successfully used for the experimental evaluations presented in the following articles:
 
@@ -95,7 +95,7 @@ Furthermore, this project has been successfully used for the experimental evalua
 >
 > Concurrency and Computation: Practice and Experience, 29(5), 2017.
 >
-> doi:[10.1002/cpe.3968](http://dx.doi.org/10.1002/cpe.3968).
+> doi:[10.1002/cpe.3968](https://doi.org/10.1002/cpe.3968).
 >
 >
 > Cosimo Anglano, Massimo Canonico and Marco Guazzone
@@ -104,7 +104,7 @@ Furthermore, this project has been successfully used for the experimental evalua
 >
 > Concurrency Computat.: Pract. Exper., 27(17):4491-4514, 2015.
 >
-> doi: [10.1002/cpe.3410](http://dx.doi.org/10.1002/cpe.3410)
+> doi: [10.1002/cpe.3410](https://doi.org/10.1002/cpe.3410)
 >
 >
 > Luca Albano, Cosimo Anglano, Massimo Canonico and Marco Guazzone
@@ -113,7 +113,7 @@ Furthermore, this project has been successfully used for the experimental evalua
 >
 > 2013 International Conference on Cloud and Green Computing (2013), Karlsruhe, Germany, pp. 159-166, 2013.
 >
-> doi: [10.1109/CGC.2013.31](http://dx.doi.org/10.1109/CGC.2013.31)
+> doi: [10.1109/CGC.2013.31](https://doi.org/10.1109/CGC.2013.31)
 
 
 Building
