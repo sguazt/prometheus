@@ -12,13 +12,14 @@ Please, cite this project as the following paper (BibTeX format):
         author = {Cosimo Anglano and Massimo Canonico and Marco Guazzone},
         title = {{Prometheus}: a flexible toolkit for the experimentation with virtualized infrastructures},
 		journal = {Concurrency and Computation: Practice and Experience},
-		year = {2017},
+		volume = {30},
+		number = {11},
+		year = {2018},
 		issn = {1532-0634},
 		url = {http://dx.doi.org/10.1002/cpe.4400},
 		doi = {10.1002/cpe.4400},
 		pages = {e4400--n/a},
 		keywords = {experimental evaluation, physical testbed, resource management, toolkit, virtualization},
-		note = {In Press},
 	}
 
 
@@ -81,9 +82,7 @@ This project has been published in the following article:
 >
 > *Prometheus: a flexible toolkit for the experimentation with virtualized infrastructures*
 >
-> Concurrency and Computation: Practice and Experience, 2017.
->
-> In Press.
+> Concurrency and Computation: Practice and Experience, 30(11), 2018.
 >
 > doi:[10.1002/cpe.4400](https://doi.org/10.1002/cpe.4400).
 
