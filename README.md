@@ -3,6 +3,9 @@ Prometheus
 
 A flexible toolkit for the experimentation with virtualized infrastructures.
 
+![Prometheus Logo](prometheus.png)
+
+
 How to Cite
 -----------
 
@@ -71,7 +74,7 @@ Overview
 --------
 
 Prometheus is a flexible toolkit for the experimentation with virtualized infrastructures.
-The System Under Test (SUT) is managed by exploiting virtualization technologies and, in particular, by using the [libvirt](http://www.libvirt.org) library.
+The System Under Test (SUT) is managed by exploiting virtualization technologies and, in particular, by using the [libvirt](https://www.libvirt.org) library.
 
 Prometheus consists of a set of C++ components for setting up and managing a physical testbed.
 This testbed allows the experimenter to perform both system identification and resource management experiments
@@ -260,3 +263,9 @@ In addition to the compile-time prerequisites, you may also need the following s
 * To get a complete list of all supported command-line options, run:
 
     $ ./app/src/sysmgt --help
+
+
+Authors
+--------
+
+- [Marco Guazzone](http://people.unipmn.it/sguazt)
