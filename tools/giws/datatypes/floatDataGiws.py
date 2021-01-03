@@ -34,24 +34,25 @@
 # 
 # For more information, see the file COPYING
 
-from dataGiws import dataGiws
+from datatypes.dataGiws import dataGiws
 
 class floatDataGiws(dataGiws):
 
-	type="jfloat"
-	nativeType="float"
-	callMethod="CallFloatMethod"
-	callStaticMethod="CallStaticFloatMethod"
-	
-	def getTypeSignature(self):
-		return "F"
+    type="jfloat"
+    nativeType="float"
+    callMethod="CallFloatMethod"
+    callStaticMethod="CallStaticFloatMethod"
+    
+    def getTypeSignature(self):
+        return "F"
 
-	def getRealJavaType(self):
-		return "float"
-	
-	def getDescription(self):
-		return "unsigned 8 bits"
+    def getRealJavaType(self):
+        return "float"
+    
+    def getDescription(self):
+        return "unsigned 8 bits"
 
 if __name__ == '__main__':
-	print floatDataGiws().getReturnTypeSyntax()
+    #print floatDataGiws().getReturnTypeSyntax() # Python 2
+    print(floatDataGiws().getReturnTypeSyntax())
 

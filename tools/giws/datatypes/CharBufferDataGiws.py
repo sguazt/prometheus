@@ -34,26 +34,26 @@
 # 
 # For more information, see the file COPYING
 
-from dataBufferGiws import dataBufferGiws
+from datatypes.dataBufferGiws import dataBufferGiws
 from configGiws import configGiws
 from JNIFrameWork import JNIFrameWork
 
 class CharBufferDataGiws(dataBufferGiws):
-	__isArray=True
-	nativeType="char"
+    __isArray=True
+    nativeType="char"
 
-	def getTypeSignature(self):
-		return "Ljava/nio/CharBuffer;"
+    def getTypeSignature(self):
+        return "Ljava/nio/CharBuffer;"
 
-	def getJavaTypeSyntax(self):
-		return "jobject"
+    def getJavaTypeSyntax(self):
+        return "jobject"
 
-	def getRealJavaType(self):
-		return "java.lang.CharBuffer"
+    def getRealJavaType(self):
+        return "java.lang.CharBuffer"
 
-	def getDescription(self):
-		return "Java CharBuffer"
+    def getDescription(self):
+        return "Java CharBuffer"
 
-	def getJavaBufferType(self):
-		return "CharBuffer"
+    def getJavaBufferType(self):
+        return "CharBuffer"
 

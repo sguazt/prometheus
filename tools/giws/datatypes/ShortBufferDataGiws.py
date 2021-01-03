@@ -34,26 +34,26 @@
 # 
 # For more information, see the file COPYING
 
-from dataBufferGiws import dataBufferGiws
+from datatypes.dataBufferGiws import dataBufferGiws
 from configGiws import configGiws
 from JNIFrameWork import JNIFrameWork
 
 class ShortBufferDataGiws(dataBufferGiws):
-	__isArray=True
-	nativeType="short"
+    __isArray=True
+    nativeType="short"
 
-	def getTypeSignature(self):
-		return "Ljava/nio/ShortBuffer;"
+    def getTypeSignature(self):
+        return "Ljava/nio/ShortBuffer;"
 
-	def getJavaTypeSyntax(self):
-		return "jobject"
+    def getJavaTypeSyntax(self):
+        return "jobject"
 
-	def getRealJavaType(self):
-		return "java.lang.ShortBuffer"
+    def getRealJavaType(self):
+        return "java.lang.ShortBuffer"
 
-	def getDescription(self):
-		return "Java ShortBuffer"
+    def getDescription(self):
+        return "Java ShortBuffer"
 
-	def getJavaBufferType(self):
-		return "ShortBuffer"
+    def getJavaBufferType(self):
+        return "ShortBuffer"
 

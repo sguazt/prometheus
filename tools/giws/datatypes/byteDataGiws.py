@@ -34,24 +34,25 @@
 # 
 # For more information, see the file COPYING
 
-from dataGiws import dataGiws
+from datatypes.dataGiws import dataGiws
 
 class byteDataGiws(dataGiws):
 
-	type="jbyte"
-	nativeType="byte"
-	callMethod="CallByteMethod"
-	callStaticMethod="CallStaticByteMethod"
-				
-	def getTypeSignature(self):
-		return "B"
+    type="jbyte"
+    nativeType="byte"
+    callMethod="CallByteMethod"
+    callStaticMethod="CallStaticByteMethod"
+                
+    def getTypeSignature(self):
+        return "B"
 
-	def getRealJavaType(self):
-		return "byte"
-	
-	def getDescription(self):
-		return "signed 8 bits"
-	
+    def getRealJavaType(self):
+        return "byte"
+    
+    def getDescription(self):
+        return "signed 8 bits"
+    
 if __name__ == '__main__':
-	print byteDataGiws().getReturnTypeSyntax()
+    #print byteDataGiws().getReturnTypeSyntax() # Python 2
+    print(byteDataGiws().getReturnTypeSyntax())
 

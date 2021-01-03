@@ -34,27 +34,27 @@
 # 
 # For more information, see the file COPYING
 
-from dataGiws import dataGiws
+from datatypes.dataGiws import dataGiws
 
 class longDataGiws(dataGiws):
-	"""
-	Manages Java datatype long
-	"""
-	
-	type="jlong"
-	nativeType="long long"
-	callMethod="CallLongMethod"
-	callStaticMethod="CallStaticLongMethod"
-	
-	def getTypeSignature(self):
-		return "J"
+    """
+    Manages Java datatype long
+    """
+    
+    type="jlong"
+    nativeType="long long"
+    callMethod="CallLongMethod"
+    callStaticMethod="CallStaticLongMethod"
+    
+    def getTypeSignature(self):
+        return "J"
 
-	def getRealJavaType(self):
-		return "long"
+    def getRealJavaType(self):
+        return "long"
 
-	def getDescription(self):
-		return "signed 64 bits"
+    def getDescription(self):
+        return "signed 64 bits"
 
 if __name__ == '__main__':
-	longDataGiws().getReturnTypeSyntax()
+    longDataGiws().getReturnTypeSyntax()
 

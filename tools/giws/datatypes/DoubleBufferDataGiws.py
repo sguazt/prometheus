@@ -34,23 +34,23 @@
 # 
 # For more information, see the file COPYING
 
-from dataBufferGiws import dataBufferGiws
+from datatypes.dataBufferGiws import dataBufferGiws
 from configGiws import configGiws
 from JNIFrameWork import JNIFrameWork
 
 class DoubleBufferDataGiws(dataBufferGiws):
-	__isArray=True
-	nativeType="double"
+    __isArray=True
+    nativeType="double"
 
-	def getTypeSignature(self):
-		return "Ljava/nio/DoubleBuffer;"
+    def getTypeSignature(self):
+        return "Ljava/nio/DoubleBuffer;"
 
-	def getRealJavaType(self):
-		return "java.lang.DoubleBuffer"
+    def getRealJavaType(self):
+        return "java.lang.DoubleBuffer"
 
-	def getDescription(self):
-		return "Java DoubleBuffer"
+    def getDescription(self):
+        return "Java DoubleBuffer"
 
-	def getJavaBufferType(self):
-		return "DoubleBuffer"
+    def getJavaBufferType(self):
+        return "DoubleBuffer"
 

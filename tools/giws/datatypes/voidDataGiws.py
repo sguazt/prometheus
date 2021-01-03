@@ -34,29 +34,30 @@
 #
 # For more information, see the file COPYING
 
-from dataGiws import dataGiws
+from datatypes.dataGiws import dataGiws
 
 class voidDataGiws(dataGiws):
 
-	nativeType="void"
-	callMethod="CallVoidMethod"
-	callStaticMethod="CallStaticVoidMethod"
-	temporaryVariableName="myStringBuffer"
+    nativeType="void"
+    callMethod="CallVoidMethod"
+    callStaticMethod="CallStaticVoidMethod"
+    temporaryVariableName="myStringBuffer"
 
-	def getTypeSignature(self):
-		return "V"
+    def getTypeSignature(self):
+        return "V"
 
-	def getJavaTypeSyntax(self):
-		return "void"
+    def getJavaTypeSyntax(self):
+        return "void"
 
-	def getJavaTypeSyntaxForceNotArray(self):
-		return self.getJavaTypeSyntax()
+    def getJavaTypeSyntaxForceNotArray(self):
+        return self.getJavaTypeSyntax()
 
-	def getDescription(self):
-		return "void type"
+    def getDescription(self):
+        return "void type"
 
- 	def getReturnSyntax(self):
-		return ""
+    def getReturnSyntax(self):
+        return ""
 
 if __name__ == '__main__':
-	print voidDataGiws().getReturnTypeSyntax()
+    #print voidDataGiws().getReturnTypeSyntax() # Python 2
+    print(voidDataGiws().getReturnTypeSyntax())

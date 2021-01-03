@@ -34,24 +34,25 @@
 # 
 # For more information, see the file COPYING
 
-from dataGiws import dataGiws
+from datatypes.dataGiws import dataGiws
 
 class shortDataGiws(dataGiws):
 
-	type="jshort"
-	nativeType="short"
-	callMethod="CallShortMethod"
-	callStaticMethod="CallStaticShortMethod"
-	
-	def getTypeSignature(self):
-		return "S"
+    type="jshort"
+    nativeType="short"
+    callMethod="CallShortMethod"
+    callStaticMethod="CallStaticShortMethod"
+    
+    def getTypeSignature(self):
+        return "S"
 
-	def getRealJavaType(self):
-		return "short"
-	
-	def getDescription(self):
-		return "signed 16 bits"
+    def getRealJavaType(self):
+        return "short"
+    
+    def getDescription(self):
+        return "signed 16 bits"
 
 if __name__ == '__main__':
-	print shortDataGiws().getReturnTypeSyntax()
+    #print shortDataGiws().getReturnTypeSyntax() # Python 2
+    print(shortDataGiws().getReturnTypeSyntax())
 

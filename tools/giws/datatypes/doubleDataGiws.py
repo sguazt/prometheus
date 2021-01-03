@@ -34,24 +34,24 @@
 # 
 # For more information, see the file COPYING
 
-from dataGiws import dataGiws
+from datatypes.dataGiws import dataGiws
 
 class doubleDataGiws(dataGiws):
-	"""
-	Manages Java datatype double
-	"""
+    """
+    Manages Java datatype double
+    """
 
-	type="jdouble"
-	nativeType="double"
-	callMethod="CallDoubleMethod"
-	callStaticMethod="CallStaticDoubleMethod"
-	
-	def getTypeSignature(self):
-		return "D"
+    type="jdouble"
+    nativeType="double"
+    callMethod="CallDoubleMethod"
+    callStaticMethod="CallStaticDoubleMethod"
+    
+    def getTypeSignature(self):
+        return "D"
 
-	def getRealJavaType(self):
-		return "double"
+    def getRealJavaType(self):
+        return "double"
 
-	def getDescription(self):
-		return "64 bits"
-	
+    def getDescription(self):
+        return "64 bits"
+    

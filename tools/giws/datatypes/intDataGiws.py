@@ -34,26 +34,27 @@
 # 
 # For more information, see the file COPYING
 
-from dataGiws import dataGiws
+from datatypes.dataGiws import dataGiws
 
 class intDataGiws(dataGiws):
-	"""
-	Manages Java datatype int
-	"""
-	type="jint"
-	nativeType="int"
-	callMethod="CallIntMethod"
-	callStaticMethod="CallStaticIntMethod"
+    """
+    Manages Java datatype int
+    """
+    type="jint"
+    nativeType="int"
+    callMethod="CallIntMethod"
+    callStaticMethod="CallStaticIntMethod"
 
-	def getTypeSignature(self):
-		return "I"
+    def getTypeSignature(self):
+        return "I"
 
-	def getRealJavaType(self):
-		return "int"
-		
-	def getDescription(self):
-		return "signed 32 bits"
-			
+    def getRealJavaType(self):
+        return "int"
+        
+    def getDescription(self):
+        return "signed 32 bits"
+            
 if __name__ == '__main__':
-	print intDataGiws().getReturnTypeSyntax()
+    #print intDataGiws().getReturnTypeSyntax() # Python 2
+    print(intDataGiws().getReturnTypeSyntax())
 

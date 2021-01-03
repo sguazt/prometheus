@@ -34,26 +34,26 @@
 # 
 # For more information, see the file COPYING
 
-from dataBufferGiws import dataBufferGiws
+from datatypes.dataBufferGiws import dataBufferGiws
 from configGiws import configGiws
 from JNIFrameWork import JNIFrameWork
 
 class LongBufferDataGiws(dataBufferGiws):
-	__isArray=True
-	nativeType="long long"
+    __isArray=True
+    nativeType="long long"
 
-	def getTypeSignature(self):
-		return "Ljava/nio/LongBuffer;"
+    def getTypeSignature(self):
+        return "Ljava/nio/LongBuffer;"
 
-	def getJavaTypeSyntax(self):
-		return "jobject"
+    def getJavaTypeSyntax(self):
+        return "jobject"
 
-	def getRealJavaType(self):
-		return "java.lang.LongBuffer"
+    def getRealJavaType(self):
+        return "java.lang.LongBuffer"
 
-	def getDescription(self):
-		return "Java LongBuffer"
+    def getDescription(self):
+        return "Java LongBuffer"
 
-	def getJavaBufferType(self):
-		return "LongBuffer"
+    def getJavaBufferType(self):
+        return "LongBuffer"
 

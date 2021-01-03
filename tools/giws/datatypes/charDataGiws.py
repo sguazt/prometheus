@@ -34,24 +34,25 @@
 # 
 # For more information, see the file COPYING
 
-from dataGiws import dataGiws
+from datatypes.dataGiws import dataGiws
 
 class charDataGiws(dataGiws):
 
-	type="jchar"
-	nativeType="unsigned short"
-	callMethod="CallCharMethod"
-	callStaticMethod="CallStaticCharMethod"
+    type="jchar"
+    nativeType="unsigned short"
+    callMethod="CallCharMethod"
+    callStaticMethod="CallStaticCharMethod"
 
-	def getTypeSignature(self):
-		return "C"
+    def getTypeSignature(self):
+        return "C"
 
-	def getRealJavaType(self):
-		return "char"
-	
-	def getDescription(self):
-		return "unsigned 16 bits"
-	
+    def getRealJavaType(self):
+        return "char"
+    
+    def getDescription(self):
+        return "unsigned 16 bits"
+    
 if __name__ == '__main__':
-	print charDataGiws().getReturnTypeSyntax()
+    #print charDataGiws().getReturnTypeSyntax() # Python 2
+    print(charDataGiws().getReturnTypeSyntax())
 
