@@ -83,8 +83,8 @@ export libvirt_cflags libvirt_ldflags libvirt_ldlibs
 export prometheus_have_meminfo_server prometheus_meminfo_server_port prometheus_have_matlab
 
 
-CXXFLAGS += -Wall -Wextra -ansi -pedantic
-#CXXFLAGS += -Wall -Wextra -std=c++11 -pedantic
+#CXXFLAGS += -Wall -Wextra -ansi -pedantic
+CXXFLAGS += -Wall -Wextra -std=c++11 -pedantic
 #ifeq (1,$(prometheus_debug))
 #CXXFLAGS += -UNDEBUG
 #CXXFLAGS += -O0 -g
@@ -93,10 +93,6 @@ CXXFLAGS += -Wall -Wextra -ansi -pedantic
 #CXXFLAGS += -O3
 #endif
 LDLIBS += -lm
-
-# The two lines below are a trick to cheat Make in calling c++ instead of cc when linking object files
-CC = $(CXX)
-CFLAGS = $(CXXFLAGS)
 
 ## [build]
 CXXFLAGS += $(build_cflags)
@@ -166,34 +162,42 @@ LDFLAGS += $(json_ldflags)
 LDLIBS += $(json_ldlibs)
 endif
 
+# The two lines below are a trick to cheat Make in calling c++ instead of cc when linking object files
+CC = $(CXX)
+CFLAGS = $(CXXFLAGS)
+
 export project_home tdigestx_home thirdparty_path
 export CC CFLAGS CXXFLAGS LDFLAGS LDLIBS
 
 
-.PHONY: all apps apps-clean apps-close-banner clean lib lib-clean default tdigestx tdigestx-clean test thirdparty thirdparty-clean
+.PHONY: all apps apps-clean apps-close-banner clean lib lib-clean scripts scripts-clean tdigestx tdigestx-clean test thirdparty thirdparty-clean
 .DEFAULT_GOAL: lib
 
 
 all: apps
 
-apps: lib apps-close-banner
+apps: lib scripts thirdparty apps-close-banner
 	cd apps && $(MAKE)
 
 apps-close-banner:
 	@echo ""
 	@echo "==========================================================================="
 	@echo "Don't forget to set library path before running these apps:"
-	@echo "# export LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(JAVA_HOME)/jre/lib/i386:$(JAVA_HOME)/jre/lib/i386/client/"
-	@echo "or"
-	@echo "# export LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(JAVA_HOME)/jre/lib/amd64:$(JAVA_HOME)/jre/lib/amd64/server/"
+	@echo "# export LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):/path/to/boost/libs:/path/to/jvm/lib:/path/to/jvm/lib/server:/path/to/fuzzylite"
+	@echo "You must use the same paths you specified in your 'config.mk' file."
+	@echo "For instance:"
+	#@echo "# export LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):thirdparty/boost/stage/lib:$(JAVA_HOME)/jre/lib/amd64:$(JAVA_HOME)/jre/lib/amd64/server:thirdparty/fuzzylite/fuzzylite/release/bin"
+	#@echo "or"
+	@echo "# export LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):thirdparty/boost/stage/lib:$(JAVA_HOME)/jre/lib:$(JAVA_HOME)/jre/lib/server:thirdparty/fuzzylite/fuzzylite/release/bin"
 	@echo "==========================================================================="
 
 apps-clean:
 	cd apps && $(MAKE) clean
 
-clean: apps-clean lib-clean thirdparty-clean
+clean: apps-clean lib-clean thirdparty-clean scripts-clean
 
-lib: thirdparty
+#lib: scripts thirdparty
+lib:
 	cd lib && $(MAKE)
 
 lib-clean:
@@ -211,3 +215,11 @@ tdigestx:
 
 tdigestx-clean:
 	cd $(tdigestx_home) && $(MAKE) clean
+
+scripts:
+	#TODO: use scripts/fuzzylite_version to set the variable PROMETHEUS_FUZZYLITE_VERSION (note, as of 2021-01-03, fuzzylite does not have a macro for retrieve its version at compile-time)
+	cd scripts && $(MAKE)
+
+scripts-clean:
+	cd scripts && $(MAKE) clean
+
