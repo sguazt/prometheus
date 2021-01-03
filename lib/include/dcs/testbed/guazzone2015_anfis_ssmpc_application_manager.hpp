@@ -1147,7 +1147,11 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
 
         for (std::size_t i = 0; i < num_outputs_; ++i)
         {
+#if defined(FL_VERSION) // Until fuzzylite v. 5.x (the FL_VERSION macro was removed since fuzzylite 6.x)
             const fl::Accumulated* p_fuzzyOutput = p_anfis_eng_->getOutputVariable(i)->fuzzyOutput();
+#else // Since fuzzylite v. 6.x
+            const fl::Aggregated* p_fuzzyOutput = p_anfis_eng_->getOutputVariable(i)->fuzzyOutput();
+#endif // FL_VERSION
             //const std::size_t numRules = p_fuzzyOutput->numberOfTerms();
 
             real_type wsum = 0;
@@ -1156,12 +1160,21 @@ DCS_DEBUG_TRACE("ANFIS TRAINED FIRST TIME -> RMSE: " << rmse);//XXX
                  j < nj;
                  ++j)
             {
+#if defined(FL_VERSION) // Until fuzzylite v. 5.x (the FL_VERSION macro was removed since fuzzylite 6.x)
                 const fl::Activated* p_activated = p_fuzzyOutput->getTerm(j);
                 const real_type w = p_activated->getDegree();
 
                 wsum += w;
 
                 const std::vector<real_type> coeffs = dynamic_cast<const fl::Linear*>(p_activated->getTerm())->coefficients();
+#else // Since fuzzylite v. 6.x
+                const fl::Activated& activated = p_fuzzyOutput->getTerm(j);
+                const real_type w = activated.getDegree();
+
+                wsum += w;
+
+                const std::vector<real_type> coeffs = dynamic_cast<const fl::Linear*>(activated.getTerm())->coefficients();
+#endif // FL_VERSION
 
                 for (std::size_t h = 0,
                                  nh = coeffs.size();

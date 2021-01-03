@@ -138,7 +138,11 @@ class albano2013v5_fuzzyqe_application_manager: public base_application_manager<
 		p_ov->setEnabled(true);
 		p_ov->setName(deltac_fuzzy_var_name);
 		p_ov->setRange(-1, 1);
+#if defined(FL_VERSION) // Until fuzzylite v. 5.x (the FL_VERSION macro was removed since fuzzylite 6.x)
 		p_ov->fuzzyOutput()->setAccumulation(new fl::AlgebraicSum());
+#else // Since fuzzylite v. 6.x
+		p_ov->fuzzyOutput()->setAggregation(new fl::AlgebraicSum());
+#endif // FL_VERSION
 		p_ov->setDefuzzifier(new fl::Centroid());
 		p_ov->setDefaultValue(fl::nan);
 		p_ov->setPreviousOutputValue(false);

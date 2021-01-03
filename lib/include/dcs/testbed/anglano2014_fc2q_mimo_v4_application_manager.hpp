@@ -246,8 +246,13 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_ov->setName(deltac_fuzzy_var_name);
 		p_ov->setRange(-1, 1);
 		//p_ov->setLockValueInRange(true);
+#if defined(FL_VERSION) // Until fuzzylite v. 5.x (the FL_VERSION macro was removed since fuzzylite 6.x)
 		p_ov->fuzzyOutput()->setAccumulation(new fl::AlgebraicSum()); // Larsen
 		//p_ov->fuzzyOutput()->setAccumulation(new fl::Maximum()); // Mamdani
+#else // Since fuzzylite v. 6.x
+		p_ov->fuzzyOutput()->setAggregation(new fl::AlgebraicSum()); // Larsen
+		//p_ov->fuzzyOutput()->setAggregation(new fl::Maximum()); // Mamdani
+#endif // FL_VERSION
 		p_ov->setDefuzzifier(new fl::Centroid());
 		p_ov->setDefaultValue(fl::nan);
 		p_ov->setPreviousValue(false);
@@ -420,8 +425,13 @@ class anglano2014_fc2q_mimo_v4_application_manager: public base_application_mana
 		p_ov->setName(deltam_fuzzy_var_name);
 		p_ov->setRange(-1, 1);
 		//p_ov->setLockValueInRange(true);
+#if defined(FL_VERSION) // Until fuzzylite v. 5.x (the FL_VERSION macro was removed since fuzzylite 6.x)
 		p_ov->fuzzyOutput()->setAccumulation(new fl::AlgebraicSum()); // Larsen
 		//p_ov->fuzzyOutput()->setAccumulation(new fl::Maximum()); // Mamdani
+#else // Since fuzzylite v. 6.x
+		p_ov->fuzzyOutput()->setAggregation(new fl::AlgebraicSum()); // Larsen
+		//p_ov->fuzzyOutput()->setAggregation(new fl::Maximum()); // Mamdani
+#endif // FL_VERSION
 		p_ov->setDefuzzifier(new fl::Centroid());
 		p_ov->setDefaultValue(fl::nan);
 		p_ov->setPreviousValue(false);

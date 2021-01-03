@@ -161,7 +161,11 @@ class rao2013_dynaqos_application_manager: public base_application_manager<Trait
 		p_ov->setEnabled(true);
 		p_ov->setName(du_fuzzy_var_name);
 		p_ov->setRange(-1, 1);
+#if defined(FL_VERSION) // Until fuzzylite v. 5.x (the FL_VERSION macro was removed since fuzzylite 6.x)
 		p_ov->fuzzyOutput()->setAccumulation(new ::fl::Maximum());
+#else // Since fuzzylite v. 6.x
+		p_ov->fuzzyOutput()->setAggregation(new ::fl::Maximum());
+#endif // FL_VERSION
 		p_ov->setDefuzzifier(new ::fl::Centroid());
 		p_ov->setDefaultValue(::fl::nan);
 		p_ov->setLockPreviousValue(false);
@@ -261,7 +265,11 @@ class rao2013_dynaqos_application_manager: public base_application_manager<Trait
 		p_ov->setEnabled(true);
 		p_ov->setName(alpha_fuzzy_var_name);
 		p_ov->setRange(0, 1);
+#if defined(FL_VERSION) // Until fuzzylite v. 5.x (the FL_VERSION macro was removed since fuzzylite 6.x)
 		p_ov->fuzzyOutput()->setAccumulation(new ::fl::Maximum());
+#else // Since fuzzylite v. 6.x
+		p_ov->fuzzyOutput()->setAggregation(new ::fl::Maximum());
+#endif // FL_VERSION
 		p_ov->setDefuzzifier(new ::fl::Centroid());
 		p_ov->setDefaultValue(::fl::nan);
 		p_ov->setLockPreviousValue(false);
