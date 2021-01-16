@@ -128,7 +128,7 @@ Building
 The following software components are always required:
 
 * A modern C++98 compiler (e.g., GCC v4.8 or newer is fine)
-* [Boost](http://boost.org) C++ libraries (v1.60 or newer, but v1.64 which is broken)
+* [Boost](http://boost.org) C++ libraries (v1.60 or newer, expect v1.64, which is broken)
 * [dcsxx-commons](https://github.com/sguazt/dcsxx-commons) library (v2 or newer)
 * [JsonCpp](https://github.com/open-source-parsers/jsoncpp) C++ library for interacting with JSON (v0.6 or newer)
 * [libvirt](http://libvirt.org) virtualization API library (v1 or newer)
